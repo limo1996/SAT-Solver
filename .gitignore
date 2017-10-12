@@ -71,3 +71,11 @@ Thumbs.db
 *.dll
 *.exe
 
+# idea fodlers
+.idea/
+
+# virtual env
+venv
+
+#python wrapper std_out redirect file
+python_wrapper/out
