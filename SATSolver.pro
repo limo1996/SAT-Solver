@@ -19,10 +19,13 @@ SOURCES += src/clause.cpp \
     src/CNFParser.cpp \
     src/main.cpp \
     src/variable.cpp \
-    src/clause.cpp
+    src/clause.cpp \
+    src/dpll.cpp \
+    src/exceptions.cpp
 
 HEADERS += \
     src/clause.h \
     src/variable.h \
     src/CNF.h \
-    src/cnfparser.h
+    src/cnfparser.h \
+    src/dpll.h

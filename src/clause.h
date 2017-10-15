@@ -1,3 +1,11 @@
+/****************************************************************************
+ *	Implemented by:	Psallidas Fotis                                         *
+ *	A.M.:1115200600170                                                      *
+ *	email:std06170@di.uoa.gr                                                *
+ *	Before starting executing and reading                                   *
+ * 	the code read the readme.txt file                                       *
+ *  http://www.cs.columbia.edu/~fotis/Artificial_Intelligence/dpll/dpll.cpp *
+  **************************************************************************/
 #ifndef CLAUSE_H
 #define CLAUSE_H
 
