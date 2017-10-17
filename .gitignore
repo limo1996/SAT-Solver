@@ -77,5 +77,8 @@ Thumbs.db
 # virtual env
 venv
 
-#python wrapper std_out redirect file
+# python wrapper std_out redirect file
 python_wrapper/out
+
+# the to_euler.tar
+to_euler.tar

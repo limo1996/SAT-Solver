@@ -92,7 +92,7 @@ class Tester(object):
 class ParallelSolver(object):
     def __init__(self):
         self.num_cores = 1
-        cwd = os.path.join(os.pardir, os.getcwd())
+        cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'solver.cpp.o')
         if not os.path.exists(self.executable):
             raise ValueError('The executable solver.cpp.o does not exist!')
