@@ -12,7 +12,7 @@
 
 #include "variable.h"
 #include "clause.h"
-#include "cnf.h"
+#include "CNF.h"
 
 #include <set>
 #include <string>

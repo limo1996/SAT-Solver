@@ -9,6 +9,7 @@
 
 #include "cnfparser.h"
 #include "exceptions.cpp"
+#include <sys/stat.h>
 
 #include <fstream>
 #include <sstream>
@@ -131,7 +132,7 @@ int CNFParser::parsing(){
             cnf = NULL;
             break;
         default:
-            std::cerr << "Error income" << std::endl;
+            std::cout << "Error income" << std::endl;
             return EXIT_FAILURE;
         }
         if(pflag == true)
@@ -147,7 +148,7 @@ int CNFParser::parsing(){
             std::getline(*input,line);
         }
     }
-    return EXIT_FAILURE;vers
+    return EXIT_SUCCESS;
 }
 
 std::set<CNF*> CNFParser::get_CNFS(){

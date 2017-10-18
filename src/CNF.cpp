@@ -7,7 +7,7 @@
  *  http://www.cs.columbia.edu/~fotis/Artificial_Intelligence/dpll/dpll.cpp *
   **************************************************************************/
 
-#include "cnf.h"
+#include "CNF.h"
 
 #include <iostream>
 

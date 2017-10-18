@@ -1,4 +1,7 @@
 #include <exception>
+#include <string>
+
+using namespace std;
 
 class file_open_fail : public exception {
     char* filename;

@@ -1,6 +1,6 @@
 #include "variable.h"
 #include "clause.h"
-#include "cnf.h"
+#include "CNF.h"
 #include "cnfparser.h"
 #include "dpll.h"
 

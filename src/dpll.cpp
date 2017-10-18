@@ -35,7 +35,7 @@ bool DPLL::ONE_VARIABLE_IS_TRUE(Clause* cl){
      *		Routine used to fix the value of the variables and the total values of the clauses
      *		when the variable var get assigned into the solution set.
      */
-void DPLL::fix_clauses(Variable *var, std::set<Clause*> *clauses, bool lvalue, bool flag = true, bool unit = false){
+void DPLL::fix_clauses(Variable *var, std::set<Clause*> *clauses, bool lvalue, bool flag, bool unit){
     std::set<Clause*>::iterator it_c;
     std::set<Variable*>::iterator it_v;
     for(it_c = clauses->begin() ; it_c!=clauses->end() ; it_c++){                               /* For all clauses */
@@ -100,7 +100,7 @@ void DPLL::restore_clauses(Variable* var, std::set<Clause*> *clauses) {
      *		Routine used to fix the variables' set after
      *		variable's v assignement.
      */
-void DPLL::fix_variables(Variable *v, std::set<Variable*>* var, bool u = false){
+void DPLL::fix_variables(Variable *v, std::set<Variable*>* var, bool u){
     std::set<Variable*>::iterator it_v;
     for(it_v = var->begin() ; it_v != var->end() ; it_v++){                                     /* for all variables */
         if((*it_v)->get_name() == v->get_name()) {                                              /* if we found the variable */
@@ -134,7 +134,7 @@ void DPLL::restore_variables(Variable *v, std::set<Variable*>* var) {
      *	void fix_pures(set<variable*> *,set<Clause*> *)
      *		Variables used to fix the pureness of the variables.
      */
-void DPLL::fix_pures(set<Variable*> *vars, std::set<Clause*> *clauses) {
+void DPLL::fix_pures(std::set<Variable*> *vars, std::set<Clause*> *clauses) {
     std::set<Variable*>::iterator it_v,it_cv;
     std::set<Clause*>::iterator it_c;
     Variable *var;
@@ -277,7 +277,7 @@ Variable* DPLL::FIND_PURE_SYMBOL(std::set<Variable*> *var){
      *		The tested file it has succeded are on the folder spence
      *		and my_cnf_inputs.
      */
-bool DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses){
+bool DPLL::DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses){
     Variable *var;
     if( ALL_CLAUSES_ARE_TRUE(clauses) == true) return true;
     if( ONE_CLAUSE_IS_FALSE(clauses) == true)  return false;
@@ -341,38 +341,38 @@ bool DPLL::DPLL_SATISFIABLE(){
      *		if cnf propositional sentence is satifiable you can
      *		use the -p flag on the command line to print statistics.
      */
-void DPLL::print(std::set<Clause*> *clauses , std::set<variable*> *vars){
+void DPLL::print(std::set<Clause*> *clauses , std::set<Variable*> *vars){
     std::set<Variable*>::iterator it_vc;
     std::set<Clause*>::iterator it_c;
     std::set<Variable*>::iterator it_v;
     for(it_v = vars->begin() ; it_v != vars->end() ;it_v++) {
-        cout<<(*it_v)->get_name()<<": ";
+        std::cout<<(*it_v)->get_name()<<": ";
         if( (*it_v)->get_assigned()==true){
-            (*it_v)->get_value()==true ? cout<<"(true) " : cout<<"(false) ";
+            (*it_v)->get_value()==true ? std::cout<<"(true) " : std::cout<<"(false) ";
         } else {
-            cout<<"(Unknown) ";
+            std::cout<<"(Unknown) ";
         }
-        cout<<endl;
+        std::cout << std::endl;
     }
 
     for(it_c = clauses->begin() ; it_c != clauses->end() ; it_c++){
-        cout<<"( ";
+        std::cout << "( ";
         (*it_c)->print();
-        cout<<" ): ";
+        std::cout << " ): ";
         if((*it_c)->get_assigned()==true) {
-            (*it_c)->get_value()==true ? cout<<"(True)-> " : cout<<"(False)-> ";
+            (*it_c)->get_value()==true ? std::cout << "(True)-> " : std::cout << "(False)-> ";
         }else{
-            cout<<"(Unknown)-> ";
+            std::cout << "(Unknown)-> ";
         }
         for(it_vc = (*it_c)->get_var()->begin() ; it_vc != (*it_c)->get_var()->end() ;it_vc++){
-            if((*it_vc)->get_sign()==false)cout<<"~";
-            cout<<(*it_vc)->get_name();
+            if((*it_vc)->get_sign()==false) std::cout << "~";
+            std::cout<<(*it_vc)->get_name();
             if( (*it_vc)->get_assigned()==true){
-                (*it_vc)->get_value()==true ? cout<<"(true) " : cout<<"(false) ";
+                (*it_vc)->get_value()==true ? std::cout << "(true) " : std::cout << "(false) ";
             } else {
-                cout<<"(Unknown) ";
+                std::cout<<"(Unknown) ";
             }
         }
-        cout << endl << endl;
+        std::cout << std::endl << std::endl;
     }
 }
