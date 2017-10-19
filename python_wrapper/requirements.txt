@@ -1,0 +1,5 @@
+boto==2.28.0
+click==6.7
+PyHamcrest==1.9.0
+z3==0.1.14
+z3-solver==4.5.1.0.post1
