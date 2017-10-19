@@ -82,3 +82,10 @@ python_wrapper/out
 
 # the to_euler.tar
 to_euler.tar
+
+# cmake stuff
+CMakeCache.txt
+CMakeFiles/
+cmake-build-debug/
+cmake_install.cmake
+
