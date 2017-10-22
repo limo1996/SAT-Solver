@@ -341,17 +341,22 @@ bool DPLL::DPLL_SATISFIABLE(){
  *		if cnf propositional sentence is satifiable you can
  *		use the -p flag on the command line to print statistics and -pa to print extended.
  *      Extended parameter specifies whether should be printed just variables or variables and clauses.
+ *      Format can be either 1 for readable output or 2 for further processing output.
  */
-void DPLL::print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended){
+void DPLL::print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format){
+    if(format != 1 && format != 2)
+        throw std::invalid_argument("Invalid value of format argument: " + std::to_string(format));
+    format--;
     std::set<Variable*>::iterator it_vc;
     std::set<Clause*>::iterator it_c;
     std::set<Variable*>::iterator it_v;
-    for(it_v = vars->begin() ; it_v != vars->end() ;it_v++) {
-        std::cout<<(*it_v)->get_name()<<": ";
-        if( (*it_v)->get_assigned()==true){
-            (*it_v)->get_value()==true ? std::cout<<"(true) " : std::cout<<"(false) ";
+    std::string out_values[14] = {": ", "(true) ", "(false) ", "(Unknown) ", "(True)-> ", "(False)-> ", "(Unknown)-> ", " ", "t", "f", "u", "t->", "f->", "u->"};
+    for(it_v = vars->begin(); it_v != vars->end(); it_v++) {
+        std::cout<<(*it_v)->get_name() << out_values[format * 7];
+        if((*it_v)->get_assigned()==true){
+            (*it_v)->get_value()==true ? std::cout << out_values[format * 7 + 1] : std::cout << out_values[format * 7 + 2];
         } else {
-            std::cout<<"(Unknown) ";
+            std::cout << out_values[format * 7 + 3];
         }
         std::cout << std::endl;
     }
@@ -363,17 +368,17 @@ void DPLL::print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool ex
             (*it_c)->print();
             std::cout << " ): ";
             if((*it_c)->get_assigned()==true) {
-                (*it_c)->get_value()==true ? std::cout << "(True)-> " : std::cout << "(False)-> ";
+                (*it_c)->get_value()==true ? std::cout << out_values[format * 7 + 4] : std::cout << out_values[format * 7 + 5];
             }else{
-                std::cout << "(Unknown)-> ";
+                std::cout << out_values[format * 7 + 6];
             }
             for(it_vc = (*it_c)->get_var()->begin() ; it_vc != (*it_c)->get_var()->end() ;it_vc++){
                 if((*it_vc)->get_sign()==false) std::cout << "~";
                 std::cout<<(*it_vc)->get_name();
                 if( (*it_vc)->get_assigned()==true){
-                    (*it_vc)->get_value()==true ? std::cout << "(true) " : std::cout << "(false) ";
+                    (*it_vc)->get_value()==true ? std::cout << out_values[format * 7 + 1] : std::cout << out_values[format * 7 + 2];
                 } else {
-                    std::cout<<"(Unknown) ";
+                    std::cout << out_values[format * 7 + 3];
                 }
             }
             std::cout << std::endl << std::endl;
