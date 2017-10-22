@@ -29,7 +29,7 @@ private:
 public:
     DPLL(CNF _cnf);
     bool DPLL_SATISFIABLE();
-    void print(std::set<Clause*> *clauses , std::set<Variable*> *vars);
+    void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended);
 };
 
 #endif // DPLL_H
