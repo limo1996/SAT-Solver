@@ -89,3 +89,6 @@ CMakeFiles/
 cmake-build-debug/
 cmake_install.cmake
 
+# test
+test.py
+
