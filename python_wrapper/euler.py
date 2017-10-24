@@ -15,7 +15,8 @@ class EulerTester(object):
         tar = tarfile.open('to_euler.tar', 'w')
         tar.add('run_me_on_euler.sh')
         tar.add('bsub_script.sh')
-        # why arcname? -> like this we can flatten the directory structure
+        tar.add(os.path.join(os.pardir, 'CMakeLists.txt'),
+                arcname='CMakeLists.txt')
         tar.add(os.path.join(os.pardir, 'src'), arcname='src')
         tar.add(os.path.join(os.pardir, self.folder),
                 arcname='parallel_tests')
