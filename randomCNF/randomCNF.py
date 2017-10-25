@@ -4,16 +4,21 @@ def randomCFN(n_variables, n_clauses):
     s = list()
     s = s + ['p', 'cnf', str(n_variables), str(n_clauses)]
     for i in range(0, n_clauses):
+        s_len_1 = len(s)
         for j in range(1, n_variables + 1):
             if random.randint(0, 1) == 0:
                 n = ((-1) ** (random.randint(0, 1))) * j
                 s = s + [str(n)]
+        if s_len_1 == len(s):
+            n = ((-1) ** (random.randint(0, 1))) * random.randint(1,n_variables)
+            s = s + [str(n)]        
         s = s + [str(0)]
     return s
 
 # random.seed(2)
 n_variables = 5
 n_clauses = 3
+
 s = randomCFN(n_variables, n_clauses)
 print(s)
 
