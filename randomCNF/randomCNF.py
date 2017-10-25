@@ -16,8 +16,8 @@ def randomCFN(n_variables, n_clauses):
     return s
 
 # random.seed(2)
-n_variables = 5
-n_clauses = 3
+#n_variables = 2
+#n_clauses = 3
 
 s = randomCFN(n_variables, n_clauses)
 print(s)
