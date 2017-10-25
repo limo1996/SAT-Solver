@@ -70,7 +70,9 @@ int main(int argc, char *argv[])
     }
 
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
-        dpll = new DPLL(*(*it_CNF));
+        struct config config;
+        config.callback_on_branch = false;
+        dpll = new DPLL(*(*it_CNF), config);
         bool result = dpll->DPLL_SATISFIABLE();
 
         if(format == 1)

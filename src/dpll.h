@@ -9,9 +9,16 @@
 #include <iostream>
 #include <stdexcept>
 
+struct config {
+    bool callback_on_branch;
+
+    void (*callback)(std::set<Variable *> *vars);
+};
+
 class DPLL {
 private:
     CNF *cnf;
+    struct config config;
     void restore_symbol(Variable *v );
     bool ALL_VARIABLES_ARE_FALSE(Clause* cl);
     bool ONE_VARIABLE_IS_TRUE(Clause* cl);
@@ -26,9 +33,10 @@ private:
     Variable* FIND_UNIT_CLAUSE(std::set<Clause*> *clauses , std::set<Variable*> *vars);
     Variable* FIND_PURE_SYMBOL(std::set<Variable*> *var);
     bool DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses);
+    bool branch_on_variable(Variable *var, std::set<Variable *> *vars, std::set<Clause *> *clauses);
 
 public:
-    DPLL(CNF _cnf);
+    DPLL(CNF _cnf, struct config _config);
     bool DPLL_SATISFIABLE();
     void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
 };

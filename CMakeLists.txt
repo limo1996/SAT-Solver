@@ -15,5 +15,5 @@ use_cxx11()
 set(SOURCE_FILES src/sequential_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/dpll.cpp src/exceptions.cpp src/variable.cpp)
 add_executable(sequential_main ${SOURCE_FILES})
 
-set(SOURCE_FILES src/parallel_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/dpll.cpp src/exceptions.cpp src/variable.cpp)
+set(SOURCE_FILES src/parallel_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/dpll.cpp src/exceptions.cpp src/variable.cpp src/worker.cpp)
 add_executable(parallel_main ${SOURCE_FILES})

@@ -307,20 +307,41 @@ bool DPLL::DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses){
         }
     }
     var = find_first_unassigned(vars);
-    if( var == NULL ) return false;
-    else {
-        var->set_assigned(true);
-        var->set_value(true);
-        fix_clauses(var,clauses,true,false);
-        if( DPLLalgorithm(vars,clauses)==true) return true;
-        else {
+    if( var == nullptr) {
+        return false;
+    } else {
+        return branch_on_variable(var, vars, clauses);
+    }
+}
+
+/**
+ * Handles the branching of DPLL, if we need to make a decision, it either calls the callback function registered in the
+ * config or runs both branches recursively
+ *
+ * The first option is used in the standard setting (sequential)
+ * The second option is used in the parallel setting
+ */
+bool DPLL::branch_on_variable(Variable *var, std::set<Variable *> *vars, std::set<Clause *> *clauses) {
+    if (config.callback_on_branch) {
+        config.callback(vars);
+    }
+    var->set_assigned(true);
+    var->set_value(true);
+    fix_clauses(var, clauses, true, false);
+    if (DPLLalgorithm(vars, clauses)) {
+        return true;
+    } else {
+        if (config.callback_on_branch) {
+            return false;
+        } else {
             var->set_value(true);
-            restore_clauses(var,clauses);
+            restore_clauses(var, clauses);
             var->set_value(false);
-            fix_clauses(var,clauses,false,false);
-            if(DPLLalgorithm(vars,clauses)==true)return true;
-            else {
-                restore_clauses(var,clauses);
+            fix_clauses(var, clauses, false, false);
+            if (DPLLalgorithm(vars, clauses)) {
+                return true;
+            } else {
+                restore_clauses(var, clauses);
                 restore_symbol(var);
                 return false;
             }
@@ -328,8 +349,9 @@ bool DPLL::DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses){
     }
 }
 
-DPLL::DPLL(CNF _cnf){				/* constructor */
+DPLL::DPLL(CNF _cnf, struct config _config){				/* constructor */
     cnf = new CNF(_cnf);
+    config = _config;
 }
 
 bool DPLL::DPLL_SATISFIABLE(){
@@ -360,7 +382,7 @@ void DPLL::print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool ex
         }
         std::cout << std::endl;
     }
-    
+
     if(extended)
     {
         for(it_c = clauses->begin() ; it_c != clauses->end() ; it_c++){
