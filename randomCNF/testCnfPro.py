@@ -5,7 +5,8 @@ path = "/home/ziwei/DPHPC/SAT-Solver/randomCNF/examples" # the folder save examp
 pro = 0 # initial pro
 
 while pro != 0.5:
-	cnfGenerator = CNFGenerator(5, 10, 10, path)
+	# n_variables, n_clauses, examples, path
+	cnfGenerator = CNFGenerator(5, 10, 10, path) 
 	cnfGenerator.saveCNF()	
 	tester = testCNF(path)	
 	(count, count_file) = tester.run_test()
