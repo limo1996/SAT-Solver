@@ -7,7 +7,7 @@ echo "run_me_on_euler.sh is taking over"
 
 echo "including necessary modules..."
 module load cmake
-# TODO: probably we need to some openMPI related stuff here
+module load open_mpi
 
 echo "submitting compilation and run job to the batch system..."
 bsub -W "$minutes" -n "$num_cores" < bsub_script.sh

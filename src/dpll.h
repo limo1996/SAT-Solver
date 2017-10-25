@@ -4,21 +4,35 @@
 #include "variable.h"
 #include "clause.h"
 #include "CNF.h"
+#include "worker.h"
 
 #include <set>
 #include <iostream>
 #include <stdexcept>
 
-struct config {
-    bool callback_on_branch;
+class Worker;
 
-    void (*callback)(std::set<Variable *> *vars);
+class Config {
+public:
+    bool callback_on_branch;
+    Worker *worker;
+
+    //void (*callback)(std::set<Variable *> *vars);
+    Config(bool _callback_on_branch) {
+        callback_on_branch = _callback_on_branch;
+        worker = nullptr;
+    }
+
+    Config(bool _callback_on_branch, Worker *_worker) {
+        callback_on_branch = _callback_on_branch;
+        worker = _worker;
+    }
 };
 
 class DPLL {
 private:
     CNF *cnf;
-    struct config config;
+    Config *config;
     void restore_symbol(Variable *v );
     bool ALL_VARIABLES_ARE_FALSE(Clause* cl);
     bool ONE_VARIABLE_IS_TRUE(Clause* cl);
@@ -36,7 +50,7 @@ private:
     bool branch_on_variable(Variable *var, std::set<Variable *> *vars, std::set<Clause *> *clauses);
 
 public:
-    DPLL(CNF _cnf, struct config _config);
+    DPLL(CNF _cnf, Config *_config);
     bool DPLL_SATISFIABLE();
     void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
     CNF *get_cnf();

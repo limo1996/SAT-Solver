@@ -4,6 +4,7 @@
 
 #include "CNF.h"
 #include "dpll.h"
+#include "mpi_types.h"
 #include <stdexcept>
 #include <vector>
 
@@ -11,11 +12,11 @@ class Worker {
 private:
     CNF *cnf;
 
-    static void dpll_callback(std::set<Variable *> *variables);
+    MPI_Datatype meta_data_type;
 
-    static void send_meta(char i, unsigned assigned);
+    void send_meta(char i, unsigned assigned);
 
-    static void send_model(std::vector<unsigned int> assigned);
+    void send_model(std::vector<unsigned int> assigned);
 
     void send_sat(CNF *cnf);
 
@@ -25,11 +26,12 @@ private:
 
     void parse_and_update_variables(unsigned[], int size);
 
-    static std::vector<unsigned> encode_variables(std::set<Variable *> *variables);
+    std::vector<unsigned> encode_variables(std::set<Variable *> *variables);
 
 public:
-    explicit Worker(CNF _cnf);
+    explicit Worker(CNF _cnf, MPI_Datatype _meta_data_type);
 
+    void dpll_callback(std::set<Variable *> *variables);
 };
 
 

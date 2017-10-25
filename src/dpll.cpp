@@ -322,8 +322,8 @@ bool DPLL::DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses){
  * The second option is used in the parallel setting
  */
 bool DPLL::branch_on_variable(Variable *var, std::set<Variable *> *vars, std::set<Clause *> *clauses) {
-    if (config.callback_on_branch) {
-        config.callback(vars);
+    if (config->callback_on_branch) {
+        config->worker->dpll_callback(vars);
     }
     var->set_assigned(true);
     var->set_value(true);
@@ -331,7 +331,7 @@ bool DPLL::branch_on_variable(Variable *var, std::set<Variable *> *vars, std::se
     if (DPLLalgorithm(vars, clauses)) {
         return true;
     } else {
-        if (config.callback_on_branch) {
+        if (config->callback_on_branch) {
             return false;
         } else {
             var->set_value(true);
@@ -349,7 +349,7 @@ bool DPLL::branch_on_variable(Variable *var, std::set<Variable *> *vars, std::se
     }
 }
 
-DPLL::DPLL(CNF _cnf, struct config _config){				/* constructor */
+DPLL::DPLL(CNF _cnf, Config *_config) {                /* constructor */
     cnf = new CNF(_cnf);
     config = _config;
 }

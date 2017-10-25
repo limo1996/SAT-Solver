@@ -7,6 +7,6 @@ cd parallel_tests
 FILES=*
 for file in ${FILES}
 do
-    ../parallel_main "$file" -p 2 > "$file".out
+    mpirun ../parallel_main "$file" -p 2 > "$file".out
 done
 cd ../

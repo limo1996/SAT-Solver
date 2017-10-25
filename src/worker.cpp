@@ -1,7 +1,8 @@
 #include "worker.h"
 
-Worker::Worker(CNF _cnf) {
+Worker::Worker(CNF _cnf, MPI_Datatype _meta_data_type) {
     cnf = new CNF(_cnf);
+    meta_data_type = _meta_data_type;
 }
 
 unsigned count_assigned(std::set<Variable *> *variables) {
@@ -16,9 +17,7 @@ unsigned count_assigned(std::set<Variable *> *variables) {
 }
 
 void Worker::run_dpll() {
-    struct config config;
-    config.callback_on_branch = true;
-    config.callback = &dpll_callback;
+    Config *config = new Config(true, this);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->DPLL_SATISFIABLE();
     if (sat) {
@@ -35,7 +34,11 @@ void Worker::dpll_callback(std::set<Variable *> *variables) {
 }
 
 void Worker::send_meta(char i, unsigned assigned) {
-    //TODO mpi stuff here
+    struct meta meta;
+    meta.message_type = i;
+    meta.count = assigned;
+
+    MPI_Send(&meta, 1, meta_data_type, 0, 0, MPI_COMM_WORLD);
 }
 
 void Worker::send_model(std::vector<unsigned> assigned) {
