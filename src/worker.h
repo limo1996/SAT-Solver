@@ -3,22 +3,33 @@
 
 
 #include "CNF.h"
+#include "dpll.h"
+#include <stdexcept>
 #include <vector>
 
 class Worker {
 private:
     CNF *cnf;
 
-    void dpll_callback(std::set<Variable *> *variables);
+    static void dpll_callback(std::set<Variable *> *variables);
 
-    bool run_dpll(std::set<Variable *> *variables);
+    static void send_meta(char i, unsigned assigned);
 
-    std::set<Variable *> *parse_variables(unsigned[], int size);
+    static void send_model(std::vector<unsigned int> assigned);
 
-    std::vector<unsigned> encode_variables(std::set<Variable *> *variables);
+    void send_sat(CNF *cnf);
+
+    void send_unsat();
+
+    void run_dpll();
+
+    void parse_and_update_variables(unsigned[], int size);
+
+    static std::vector<unsigned> encode_variables(std::set<Variable *> *variables);
 
 public:
     explicit Worker(CNF _cnf);
+
 };
 
 

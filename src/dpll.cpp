@@ -358,6 +358,10 @@ bool DPLL::DPLL_SATISFIABLE(){
     return DPLLalgorithm(cnf->get_var(),cnf->get_clauses());
 }
 
+CNF *DPLL::get_cnf() {
+    return cnf;
+}
+
 /*
  *	print(set<Clause*> *, set<variable*> *):
  *		if cnf propositional sentence is satifiable you can

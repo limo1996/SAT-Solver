@@ -1,40 +1,88 @@
-#include <vector>
 #include "worker.h"
 
 Worker::Worker(CNF _cnf) {
     cnf = new CNF(_cnf);
 }
 
-void Worker::dpll_callback(std::set<Variable *> *variables) {
-
-}
-
-bool Worker::run_dpll(std::set<Variable *> *variables) {
-    return false;
-}
-
-std::set<Variable *> *Worker::parse_variables(unsigned int *, int size) {
-    return nullptr;
-}
-
-std::vector<unsigned> Worker::encode_variables(std::set<Variable *> *variables) {
-    std::set<Variable*>::iterator iterator;
-    unsigned long num_assigned = 0;
-    for(iterator = variables->begin(); iterator != variables->end(); iterator++) {
+unsigned count_assigned(std::set<Variable *> *variables) {
+    unsigned num_assigned = 0;
+    std::set<Variable *>::iterator iterator;
+    for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             num_assigned++;
         }
     }
-    std::vector<unsigned> encoded(num_assigned);
-    int i = 0;
-    for(iterator = variables->begin(); iterator != variables->end(); iterator++) {
+    return num_assigned;
+}
+
+void Worker::run_dpll() {
+    struct config config;
+    config.callback_on_branch = true;
+    config.callback = &dpll_callback;
+    DPLL *dpll = new DPLL(*cnf, config);
+    bool sat = dpll->DPLL_SATISFIABLE();
+    if (sat) {
+        send_sat(dpll->get_cnf());
+    } else {
+        send_unsat();
+    }
+}
+
+void Worker::dpll_callback(std::set<Variable *> *variables) {
+    unsigned num_assigned = count_assigned(variables);
+    send_meta(10, num_assigned);
+    send_model(encode_variables(variables));
+}
+
+void Worker::send_meta(char i, unsigned assigned) {
+    //TODO mpi stuff here
+}
+
+void Worker::send_model(std::vector<unsigned> assigned) {
+    //TODO mpi stuff here
+}
+
+void Worker::send_sat(CNF *cnf) {
+    std::set<Variable *> *vars = cnf->get_var();
+    unsigned num_assigned = count_assigned(vars);
+    send_meta(12, num_assigned);
+    send_model(encode_variables(vars));
+}
+
+void Worker::send_unsat() {
+    send_meta(11, 0);
+}
+
+void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
+    std::set<Variable *> vars;
+    for (int i = 0; i < size; i++) {
+        bool encoded_val = encoded[i] % 2 == 0;
+        std::string name = std::to_string(encoded[i] >> 1);
+        std::set<Variable *>::iterator iterator;
+
+        for (iterator = cnf->get_var()->begin(); iterator !=
+                                                 cnf->get_var()->end(); iterator++) {                                     /* for all variables */
+            if ((*iterator)->get_name() == name) {
+                (*iterator)->set_assigned(true);
+                (*iterator)->set_value(encoded_val);
+                break;
+            }
+        }
+    }
+}
+
+std::vector<unsigned> Worker::encode_variables(std::set<Variable *> *variables) {
+    unsigned num_assigned = count_assigned(variables);
+    std::vector<unsigned> encoded;
+    encoded.reserve(num_assigned);
+    std::set<Variable *>::iterator iterator;
+    for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             unsigned encoded_var = (unsigned) std::stoi((*iterator)->get_name()) << 1;
             if ((*iterator)->get_value()) {
                 encoded_var++;
             }
-            encoded[i] = encoded_var;
-            i++;
+            encoded.push_back(encoded_var);
         }
     }
     return encoded;

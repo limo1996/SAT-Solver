@@ -39,6 +39,7 @@ public:
     DPLL(CNF _cnf, struct config _config);
     bool DPLL_SATISFIABLE();
     void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
+    CNF *get_cnf();
 };
 
 #endif // DPLL_H
