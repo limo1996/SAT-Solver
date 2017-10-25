@@ -38,6 +38,7 @@ class Tester(object):
             s = Solver()
             s.add(cnf.z3_formula)
             result = s.check().r
+            print(result)
             if result is 1:
                 self.handle_sat_case(f, cnf)
             else:
