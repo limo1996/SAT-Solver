@@ -52,7 +52,7 @@ private:
 public:
     DPLL(CNF _cnf, Config *_config);
     bool DPLL_SATISFIABLE();
-    void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
+    static void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
     CNF *get_cnf();
 };
 
