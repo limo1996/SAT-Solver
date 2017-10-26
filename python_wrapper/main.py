@@ -19,10 +19,10 @@ def get_netz_username():
 def main(mode, nethz_username):
     if mode == 'integration-test-local':
         test_folder = 'integration_tests'
-        tester = Tester(test_folder)
+        tester = Tester(test_folder, parallel=False)
     elif mode == 'parallel-test-local':
         test_folder = 'parallel_tests'
-        tester = Tester(test_folder)
+        tester = Tester(test_folder, parallel=True)
     else:
         test_folder = 'parallel_tests'
         if nethz_username == 'asdf':

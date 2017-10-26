@@ -4,9 +4,8 @@
 #include "cnfparser.h"
 #include "dpll.h"
 
-#include <iostream>
-#include <cstring>
 #include <fstream>
+#include <cstring>
 
 using namespace std;
 
@@ -22,7 +21,7 @@ int main(int argc, char *argv[])
     string outputFile;
     int format = 1;                         // default format is 1 i.e. readable format.
     bool flags[3] = {false, false, false};  // [0] => -p flag set, [1] => -pa flag set, [2] => -o flag set
-    
+
     if(argc < 2){
         printErr();
         return EXIT_FAILURE;
@@ -31,14 +30,14 @@ int main(int argc, char *argv[])
             printHelp();
             return EXIT_SUCCESS;
         }
-        
+
         try{
             parser = new CNFParser(argv[1]);
         } catch(exception &e) {
             cerr << "exception: " << e.what() << endl;
             return EXIT_FAILURE;
         }
-        
+
         if(argc > 2 && !readArgv(argv, argc, 2, flags, format, outputFile))
             return EXIT_FAILURE;
         if(argc > 4 && !readArgv(argv, argc, 4, flags, format, outputFile))
@@ -51,28 +50,33 @@ int main(int argc, char *argv[])
         }
     }
 
-    cout << "Reading Data ...";
-    fflush(stdout);
+    if (!flags[0]) {
+        cout << "Reading Data ...";
+        fflush(stdout);
+    }
     if(parser->parsing()==EXIT_FAILURE)return EXIT_FAILURE;
-    cout<<"OK!"<<endl;
+    if (!flags[0]) {
+        cout << "OK!" << endl;
+    }
     set<CNF*> cnfs = parser->get_CNFS();
-    
+
     // if output path is specified than redirect output to the file
     streambuf *coutbuf = std::cout.rdbuf(); //save old buf
     ofstream out;
-    
+
     if(flags[2]){
         out.open(outputFile);
         cout.rdbuf(out.rdbuf()); //redirect std::cout to output file
     }
-    
+
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
-        dpll = new DPLL(*(*it_CNF));
+        Config *config = new Config(false);
+        dpll = new DPLL(*(*it_CNF), config);
         bool result = dpll->DPLL_SATISFIABLE();
-        
+
         if(format == 1)
             cout << (*it_CNF)->get_sentence();
-        
+
         if(result == true) {
             format == 1 ? cout << " ->  satisfiable\n" : cout << "sat\n";
             if(flags[0] || flags[1])
@@ -81,11 +85,11 @@ int main(int argc, char *argv[])
             format == 1 ? cout << " ->  not satisfiable\n" : cout << "unsat\n";
         delete dpll;
     }
-    
+
     //if output path was specified than redirect output back to console
     if(flags[2])
         cout.rdbuf(coutbuf); //reset to standard output again
-    
+
     return EXIT_SUCCESS;
 }
 
