@@ -16,17 +16,28 @@ class CNFGenerator():
 
         s = list()
         s = s + ['p', 'cnf', str(n_variables), str(n_clauses)]
-        for i in range(0, n_clauses):
+        for i in range(1, n_clauses+1):
             s_len_pre = len(s)
             for j in range(1, n_variables + 1): # randomly choose each variable in a clause
                 if random.randint(0, 1) == 0:
                     n = ((-1) ** (random.randint(0, 1))) * j
                     s = s + [str(n)]
+            # check if all variables appear
+            if i == n_clauses:
+                s1 = s
+                s2 = ['p', 'cnf', str(n_variables), str(n_clauses)]
+                for x in s2:
+                    s1.remove(x)
+                for y in range(1,n_variables+1):
+                    if str(y) not in s1 and str(-y) not in s1:
+                        sign = (-1) ** (random.randint(0, 1))
+                        s1 = s1 + [str(sign * y)]
+                s = ['p', 'cnf', str(n_variables), str(n_clauses)] + s1
             if s_len_pre == len(s): # if no variable is slected in the preious step, force to have at lease one variable in the line
                 n = ((-1) ** (random.randint(0, 1))) * random.randint(1,n_variables)
                 s = s + [str(n)]
             s = s + [str(0)]
-        #print(s)
+        #print (s)
         return s
 
     def saveCNF(self):
