@@ -26,7 +26,8 @@ from test import Tester
 
 # the final examples in the folder are with 0.5 sat and 0.5 unsat
 
-path = "/home/ziwei/DPHPC/SAT-Solver/integration_tests"
+# path = "/home/ziwei/DPHPC/SAT-Solver/integration_tests"
+path = "/home/ziwei/DPHPC/SAT-Solver/randomCNF/examples"
 foldertester = Tester(path)
 foldertester.run_test()
 
