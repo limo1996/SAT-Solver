@@ -7,6 +7,7 @@
 
 #include <set>
 #include <iostream>
+#include <stdexcept>
 
 class DPLL {
 private:
