@@ -11,6 +11,8 @@
 
 #include <iostream>
 
+CNF::CNF(){}
+
 //creates new instance of CNF
 CNF::CNF(std::set<Variable*> _var, std::set<Clause*> _clauses , std::string _sentence) {
     std::set<Variable*>::iterator it_v;

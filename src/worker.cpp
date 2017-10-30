@@ -40,6 +40,7 @@ void Worker::run_dpll() {
  */
 void Worker::dpll_callback(std::set<Variable *> *variables) {
     if (!received_message_from_master()) {
+        std::cout << "dpll callback\n";
         unsigned num_assigned = count_assigned(variables);
         MPI_Request mpi_requests[2];
         mpi_requests[0] = send_meta(10, num_assigned);
@@ -58,6 +59,7 @@ void Worker::dpll_callback(std::set<Variable *> *variables) {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request Worker::send_meta(char i, unsigned assigned) {
+    std::cout << "sending meta... i: " << (int)i << " assigned: " << assigned << std::endl;
     struct meta meta;
     meta.message_type = i;
     meta.count = assigned;
@@ -158,7 +160,7 @@ void Worker::wait_for_instructions_from_master() {
         }
         unsigned encoded_model[meta.count];
         if (meta.count > 0) {
-            MPI_Recv(&encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             parse_and_update_variables(encoded_model, meta.count);
         } else {
             unsigned encoded[0];

@@ -34,7 +34,7 @@ private:
     CNF final_result;                                                           // If result was found that this field contains final values of variables
     bool result;                                                                // Indicates whether the result was found
     
-    void add_new_task(int size);                                                // Listens to workers and if someone send a task than master adds
+    void add_new_task(int size, int rank);                                      // Listens to workers and if someone send a task than master adds
                                                                                 // it to the queue. Message value: 10
     void get_model(int size);                                                   // If previously was send success message of finding model
                                                                                 // than this method receives and stores it. Message value: 12
@@ -43,12 +43,12 @@ private:
     void stop_workers();                                                        // Prevens all workes from further work. Result found. Message type: 1
     
     MPI_Request send_meta(int to_rank, char message_type, unsigned assigned_count);    // Sends meta data
-    void send_model(unsigned *variables, size_t size, int worker_rank);         // Sends model to worker.
+    MPI_Request send_model(unsigned int *variables, size_t size, int worker_rank);         // Sends model to worker.
 public:
     Master(size_t ranks, int my_rank, MPI_Datatype meta_type);                  // Creates new instance of master class.
     void print_solution(bool* flags, std::string filename, int format);         // Prints final solution.
     bool listen_to_workers();                                                   // Listens and reacts to messages of workers.
-    void start(CNF _cnf);                                                       // Starts solving.
+    void start();                                                               // Starts solving.
 };
 
 #endif /* Master_hpp */

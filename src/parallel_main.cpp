@@ -2,6 +2,7 @@
 #include <vector>
 #include "cnfparser.h"
 #include "worker.h"
+#include "Master.h"
 
 using namespace std;
 
@@ -36,13 +37,20 @@ int main(int argc, char *argv[]) {
 
     //TODO: this is just for testing purposes...
     if (rank == 0) {
+        Master* master = new Master((size_t)size, 0, meta_data_type);
+        master->start();
         std::cerr << "Master: num_workers = " << size -1 << std::endl;
-        for (int i=1; i<size; i++) {
+        /*for (int i=1; i<size; i++) {
             struct meta meta;
             meta.message_type = 0;
             meta.count = 0;
             MPI_Send(&meta, 1, meta_data_type, i, 0, MPI_COMM_WORLD);
+        }*/
+        while(true){
+            if(master->listen_to_workers())
+                break;
         }
+        
     } else {
         Worker *w = new Worker(*(*(cnfs.begin())), meta_data_type, rank);
     }

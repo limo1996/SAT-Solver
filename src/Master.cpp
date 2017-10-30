@@ -54,7 +54,9 @@ void Master::stop_workers(){
     meta.message_type = 1;
     meta.count = 0;
     
-    MPI_Bcast(&meta, 1, this->meta_type, this->my_rank, 0, MPI_COMM_WORLD);
+    //MPI_Bcast(&meta, 1, this->meta_type, this->my_rank, MPI_COMM_WORLD);
+    std::cout << "unsat\n";
+    MPI_Abort(MPI_COMM_WORLD, 0);
 }
 
 /**
@@ -73,7 +75,7 @@ void Master::send_task_to_worker(Model task, int worker_rank){
  * @param size of variables.
  * @param worker_rank rank of the targeted worker.
  */
-void Master::send_model(unsigned int *variables, size_t size, int worker_rank){
+MPI_Request Master::send_model(unsigned int *variables, size_t size, int worker_rank){
     MPI_Request request;
     MPI_Isend(variables, (int) size, MPI_UNSIGNED, worker_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -91,8 +93,10 @@ void Master::get_model(int size){
  * Listens to workers and if someone send a task than master adds it to the queue. Message value: 10
  * @param size size of the incoming task
  */
-void Master::add_new_task(int size){
-    
+void Master::add_new_task(int size, int rank){
+    unsigned* encoded_model = new unsigned[size];
+    MPI_Recv(encoded_model, size, MPI_UNSIGNED, rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    this->states_to_process.push(Model(encoded_model, size));
 }
 
 /**
@@ -122,8 +126,9 @@ void Master::print_solution(bool *flags, std::string filename, int format){
 /**
  * Starts solving.
  */
-void Master::start(CNF _cnf){
-    
+void Master::start(){
+    send_meta(this->available_ranks.front(), 0, 0);
+    this->available_ranks.pop();
 }
 
 /**
@@ -136,21 +141,30 @@ bool Master::listen_to_workers(){
     MPI_Recv(&meta, 1, this->meta_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     
     switch(meta.message_type){
-        case 10: add_new_task(meta.count);
+        case 10: add_new_task(meta.count, status.MPI_SOURCE);
+            std::cout << "adding new task from worker: " << status.MPI_SOURCE << " of lenght: " << meta.count << std::endl;
             break;
         case 11: this->available_ranks.push(status.MPI_SOURCE);
+            std::cout << "rank " << status.MPI_SOURCE << " is now free" << std::endl;
             break;
         case 12: get_model(meta.count);
+            std::cout << "sending bcast to stop\n";
             stop_workers();
             return true;
     }
     
-    if(this->states_to_process.empty() && this->available_ranks.size() == this->all_ranks - 1)
+    if(this->states_to_process.empty() && this->available_ranks.size() == this->all_ranks - 1){
+        std::cout << "done\n";
+        stop_workers();
         return true;
+    }
     
-    if(!this->available_ranks.empty()){
+    if(!this->available_ranks.empty()  && !this->states_to_process.empty()){
+        std::cout << "sending next task to worker: " << available_ranks.front() << " task left: " << states_to_process.size() << std::endl;
         send_task_to_worker(states_to_process.front(), available_ranks.front());
         states_to_process.pop();
         available_ranks.pop();
     }
+    
+    return false;
 }
