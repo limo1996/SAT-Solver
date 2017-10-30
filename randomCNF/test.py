@@ -24,7 +24,7 @@ class Tester(object):
 
     def compile_and_create_solver(self):
         print('compiling...')
-        cmake = 'cd ' + os.pardir + '; cmake . > /dev/null; cd python_wrapper'
+        cmake = 'cmake ' + os.pardir + '> /dev/null'
         make = 'make -C ' + os.pardir + '> /dev/null'
         ret = subprocess.call(cmake, shell=True)
         if ret != 0:
@@ -132,24 +132,8 @@ class SequentialSolver(object):
 
 class ParallelSolver(SequentialSolver):
     def __init__(self):
-        self.num_cores = 4
+        self.num_cores = 1
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'parallel_main')
         if not os.path.exists(self.executable):
             raise ValueError('The executable parallel_main does not exist!')
-
-    def solve(self, input_file):
-        """ Invokes the solver for a given input file
-
-        :param input_file: the path to the input file
-        :return: a list of lines that the solver did output to std_out
-        """
-        command = 'mpirun -np {0} {1} {2} > out'.format(self.num_cores, self.executable, input_file)
-        ret = subprocess.call(command, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
-        if ret != 0:
-            raise SolverError("Solver did not return 0")
-
-        f = open('out', 'r')
-        return [line for line in f]
