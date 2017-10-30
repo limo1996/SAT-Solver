@@ -9,10 +9,10 @@
 #include "Model.h"
 
 // creates empty state
-Model::State(){}
+Model::Model(){}
 
 // creates state with variables and its size
-Model::State(unsigned int * variables, unsigned int size){
+Model::Model(unsigned int * variables, unsigned int size){
     this->set_variables(variables, size);
 }
 

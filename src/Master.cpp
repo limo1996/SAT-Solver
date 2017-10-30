@@ -15,9 +15,18 @@
  * @meta_type our custom mpi datatype used for inter process communication
  */
 Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
+    
+    assert(ranks > 1);
+    
     this->my_rank = my_rank;
     this->all_ranks = ranks;
     this->meta_type = meta_type;
+    
+    for(int i = 0; i < ranks; i++){
+        if(i != my_rank){
+            this->available_ranks.push(i);
+        }
+    }
 }
 
 /**
@@ -65,20 +74,24 @@ void Master::send_task_to_worker(Model task, int worker_rank){
  * @param worker_rank rank of the targeted worker.
  */
 void Master::send_model(unsigned int *variables, size_t size, int worker_rank){
-    //TODO: Mpi send array...
+    MPI_Request request;
+    MPI_Isend(variables, (int) size, MPI_UNSIGNED, worker_rank, 0, MPI_COMM_WORLD, &request);
+    return request;
 }
 
 /**
  * If previously was send success message of finding model than this method receives and stores it. Message value: 12
+ * @param size of the incoming model
  */
-void Master::get_model(){
+void Master::get_model(int size){
     // MPI_Recv
 }
 
 /**
  * Listens to workers and if someone send a task than master adds it to the queue. Message value: 10
+ * @param size size of the incoming task
  */
-void Master::add_new_task(){
+void Master::add_new_task(int size){
     
 }
 
@@ -95,11 +108,11 @@ void Master::print_solution(bool *flags, std::string filename, int format){
     }
     
     if(this->result) {
-        format == 1 ? std::cout << " ->  satisfiable\n" : cout << "sat\n";
+        format == 1 ? std::cout << " ->  satisfiable\n" : std::cout << "sat\n";
         if(flags[0] || flags[1])
             DPLL::print(this->final_result.get_clauses(), this->final_result.get_var(), flags[1], format);
     } else
-        format == 1 ? std::cout << " ->  not satisfiable\n" : cout << "unsat\n";
+        format == 1 ? std::cout << " ->  not satisfiable\n" : std::cout << "unsat\n";
     
     //if output path was specified than redirect output back to console
     if(flags[2])
@@ -109,13 +122,35 @@ void Master::print_solution(bool *flags, std::string filename, int format){
 /**
  * Starts solving.
  */
-void Master::start(){
+void Master::start(CNF _cnf){
     
 }
 
 /**
  * Listens and reacts to messages of workers.
+ * @return returns true if solving is done, otherwise false.
  */
-void Master::listen_to_workers(){
+bool Master::listen_to_workers(){
+    struct meta meta;
+    MPI_Status status;
+    MPI_Recv(&meta, 1, this->meta_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     
+    switch(meta.message_type){
+        case 10: add_new_task(meta.count);
+            break;
+        case 11: this->available_ranks.push(status.MPI_SOURCE);
+            break;
+        case 12: get_model(meta.count);
+            stop_workers();
+            return true;
+    }
+    
+    if(this->states_to_process.empty() && this->available_ranks.size() == this->all_ranks - 1)
+        return true;
+    
+    if(!this->available_ranks.empty()){
+        send_task_to_worker(states_to_process.front(), available_ranks.front());
+        states_to_process.pop();
+        available_ranks.pop();
+    }
 }

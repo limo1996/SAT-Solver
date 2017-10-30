@@ -17,8 +17,8 @@ private:
     unsigned int *variables;                                            // variables
     unsigned int size;                                                  // size
 public:
-    State();                                                            // creates empty state
-    State(unsigned int * variables, unsigned int size);                 // creates state with variables and its size
+    Model();                                                            // creates empty state
+    Model(unsigned int * variables, unsigned int size);                 // creates state with variables and its size
     unsigned int * get_variables();                                     // gets variables
     unsigned int get_size();                                            // gets size of variables
     void set_variables(unsigned int * variables, unsigned int size);    // sets variables and its size
