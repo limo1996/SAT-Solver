@@ -29,11 +29,22 @@ int main(int argc, char *argv[]) {
 
     MPI_Datatype meta_data_type = setup_meta_type();
 
-    // create the workers
-    vector<Worker *> workers(num_workers);
-    for (int i = 0; i < num_workers; i++) {
-        std::cout << "what" << std::endl;
-        workers[i] = new Worker(*(*(cnfs.begin())), meta_data_type);
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    //TODO: this is just for testing purposes...
+    if (rank == 0) {
+        std::cerr << "Master: num_workers = " << size -1 << std::endl;
+        for (int i=1; i<size; i++) {
+            struct meta meta;
+            meta.message_type = 0;
+            meta.count = 0;
+            MPI_Send(&meta, 1, meta_data_type, i, 0, MPI_COMM_WORLD);
+        }
+    } else {
+        Worker *w = new Worker(*(*(cnfs.begin())), meta_data_type, rank);
     }
 
     MPI_Finalize();

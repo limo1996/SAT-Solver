@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-num_cores=1
+num_cores=4
 minutes=1
 
 echo "#########################################################"
