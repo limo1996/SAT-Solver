@@ -12,7 +12,7 @@
 /*
  Data class that stores assignments of variables in formula.
  */
-class State{
+class Model{
 private:
     unsigned int *variables;                                            // variables
     unsigned int size;                                                  // size

@@ -6,28 +6,28 @@
 //  Copyright © 2017 Jakub Lichman. All rights reserved.
 //
 
-#include "State.h"
+#include "Model.h"
 
 // creates empty state
-State::State(){}
+Model::State(){}
 
 // creates state with variables and its size
-State::State(unsigned int * variables, unsigned int size){
+Model::State(unsigned int * variables, unsigned int size){
     this->set_variables(variables, size);
 }
 
 // gets variables
-unsigned int * State::get_variables(){
+unsigned int * Model::get_variables(){
     return this->variables;
 }
 
 // gets size of variables
-unsigned int State::get_size(){
+unsigned int Model::get_size(){
     return this->size;
 }
 
 // sets variables and its size
-void State::set_variables(unsigned int * variables, unsigned int size){
+void Model::set_variables(unsigned int * variables, unsigned int size){
     this->variables = variables;
     this->size = size;
 }
