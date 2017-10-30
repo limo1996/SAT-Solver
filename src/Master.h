@@ -17,7 +17,7 @@
 #include "mpi_types.h"
 #include "CNF.h"
 #include "dpll.h"
-#include "State.h"
+#include "Model.h"
 
 /*
  Master in parallel sat-solver. Responsible for managing worker threads e.g. collecting tasks that needs to be done,
@@ -25,7 +25,7 @@
  */
 class Master{
 private:
-    std::queue<State> states_to_process;                                        // Tasks that needs to be done
+    std::queue<Model> states_to_process;                                        // Tasks that needs to be done
     std::queue<int> available_ranks;                                            // Free processes(threads)
     size_t all_ranks;                                                           // Number of processes
     int my_rank;                                                                // My process id
@@ -38,10 +38,10 @@ private:
     void get_model();                                                           // If previously was send success message of finding model
                                                                                 // than this method receives and stores it. Message value: 12
     
-    void send_task_to_worker(State task, int worker_rank);                      // Sends task to worker. Message value: 0
+    void send_task_to_worker(Model task, int worker_rank);                      // Sends task to worker. Message value: 0
     void stop_workers();                                                        // Prevens all workes from further work. Result found. Message type: 1
     
-    void send_meta(int to_rank, char message_type, unsigned assigned_count);    // Sends meta data
+    MPI_Request send_meta(int to_rank, char message_type, unsigned assigned_count);    // Sends meta data
     void send_model(unsigned *variables, size_t size, int worker_rank);         // Sends model to worker.
 public:
     Master(size_t ranks, int my_rank, MPI_Datatype meta_type);                  // Creates new instance of master class.
