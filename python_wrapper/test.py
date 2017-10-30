@@ -23,6 +23,7 @@ class Tester(object):
         self.fail_count = 0
 
     def compile_and_create_solver(self):
+        print('compiling...')
         cmake = 'cmake ' + os.pardir + '> /dev/null'
         make = 'make -C ' + os.pardir + '> /dev/null'
         ret = subprocess.call(cmake, shell=True)
@@ -31,6 +32,7 @@ class Tester(object):
         ret = subprocess.call(make, shell=True)
         if ret != 0:
             raise RuntimeError("make failed!")
+        print('compilation done!')
         if self.parallel:
             return ParallelSolver()
         else:
