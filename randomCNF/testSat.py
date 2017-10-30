@@ -23,13 +23,16 @@ class testCNF():
 			if result is 1:
 				self.count += 1
 		count_file = len(self.files)
-		self.print_result()
 		return(self.count,count_file)
 
 	def print_result(self):
 		count = self.count
 		count_file = len(self.files)
 		print('{0} out of {1} tests sat'.format(self.count, count_file))
+
+	def print_file_list(self):
+		for f in self.files:
+			print(f)
 
 
 # for double check the final result of saved samples are with 0.5 sat and 0.5 unsat

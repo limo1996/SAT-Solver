@@ -48,7 +48,7 @@ class CNFGenerator():
 
         for n in range(1, examples+1):
             s = self.randomCNF()
-            filename = 'example' + str(n) + '.cnf'
+            filename = 'example' + str(n) + '_var_' + str(self.n_variables) + '_cla_' +str(self.n_clauses) + '.cnf'
             with open(os.path.join(path,filename), 'wb') as file:
                 i = 1
                 for ele in s:
