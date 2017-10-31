@@ -138,6 +138,8 @@ class ParallelSolver(SequentialSolver):
         if not os.path.exists(self.executable):
             raise ValueError('The executable parallel_main does not exist!')
 
+        print('running in parallel on {0} cores'.format(self.num_cores))
+
     def solve(self, input_file):
         """ Invokes the solver for a given input file
 

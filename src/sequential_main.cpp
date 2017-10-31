@@ -9,6 +9,9 @@
 
 using namespace std;
 
+
+bool CERR_DEBUG = false;
+
 void printHelp();
 void printErr();
 bool readArgv(char *argv[], int argc, int pos, bool *flags, int &format, string& outputFile);

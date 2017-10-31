@@ -323,6 +323,8 @@ bool DPLL::DPLLalgorithm(std::set<Variable*> *vars, std::set<Clause*> *clauses){
  */
 bool DPLL::branch_on_variable(Variable *var, std::set<Variable *> *vars, std::set<Clause *> *clauses) {
     if (config->callback_on_branch) {
+        var->set_assigned(true);
+        var->set_value(false);
         config->worker->dpll_callback(vars);
     }
     var->set_assigned(true);

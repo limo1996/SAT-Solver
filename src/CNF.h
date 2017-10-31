@@ -24,6 +24,7 @@ private:
 public:
     CNF(std::set<Variable*> _var, std::set<Clause*> _clauses ,std::string _sentence);
     CNF(CNF &_cnf);
+    CNF();
 
     std::set<Variable*>* get_var();
     std::set<Clause*>* get_clauses();
