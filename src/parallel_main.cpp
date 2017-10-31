@@ -1,11 +1,25 @@
 #include <iostream>
 #include <vector>
+#include <chrono>
+#include <unistd.h>
+#include <fstream>
 #include "cnfparser.h"
 #include "worker.h"
 
+
 using namespace std;
+using namespace std::chrono;
 
 int main(int argc, char *argv[]) {
+
+    string name = "example.txt";
+    const char* path = name.c_str();
+    if(ifstream(path))
+    {
+        // std::cout << "File already exists" << std::endl;
+        remove(path);
+    }
+
     unsigned long num_workers = 1;
 
     CNFParser *parser;
@@ -24,6 +38,9 @@ int main(int argc, char *argv[]) {
     }
 
     CNF cnf = *(*(cnfs.begin()));
+
+    // timestamp start
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     MPI_Init(&argc, &argv);
 
@@ -48,6 +65,17 @@ int main(int argc, char *argv[]) {
     }
 
     MPI_Finalize();
+
+    // timestamp end
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+
+    cout << "RunTime: " << duration << " ms " << std::endl;;
+
+    ofstream myfile;
+    myfile.open (path);
+    myfile << "RunTime: " << duration << "\n";
+    myfile.close();
 
     return 0;
 }
