@@ -81,8 +81,10 @@ void Master::stop_workers(){
  * @param worker_rank rank of the targeted worker.
  */
 void Master::send_task_to_worker(Model task, int worker_rank){
-    send_meta(worker_rank, 0, task.get_size());
-    send_model(task.get_variables(), task.get_size(), worker_rank);
+    MPI_Request mpi_requests[2];
+    mpi_requests[0] = send_meta(worker_rank, 0, task.get_size());
+    mpi_requests[1] = send_model(task.get_variables(), task.get_size(), worker_rank);
+    MPI_Waitall(2, mpi_requests, MPI_STATUS_IGNORE);
 }
 
 /**
@@ -95,14 +97,6 @@ MPI_Request Master::send_model(unsigned int *variables, size_t size, int worker_
     MPI_Request request;
     MPI_Isend(variables, (int) size, MPI_UNSIGNED, worker_rank, 0, MPI_COMM_WORLD, &request);
     return request;
-}
-
-/**
- * If previously was send success message of finding model than this method receives and stores it. Message value: 12
- * @param size of the incoming model
- */
-void Master::get_model(int size){
-    // MPI_Recv
 }
 
 /**
@@ -171,7 +165,6 @@ bool Master::listen_to_workers(){
             }
             break;
         case 12:
-            get_model(meta.count);
             if (CERR_DEBUG) {
                 std::cerr << "Master: sending bcast to stop" << std::endl;
             }
