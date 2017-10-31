@@ -77,5 +77,10 @@ int main(int argc, char *argv[]) {
     myfile << "RunTime: " << duration << "\n";
     myfile.close();
 
+    ofstream myfile;
+    myfile.open (path);
+    myfile << "hello world\n";
+    myfile.close();
+
     return 0;
 }
