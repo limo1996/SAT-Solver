@@ -1,12 +1,12 @@
 #include "worker.h"
 
-bool CERR_DEBUG = true;
+extern bool CERR_DEBUG;
 
 Worker::Worker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_rank) {
     cnf = new CNF(_cnf);
     meta_data_type = _meta_data_type;
     worker_rank = _worker_rank;
-    wait_for_instructions_from_master();
+    stop = false;
 }
 
 unsigned count_assigned(std::set<Variable *> *variables) {
@@ -18,6 +18,26 @@ unsigned count_assigned(std::set<Variable *> *variables) {
         }
     }
     return num_assigned;
+}
+
+/**
+ * outputs given variable assignments to stderr
+ */
+void Worker::cerr_model(std::string info, std::set<Variable *> *variables) {
+    std::set<Variable *>::iterator iterator;
+    std::cerr << "Worker " << worker_rank << ": " << info << " model: (";
+    for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
+        if ((*iterator)->get_assigned()) {
+            std::cerr << (*iterator)->get_name() << ":";
+            if ((*iterator)->get_value()) {
+                std::cerr << "t";
+            } else {
+                std::cerr << "f";
+            }
+            std::cerr << ", ";
+        }
+    }
+    std::cerr << "\b\b)" << std::endl;
 }
 
 /**
@@ -35,20 +55,56 @@ void Worker::run_dpll() {
 }
 
 /**
+ * check if we receive a stop message from master before the messages are delivered to master
+ * if that's the case, cancel the message sends and return true
+ * -> the caller is then responsible to * stop.
+ */
+bool Worker::stop_received_before_message_completion(MPI_Request *mpi_requests, int size) {
+    int flag = 0;
+    int all_done = 0;
+    if (!this->stop) {
+        while (flag == 0 && all_done == 0) {
+            MPI_Testall(size, mpi_requests, &all_done, MPI_STATUS_IGNORE);
+            MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+        }
+    }
+    if (flag != 0 || this->stop) {
+        struct meta meta;
+        MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (meta.message_type != 1) {
+            throw new std::runtime_error("Worker " + std::to_string(worker_rank)
+                                         + " received weird message from master");
+        }
+        if (CERR_DEBUG) {
+            std::cerr << "Worker " << worker_rank
+                      << ": stop received while waiting for message delivery, cancelling requests if necessary"
+                      << std::endl;
+        }
+        this->stop = true;
+        if (!all_done) {
+            for (int i = 0; i < size; i++) {
+                MPI_Cancel(mpi_requests + i);
+            }
+        }
+    }
+    return flag != 0;
+}
+
+/**
  * callback that is used on a dpll branch
  * @param variables contains the variable assignments that some other worker should try
  */
 void Worker::dpll_callback(std::set<Variable *> *variables) {
-    if (!received_message_from_master()) {
-        std::cout << "dpll callback\n";
-        unsigned num_assigned = count_assigned(variables);
-        MPI_Request mpi_requests[2];
-        mpi_requests[0] = send_meta(10, num_assigned);
-        mpi_requests[1] = send_model(encode_variables(variables));
-        // TODO: not sure if we introduce a glitch here -> could cancel with MPI_Cancel(request)
-        // TODO: technically we could already start with solving while the messages are delivered...
-        // for the moment let's leave it like this, but it's a possible performance improvement
-        MPI_Waitall(2, mpi_requests, MPI_STATUS_IGNORE);
+    unsigned num_assigned = count_assigned(variables);
+    if (CERR_DEBUG) {
+        cerr_model("dpll branch", variables);
+    }
+    MPI_Request mpi_requests[2];
+    mpi_requests[0] = send_meta(10, num_assigned);
+    mpi_requests[1] = send_model(encode_variables(variables));
+    bool stop = stop_received_before_message_completion(mpi_requests, 2);
+    if (stop) {
+        this->stop = true;
     }
 }
 
@@ -59,7 +115,10 @@ void Worker::dpll_callback(std::set<Variable *> *variables) {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request Worker::send_meta(char i, unsigned assigned) {
-    std::cout << "sending meta... i: " << (int)i << " assigned: " << assigned << std::endl;
+    if (CERR_DEBUG) {
+        std::cerr << "Worker " << worker_rank << ": sending meta (i: " << (int) i << ", assigned: "
+                  << assigned << ")" << std::endl;
+    }
     struct meta meta;
     meta.message_type = i;
     meta.count = assigned;
@@ -85,18 +144,28 @@ MPI_Request Worker::send_model(std::vector<unsigned> assigned) {
  * @param cnf object that contains the assigned variables
  */
 void Worker::send_sat(CNF *cnf) {
-    if (!received_message_from_master()) {
-        if (CERR_DEBUG) {
-            std::cerr << "Worker " << worker_rank << ": sends sat model to master" << std::endl;
-        }
+    if (!this->stop) {
         std::set<Variable *> *vars = cnf->get_var();
         unsigned num_assigned = count_assigned(vars);
+        if (CERR_DEBUG) {
+            cerr_model("sends sat model to master", vars);
+        }
         MPI_Request requests[2];
         requests[0] = send_meta(12, num_assigned);
         requests[1] = send_model(encode_variables(vars));
-        // TODO: not sure if we introduce a glitch here -> could cancel with MPI_Cancel(request)
-        MPI_Waitall(2, requests, MPI_STATUS_IGNORE);
-        wait_for_instructions_from_master();
+
+        // we found a model, so we can just print it here!
+        std::cout << "sat" << std::endl;
+        DPLL::print(cnf->get_clauses(), cnf->get_var(), false, 2);
+
+        bool stop_received = stop_received_before_message_completion(requests, 2);
+        if (!stop_received) {
+            wait_for_instructions_from_master();
+        } else {
+            if (CERR_DEBUG) {
+                std::cerr << "Worker " << worker_rank << ": gracefully stopping..." << std::endl;
+            }
+        }
     }
 }
 
@@ -104,41 +173,20 @@ void Worker::send_sat(CNF *cnf) {
  * Sends unsat result to master and triggers waiting for further instructions
  */
 void Worker::send_unsat() {
-    if (!received_message_from_master()) {
+    if (!this->stop) {
         if (CERR_DEBUG) {
             std::cerr << "Worker " << worker_rank << ": sends unsat to master" << std::endl;
         }
         MPI_Request request = send_meta(11, 0);
-        // TODO: not sure if we introduce a glitch here -> could cancel with MPI_Cancel(request)
-        MPI_Wait(&request, MPI_STATUS_IGNORE);
-        wait_for_instructions_from_master();
-    }
-}
-
-/**
- * Probes for messages from master
- * If we received a message while not anticipated, it's either an abort message or the master
- * did send us something weird that we cannot handle...
- * @return true if we received a message from the master
- */
-bool Worker::received_message_from_master() {
-    int flag;
-    MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
-    bool msg_received = flag != 0;
-    if (msg_received) {
-        struct meta meta;
-        MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        if (meta.message_type == 1) {
-            if (CERR_DEBUG) {
-                std::cerr << "Worker " << worker_rank
-                          << ": received done message from master and will stop" << std::endl;
-            }
+        bool stop_received = stop_received_before_message_completion(&request, 1);
+        if (!stop_received) {
+            wait_for_instructions_from_master();
         } else {
-            std::cerr << "Worker " << worker_rank << ": received unexpected meta message from master: ("
-                      << meta.message_type << ", " << meta.count << ")" << std::endl;
+            if (CERR_DEBUG) {
+                std::cerr << "Worker " << worker_rank << ": gracefully stopping..." << std::endl;
+            }
         }
     }
-    return msg_received;
 }
 
 /**
@@ -170,6 +218,7 @@ void Worker::wait_for_instructions_from_master() {
     } else {
         if (CERR_DEBUG) {
             std::cerr << "Worker " << worker_rank << ": received done message from master" << std::endl;
+            std::cerr << "Worker " << worker_rank << ": gracefully stopping..." << std::endl;
         }
     }
 }
