@@ -145,7 +145,7 @@ MPI_Request Worker::send_model(std::vector<unsigned> assigned) {
  */
 void Worker::send_sat(CNF *cnf) {
     if (!this->stop) {
-        std::set<Variable *> *vars = cnf->get_var();
+        std::set<Variable *> *vars = cnf->get_vars();
         unsigned num_assigned = count_assigned(vars);
         if (CERR_DEBUG) {
             cerr_model("sends sat model to master", vars);
@@ -156,7 +156,7 @@ void Worker::send_sat(CNF *cnf) {
 
         // we found a model, so we can just print it here!
         std::cout << "sat" << std::endl;
-        DPLL::print(cnf->get_clauses(), cnf->get_var(), false, 2);
+        DPLL::output_model(cnf->get_vars());
 
         bool stop_received = stop_received_before_message_completion(requests, 2);
         if (!stop_received) {
@@ -232,7 +232,7 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
     std::set<Variable *> vars;
     // first "unset" all the variables in this::cnf
     std::set<Variable *>::iterator iter;
-    for (iter = cnf->get_var()->begin(); iter != cnf->get_var()->end(); iter++) {
+    for (iter = cnf->get_vars()->begin(); iter != cnf->get_vars()->end(); iter++) {
         if ((*iter)->get_assigned()) {
             (*iter)->set_assigned(false);
         }
@@ -244,8 +244,8 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
         std::string name = std::to_string(encoded[i] >> 1);
         std::set<Variable *>::iterator iterator;
 
-        for (iterator = cnf->get_var()->begin(); iterator !=
-                                                 cnf->get_var()->end(); iterator++) {                                     /* for all variables */
+        for (iterator = cnf->get_vars()->begin(); iterator !=
+                cnf->get_vars()->end(); iterator++) {                                     /* for all variables */
             if ((*iterator)->get_name() == name) {
                 (*iterator)->set_assigned(true);
                 (*iterator)->set_value(encoded_val);

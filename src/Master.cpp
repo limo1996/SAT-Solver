@@ -113,6 +113,7 @@ void Master::add_new_task(int size, int rank){
  * Prints final solution.
  */
 void Master::print_solution(bool *flags, std::string filename, int format){
+    /*
     std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
     std::ofstream out;
 
@@ -124,13 +125,14 @@ void Master::print_solution(bool *flags, std::string filename, int format){
     if(this->result) {
         format == 1 ? std::cout << " ->  satisfiable\n" : std::cout << "sat\n";
         if(flags[0] || flags[1])
-            DPLL::print(this->final_result.get_clauses(), this->final_result.get_var(), flags[1], format);
+            DPLL::print(this->final_result.get_clauses(), this->final_result.get_vars(), flags[1], format);
     } else
         format == 1 ? std::cout << " ->  not satisfiable\n" : std::cout << "unsat\n";
 
     //if output path was specified than redirect output back to console
     if(flags[2])
         std::cout.rdbuf(coutbuf); //reset to standard output again
+        */
 }
 
 /**
