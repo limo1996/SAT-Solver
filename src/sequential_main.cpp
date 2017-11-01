@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
         */
         if (result) {
             std::cout << "sat" << std::endl;
-            dpll->output_model((*it_CNF)->get_model());
+            dpll->output_model(dpll->get_cnf()->get_model());
         } else {
             std::cout << "unsat" << std::endl;
         }

@@ -29,18 +29,27 @@ public:
     }
 };
 
+class DpllResult{
+public:
+    bool sat;
+    CNF *model_cnf;
+    DpllResult(bool _sat, CNF *_model_cnf) {
+        sat = _sat;
+        model_cnf =_model_cnf;
+    }
+};
+
 class DPLL {
 private:
     CNF *cnf;
     Config *config;
-    void restore_symbol(Variable *v );
     Variable* find_first_unassigned(std::set<Variable*> *vars);
     bool ALL_CLAUSES_ARE_TRUE(std::set<Clause*> *clauses);
     bool ONE_CLAUSE_IS_FALSE(std::set<Clause*> *clauses);
     Variable* FIND_UNIT_CLAUSE(CNF *cnf);
     Variable* FIND_PURE_VAR(CNF *cnf);
-    bool DPLLalgorithm(CNF *cnf);
-    bool branch_on_variable(Variable *var, CNF *cnf);
+    DpllResult * DPLLalgorithm(CNF *cnf);
+    DpllResult * branch_on_variable(Variable *var, CNF *cnf);
 
 public:
     DPLL(CNF _cnf, Config *_config);
