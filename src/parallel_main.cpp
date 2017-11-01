@@ -47,9 +47,7 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         Master* master = new Master((size_t)size, 0, meta_data_type);
         master->start();
-        if (CERR_DEBUG) {
-            std::cerr << "Master: num_workers = " << size - 1 << std::endl;
-        }
+        
         while(!master->listen_to_workers());
 
     } else {

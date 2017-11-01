@@ -68,10 +68,13 @@ bool Worker::stop_received_before_message_completion(MPI_Request *mpi_requests, 
             MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
         }
     }
-    if (flag != 0 || this->stop) {
+    if (flag != MPI_SUCCESS || this->stop) {
         struct meta meta;
         MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         if (meta.message_type != 1) {
+            if(CERR_DEBUG){
+                std::cerr << "Worker " << worker_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
+            }
             throw new std::runtime_error("Worker " + std::to_string(worker_rank)
                                          + " received weird message from master");
         }
@@ -156,7 +159,7 @@ void Worker::send_sat(CNF *cnf) {
 
         // we found a model, so we can just print it here!
         std::cout << "sat" << std::endl;
-        DPLL::output_model(cnf->get_vars());
+        DPLL::output_model(cnf->get_model());
 
         bool stop_received = stop_received_before_message_completion(requests, 2);
         if (!stop_received) {
@@ -202,17 +205,23 @@ void Worker::wait_for_instructions_from_master() {
     struct meta meta;
     MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     if (meta.message_type == 0) {
-        if (CERR_DEBUG) {
-            std::cerr << "Worker " << worker_rank << ": received model of size " << meta.count
-                      << " and will start solving" << std::endl;
-        }
         unsigned encoded_model[meta.count];
+        if (CERR_DEBUG) {
+            std::cerr << "Worker " << worker_rank << ": received meta data of model (message type 0)" << std::endl;
+        }
         if (meta.count > 0) {
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if(CERR_DEBUG){
+                std::cerr << "Worker " << worker_rank << ": received model of size " << meta.count
+                          << " and will start solving" << std::endl;
+            }
             parse_and_update_variables(encoded_model, meta.count);
         } else {
             unsigned encoded[0];
             parse_and_update_variables(encoded, 0);
+            if(CERR_DEBUG){
+                std::cerr << "Worker " << worker_rank << ": received model of size 0 and will start solving" << std::endl;
+            }
         }
         run_dpll();
     } else {
@@ -230,11 +239,12 @@ void Worker::wait_for_instructions_from_master() {
  */
 void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
     std::set<Variable *> vars;
+    
     // first "unset" all the variables in this::cnf
     std::set<Variable *>::iterator iter;
-    for (iter = cnf->get_vars()->begin(); iter != cnf->get_vars()->end(); iter++) {
-        if ((*iter)->get_assigned()) {
-            (*iter)->set_assigned(false);
+    for (auto variable: *cnf->get_vars()) {
+        if (variable->get_assigned()) {
+            variable->set_assigned(false);
         }
     }
 

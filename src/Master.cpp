@@ -29,6 +29,11 @@ Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
             this->available_ranks.push(i);
         }
     }
+    
+    if(CERR_DEBUG){
+        std::cerr << "Master: created with rank: " << my_rank << ", number of processes: " << ranks << "(" << ranks - 1 << " workers)" << std::endl;
+        std::cerr << "Master: Number of free processes: " << available_ranks.size() << std::endl;
+    }
 }
 
 /**
@@ -39,6 +44,10 @@ Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_count){
+    if(CERR_DEBUG){
+        std::cerr << "Master: sending metadata... to rank: " << to_rank << " msg type: " << (int)message_type << " count: " << assigned_count << std::endl;
+    }
+    
     struct meta meta;
     meta.message_type = message_type;
     meta.count = assigned_count;
@@ -139,6 +148,9 @@ void Master::print_solution(bool *flags, std::string filename, int format){
  * Starts solving.
  */
 void Master::start(){
+    if(CERR_DEBUG){
+        std::cerr << "Master: starts solving" << std::endl;
+    }
     send_meta(this->available_ranks.front(), 0, 0);
     this->available_ranks.pop();
 }

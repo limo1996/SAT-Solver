@@ -69,7 +69,7 @@ int CNFParser::parsing(){
                             sign = true;                                /* so assign its sign as true */
                             name = VAR;                                 /* and take its name */
                         }
-                        v = new Variable(sign, true, name);          /* create a new variable */
+                        v = new Variable(sign, true, name);             /* create a new variable */
                         _var.insert(v);                                 /* insert into clause's variables set */
                     }
                     clause = new Clause(_var);                          /* create new clause */
