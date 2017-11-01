@@ -158,4 +158,5 @@ class ParallelSolver(SequentialSolver):
             raise SolverError("Solver did not return 0")
 
         f = open('out', 'r')
-        return [line for line in f]
+        runtime = -1
+        return [line for line in f], runtime
