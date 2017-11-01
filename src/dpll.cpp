@@ -1,6 +1,6 @@
 #include "dpll.h"
 
-extern bool CERR_DEBUG;
+extern int CERR_LEVEL;
 
 /*
  *	variable* find_first_unassigned(set<variable*>*):
@@ -139,7 +139,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     Variable *var;
     std::set<Clause *> *clauses = cnf->get_clauses();
     std::set<Variable *> *vars = cnf->get_vars();
-    if (CERR_DEBUG) {
+    if (CERR_LEVEL >= 2) {
         cout_clauses(clauses);
     }
     if (ALL_CLAUSES_ARE_TRUE(clauses))
@@ -148,7 +148,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
         return new DpllResult(false, nullptr);
     var = FIND_PURE_VAR(cnf);
     if (var != nullptr) {
-        if (CERR_DEBUG) {
+        if (CERR_LEVEL >= 2) {
             std::cerr << "pure rule on " << var->get_name() << std::endl;
         }
         set_variable_value(cnf, var, var->get_sign());
@@ -157,7 +157,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     var = FIND_UNIT_CLAUSE(cnf);
     if (var != nullptr) {
         set_variable_value(cnf, var, var->get_sign());
-        if (CERR_DEBUG) {
+        if (CERR_LEVEL >= 2) {
             std::cerr << "unit clause rule on " << var->get_name() << std::endl;
             cout_clauses(cnf->get_clauses());
         }
@@ -179,15 +179,15 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
  * The second option is used in the parallel setting
  */
 DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
-    if (CERR_DEBUG) {
+    if (CERR_LEVEL >= 2) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
         std::cerr << "branch " << var->get_name() << std::endl;
     }
     CNF *cnf_copy = nullptr;
     if (config->callback_on_branch) {
-        var->set_assigned(true);
-        var->set_value(false);
+        cout_clauses(cnf->get_clauses());
         set_variable_value(cnf, var, false);
+        cout_clauses(cnf->get_clauses());
         config->worker->dpll_callback(cnf->get_model());
         unset_variable_value(cnf, var);
     } else {
@@ -201,7 +201,7 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
         if (config->callback_on_branch) {
             return new DpllResult(false, nullptr);
         } else {
-            if (CERR_DEBUG) {
+            if (CERR_LEVEL >= 2) {
                 std::cerr << "branch !" << var->get_name() << std::endl;
             }
             set_variable_value(cnf_copy, var, false);

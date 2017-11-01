@@ -5,7 +5,7 @@
 
 using namespace std;
 
-bool CERR_DEBUG = false;
+int CERR_LEVEL = 0;
 
 /**
  * Main entry point to sequential version.

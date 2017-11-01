@@ -10,7 +10,7 @@
 using namespace std;
 
 
-bool CERR_DEBUG = false;
+int CERR_LEVEL = 0;
 
 void printHelp();
 void printErr();
