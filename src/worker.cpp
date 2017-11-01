@@ -68,9 +68,14 @@ bool Worker::stop_received_before_message_completion(MPI_Request *mpi_requests, 
             MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
         }
     }
-    if (flag != MPI_SUCCESS || this->stop) {
+    if(this->stop)
+        return true;
+    
+    if (flag != 0) {
         struct meta meta;
+        //std::cerr << "Before " << this->stop;
         MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        //std::cerr << "After";
         if (meta.message_type != 1) {
             if(CERR_DEBUG){
                 std::cerr << "Worker " << worker_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
@@ -106,9 +111,9 @@ void Worker::dpll_callback(std::set<Variable *> *variables) {
     mpi_requests[0] = send_meta(10, num_assigned);
     mpi_requests[1] = send_model(encode_variables(variables));
     bool stop = stop_received_before_message_completion(mpi_requests, 2);
-    if (stop) {
-        this->stop = true;
-    }
+    //if (stop) {
+      //  this->stop = true;
+    //}
 }
 
 /**
@@ -155,13 +160,13 @@ void Worker::send_sat(CNF *cnf) {
         }
         MPI_Request requests[2];
         requests[0] = send_meta(12, num_assigned);
-        requests[1] = send_model(encode_variables(vars));
+        //requests[1] = send_model(encode_variables(vars));
 
         // we found a model, so we can just print it here!
         std::cout << "sat" << std::endl;
         DPLL::output_model(cnf->get_model());
 
-        bool stop_received = stop_received_before_message_completion(requests, 2);
+        bool stop_received = stop_received_before_message_completion(requests, 1);
         if (!stop_received) {
             wait_for_instructions_from_master();
         } else {
