@@ -28,7 +28,7 @@ CNF::CNF(CNF &_cnf){
     std::set<Clause*>::iterator it_c;
 
     for(it_c=_cnf.get_clauses()->begin() ; it_c != _cnf.get_clauses()->end() ; it_c++){ /* get the the clauses */
-        this->clauses.insert(*it_c);
+        this->clauses.insert(new Clause(*(*it_c)->get_vars()));
     }
 }
 

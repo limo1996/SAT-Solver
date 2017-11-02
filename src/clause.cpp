@@ -12,10 +12,10 @@
 #include <iostream>
 
 //creates new instance of Clause
-Clause::Clause(const std::set<Variable*> _var) {	/* constructor */
+Clause::Clause(std::set<Variable*> _var) {	/* constructor */
     std::set<Variable*>::iterator it_v;
     for(it_v=_var.begin() ; it_v != _var.end() ; it_v++){
-        var.insert(*it_v);
+        var.insert(new Variable(**it_v));
     }
 }
 
@@ -59,18 +59,23 @@ std::set<Variable*>* Clause::get_vars() {
 std::string Clause::to_string() {
     std::set<Variable*>::iterator it_v;
     std::string s;
+    std::set<Variable*> assignedVars;
     for(it_v = var.begin() ; it_v != var.end() ; it_v++){
         if (!(*it_v)->get_assigned()) {
-            if (!(*it_v)->get_sign()) {
-                s += "!";
-            }
-
-            s += (*it_v)->get_name();
-            if ((++it_v) != var.end()) {
-                s += " or ";
-            }
-            it_v--;
+            assignedVars.insert(*it_v);
         }
+    }
+
+    for (it_v = assignedVars.begin(); it_v != assignedVars.end(); it_v++) {
+        if (!(*it_v)->get_sign()) {
+            s += "!";
+        }
+
+        s += (*it_v)->get_name();
+        if ((++it_v) != assignedVars.end()) {
+            s += " or ";
+        }
+        it_v--;
     }
     return s;
 }

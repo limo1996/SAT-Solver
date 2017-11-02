@@ -17,7 +17,7 @@ class Clause {
 private:                            /* class clause contains */
     std::set<Variable*> var;		/* a set of variables */
 public:
-    Clause(const std::set<Variable*> _var);
+    Clause(std::set<Variable *> _var);
     void print();
     bool is_true();
     bool is_false();

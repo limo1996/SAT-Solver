@@ -63,27 +63,6 @@ void Variable::set_sign(bool _sign){
     sign = _sign;
 }
 
-//operator of assignment
-Variable& Variable::operator = (const Variable &v) {
-    if(this != &v) {
-        this->sign = v.get_sign();
-        this->value = v.get_value();
-        this->name = v.get_name();
-    }
-    return *this;
-}
-
-//equality operator
-bool Variable::operator == (const Variable &v) {
-    if( this != &v) {
-        if(v.get_sign() != this->sign)
-            return false;
-        if(v.get_name() != this->name)
-            return false;
-    }
-    return true;
-}
-
 //prints content of variable
 void Variable::print(){
     std::cout<<"name: "<< name << std::endl;

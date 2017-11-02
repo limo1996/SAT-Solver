@@ -1,19 +1,15 @@
 #include "dpll.h"
 
-extern bool CERR_DEBUG;
-
-void DPLL::restore_symbol(Variable *v ){
-    v->set_assigned(false);
-}
+extern int CERR_LEVEL;
 
 /*
  *	variable* find_first_unassigned(set<variable*>*):
  *		Routine used to pick the first unassigned variable from variable's set
  */
-Variable* DPLL::find_first_unassigned(std::set<Variable*> *vars) {
-    std::set<Variable*>::iterator it_v;
-    for( it_v = vars->begin() ; it_v != vars->end() ; it_v++ )
-        if(!(*it_v)->get_assigned()) {
+Variable *DPLL::find_first_unassigned(std::set<Variable *> *vars) {
+    std::set<Variable *>::iterator it_v;
+    for (it_v = vars->begin(); it_v != vars->end(); it_v++)
+        if (!(*it_v)->get_assigned()) {
             return *it_v;
         }
     return nullptr;
@@ -24,7 +20,7 @@ Variable* DPLL::find_first_unassigned(std::set<Variable*> *vars) {
  *		Routine used to check whether all clauses of cnf sentence
  *		are true. If so cnf is true else return false.
  */
-bool DPLL::ALL_CLAUSES_ARE_TRUE(std::set<Clause*> *clauses){
+bool DPLL::ALL_CLAUSES_ARE_TRUE(std::set<Clause *> *clauses) {
     for (auto clause : *clauses) {
         if (!clause->is_true()) {
             return false;
@@ -38,7 +34,7 @@ bool DPLL::ALL_CLAUSES_ARE_TRUE(std::set<Clause*> *clauses){
  *		Routine used to check whether all clauses of cnf sentence
  *		are true.If so cnf is false else return false.
  */
-bool DPLL::ONE_CLAUSE_IS_FALSE(std::set<Clause*> *clauses) {
+bool DPLL::ONE_CLAUSE_IS_FALSE(std::set<Clause *> *clauses) {
     for (auto clause : *clauses) {
         if (clause->is_false()) {
             return true;
@@ -52,7 +48,7 @@ bool DPLL::ONE_CLAUSE_IS_FALSE(std::set<Clause*> *clauses) {
  *	variable* FIND_UNIT_CLAUSE(set<Clause*> *,set<variable*> *):
  *		Routine used to find a unit clause in the set of clauses.
  */
-Variable* DPLL::FIND_UNIT_CLAUSE(CNF *cnf) {
+Variable *DPLL::FIND_UNIT_CLAUSE(CNF *cnf) {
     for (auto c : *cnf->get_clauses()) {
         if (!c->is_true()) {
             long count = c->get_vars()->size();
@@ -93,7 +89,7 @@ void DPLL::unset_variable_value(CNF *cnf, Variable *var) {
  *	variable* FIND_PURE_SYMBOL(set<variable*> *)
  *		routine used to find a pure symbol in the set of variables.
  */
-Variable* DPLL::FIND_PURE_VAR(CNF *cnf){
+Variable *DPLL::FIND_PURE_VAR(CNF *cnf) {
     for (auto variable : *cnf->get_vars()) {
         bool occurred_positively = false;
         bool occurred_negatively = false;
@@ -120,7 +116,7 @@ Variable* DPLL::FIND_PURE_VAR(CNF *cnf){
     return nullptr;
 }
 
-void cout_clauses(std::set<Clause*> *clauses) {
+void cout_clauses(std::set<Clause *> *clauses) {
     for (auto c: *clauses) {
         if (!c->is_true()) {
             std::cerr << "(" << c->to_string() << ") ";
@@ -139,30 +135,37 @@ void cout_clauses(std::set<Clause*> *clauses) {
  *		The tested file it has succeded are on the folder spence
  *		and my_cnf_inputs.
  */
-bool DPLL::DPLLalgorithm(CNF *cnf){
+DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     Variable *var;
-    std::set<Clause*> *clauses = cnf->get_clauses();
-    std::set<Variable*> *vars = cnf->get_vars();
-    if (CERR_DEBUG) {
+    std::set<Clause *> *clauses = cnf->get_clauses();
+    std::set<Variable *> *vars = cnf->get_vars();
+    if (CERR_LEVEL >= 2) {
         cout_clauses(clauses);
     }
-    if(ALL_CLAUSES_ARE_TRUE(clauses))
-        return true;
-    if(ONE_CLAUSE_IS_FALSE(clauses))
-        return false;
+    if (ALL_CLAUSES_ARE_TRUE(clauses))
+        return new DpllResult(true, cnf);
+    if (ONE_CLAUSE_IS_FALSE(clauses))
+        return new DpllResult(false, nullptr);
     var = FIND_PURE_VAR(cnf);
-    if(var!= nullptr) {
+    if (var != nullptr) {
+        if (CERR_LEVEL >= 2) {
+            std::cerr << "pure rule on " << var->get_name() << std::endl;
+        }
         set_variable_value(cnf, var, var->get_sign());
         return DPLLalgorithm(cnf);
     }
     var = FIND_UNIT_CLAUSE(cnf);
-    if( var != nullptr) {
+    if (var != nullptr) {
         set_variable_value(cnf, var, var->get_sign());
+        if (CERR_LEVEL >= 2) {
+            std::cerr << "unit clause rule on " << var->get_name() << std::endl;
+            cout_clauses(cnf->get_clauses());
+        }
         return DPLLalgorithm(cnf);
     }
     var = find_first_unassigned(vars);
-    if( var == nullptr) {
-        return false;
+    if (var == nullptr) {
+        return new DpllResult(false, nullptr);
     } else {
         return branch_on_variable(var, cnf);
     }
@@ -175,24 +178,34 @@ bool DPLL::DPLLalgorithm(CNF *cnf){
  * The first option is used in the standard setting (sequential)
  * The second option is used in the parallel setting
  */
-bool DPLL::branch_on_variable(Variable *var, CNF *cnf) {
+DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
+    if (CERR_LEVEL >= 2) {
+        std::cerr << "dppl branch on " << var->get_name() << std::endl;
+        std::cerr << "branch " << var->get_name() << std::endl;
+    }
+    CNF *cnf_copy = nullptr;
     if (config->callback_on_branch) {
-        var->set_assigned(true);
-        var->set_value(false);
+        cout_clauses(cnf->get_clauses());
         set_variable_value(cnf, var, false);
+        cout_clauses(cnf->get_clauses());
         config->worker->dpll_callback(cnf->get_model());
         unset_variable_value(cnf, var);
+    } else {
+        cnf_copy = new CNF(*cnf);
     }
     set_variable_value(cnf, var, true);
-    if (DPLLalgorithm(cnf)) {
-        return true;
+    DpllResult *res = DPLLalgorithm(cnf);
+    if (res->sat) {
+        return new DpllResult(true, res->model_cnf);
     } else {
         if (config->callback_on_branch) {
-            return false;
+            return new DpllResult(false, nullptr);
         } else {
-            unset_variable_value(cnf, var);
-            set_variable_value(cnf, var, false);
-            return DPLLalgorithm(cnf);
+            if (CERR_LEVEL >= 2) {
+                std::cerr << "branch !" << var->get_name() << std::endl;
+            }
+            set_variable_value(cnf_copy, var, false);
+            return DPLLalgorithm(cnf_copy);
         }
     }
 }
@@ -202,15 +215,17 @@ DPLL::DPLL(CNF _cnf, Config *_config) {                /* constructor */
     config = _config;
 }
 
-bool DPLL::DPLL_SATISFIABLE(){
-    return DPLLalgorithm(cnf);
+bool DPLL::DPLL_SATISFIABLE() {
+    DpllResult *res = DPLLalgorithm(cnf);
+    cnf = res->model_cnf;
+    return res->sat;
 }
 
 CNF *DPLL::get_cnf() {
     return cnf;
 }
 
-void DPLL::output_model(std::set<Variable*> *vars) {
+void DPLL::output_model(std::set<Variable *> *vars) {
     for (auto v : *vars) {
         std::string true_false = v->get_value() ? "t" : "f";
         std::cout << v->get_name() << " " << true_false << std::endl;
