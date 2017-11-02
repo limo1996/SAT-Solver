@@ -1,5 +1,6 @@
 import os
 import subprocess
+from datetime import datetime
 
 from z3 import Solver, Not, And
 
@@ -64,17 +65,17 @@ class Tester(object):
         print('{0} out of {1} tests successful'.format(correct_count, count))
 
     def handle_sat_case(self, input_file, cnf):
-        output = self.solver.solve(input_file)
+        output, runtime = self.solver.solve(input_file)
         correct_num_vars = len(output) is cnf.num_vars + 1
         output_correct = correct_num_vars and output[0].startswith('sat')
         if not output_correct:
-            print('[fail]   {0}'.format(input_file))
+            print('[fail]   {0} (sat)'.format(input_file))
             self.fail_count += 1
         else:
             if self._inputs_correct(output[1:], cnf):
-                print('[ok]    {0}'.format(input_file))
+                print('[ok]    {0} (sat, runtime: {1}ms)'.format(input_file, runtime))
             else:
-                print('[fail]  {0}'.format(input_file))
+                print('[fail]  {0} (sat)'.format(input_file))
                 self.fail_count += 1
 
     def _inputs_correct(self, input_lines, cnf):
@@ -97,12 +98,12 @@ class Tester(object):
             return False
 
     def handle_unsat_case(self, input_file):
-        output = self.solver.solve(input_file)
+        output, runtime = self.solver.solve(input_file)
         output_correct = len(output) == 1 and output[0].startswith('unsat')
         if output_correct:
-            print('[ok]    {0}'.format(input_file))
+            print('[ok]    {0} (unsat, runtime {1}ms)'.format(input_file, runtime))
         else:
-            print('[fail]  {0}'.format(input_file))
+            print('[fail]  {0} (unsat)'.format(input_file))
             self.fail_count += 1
 
 
@@ -120,14 +121,17 @@ class SequentialSolver(object):
         :return: a list of lines that the solver did output to std_out
         """
         command = '{0} {1} -p 2 > out'.format(self.executable, input_file)
+        start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
+        stop = datetime.now()
+        runtime = (stop - start).total_seconds() * 1000 # in miliseconds
         if ret != 0:
             raise SolverError("Solver did not return 0")
 
         f = open('out', 'r')
-        return [line for line in f]
+        return [line for line in f], runtime
 
 
 class ParallelSolver(SequentialSolver):
@@ -154,4 +158,5 @@ class ParallelSolver(SequentialSolver):
             raise SolverError("Solver did not return 0")
 
         f = open('out', 'r')
-        return [line for line in f]
+        runtime = -1
+        return [line for line in f], runtime

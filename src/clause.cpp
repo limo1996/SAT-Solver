@@ -1,5 +1,5 @@
 /****************************************************************************
- *	Implemented by:	Psallidas Fotis                                         *
+ *	Inspired by an implementation by:	Psallidas Fotis                     *
  *	A.M.:1115200600170                                                      *
  *	email:std06170@di.uoa.gr                                                *
  *	Before starting executing and reading                                   *
@@ -12,79 +12,70 @@
 #include <iostream>
 
 //creates new instance of Clause
-Clause::Clause(const std::set<Variable*> _var) : value(true), assigned(false) {	/* constructor */
+Clause::Clause(std::set<Variable*> _var) {	/* constructor */
     std::set<Variable*>::iterator it_v;
     for(it_v=_var.begin() ; it_v != _var.end() ; it_v++){
-        var.insert(*it_v);
+        var.insert(new Variable(**it_v));
     }
-    value = true;
 }
 
-// prints i-th Clause
-void Clause::print(int i) {
-    std::cout << "clause " << i << ": ";
-    std::set<Variable*>::iterator it_v, it_v2;
-    for(it_v = var.begin() ; it_v != var.end() ; it_v++){
-        if((*it_v)->get_sign() == false)
-            std::cout << "~";
-        std::cout << (*it_v)->get_name();
-        if((++it_v) != var.end())
-            std::cout << "^";
-        it_v--;
+bool Clause::is_true() {
+    // a clause is true if one of it's real values is true
+    for (auto variable : var) {
+        if (variable->get_assigned() && variable->get_real_value()) {
+            return true;
+        }
     }
-    std::cout << std::endl;
+    return false;
+}
+
+bool Clause::is_false() {
+    // all variables have to be assigned
+    for (auto variable : var) {
+        if (!variable->get_assigned()) {
+            return false;
+        }
+    }
+    // if all are assigned, all real values have to be false
+    for (auto variable : var) {
+        if (variable->get_real_value()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 //prints Clause
 void Clause::print() {
-    std::set<Variable*>::iterator it_v,it_v2;
-    for(it_v = var.begin() ; it_v != var.end() ; it_v++){
-        if((*it_v)->get_sign()==false)
-            std::cout << "~";
-        std::cout << (*it_v)->get_name();
-        if((++it_v) != var.end())
-            std::cout << "^";
-        it_v--;
-    }
-}
-
-//gets whether is clause assigned
-bool Clause::get_assigned() {
-    return assigned;
-}
-
-//gets value
-bool Clause::get_value() {
-    return value;
-}
-
-//sets value
-void Clause::set_value(bool _value) {
-    value = _value;
-}
-
-//sets whether is clause assigned
-void Clause::set_assigned(bool _assigned) {
-    assigned = _assigned;
+    std::cout << this->to_string() << std::endl;
 }
 
 //gets variables in clause
-std::set<Variable*>* Clause::get_var() {
+std::set<Variable*>* Clause::get_vars() {
     return &this->var;
 }
 
 //gets clause in string
-std::string Clause::get_unit() {
-    std::set<Variable*>::iterator it_v,it_v2;
-    std::string unit;
+std::string Clause::to_string() {
+    std::set<Variable*>::iterator it_v;
+    std::string s;
+    std::set<Variable*> assignedVars;
     for(it_v = var.begin() ; it_v != var.end() ; it_v++){
-        if(!(*it_v)->get_sign())
-            unit += "~";
+        if (!(*it_v)->get_assigned()) {
+            assignedVars.insert(*it_v);
+        }
+    }
 
-        unit += (*it_v)->get_name();
-        if((++it_v) != var.end())
-            unit+=" ^ ";
+    for (it_v = assignedVars.begin(); it_v != assignedVars.end(); it_v++) {
+        if (!(*it_v)->get_sign()) {
+            s += "!";
+        }
+
+        s += (*it_v)->get_name();
+        if ((++it_v) != assignedVars.end()) {
+            s += " or ";
+        }
         it_v--;
     }
-    return unit;
+    return s;
 }

@@ -1,5 +1,5 @@
 /****************************************************************************
- *	Implemented by:	Psallidas Fotis                                         *
+ *	Inspired by an implementation by:	Psallidas Fotis                     *
  *	A.M.:1115200600170                                                      *
  *	email:std06170@di.uoa.gr                                                *
  *	Before starting executing and reading                                   *
@@ -26,8 +26,6 @@ private:
 public:
     CNFParser(char* filename);
     bool fix_pureness(const Variable *v);
-    void printCNF();
-    std::string take_format();
     int parsing();
     std::set<CNF*> get_CNFS();
 };
