@@ -12,7 +12,7 @@
 #include <iostream>
 
 //constructor
-Variable::Variable(bool _sign, bool _value, std::string _name)
+Variable::Variable(bool _sign, bool _value, unsigned _name)
         : sign(_sign), value(_value), name(_name), assigned(false) {}
 
 //copy construcor
@@ -34,7 +34,7 @@ bool Variable::get_value() const {
 }
 
 //gets value of name
-std::string Variable::get_name() const {
+unsigned Variable::get_name() const {
     return name;
 }
 

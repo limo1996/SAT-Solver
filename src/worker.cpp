@@ -259,7 +259,7 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
     for (auto clause : *cnf->get_clauses()) {
         for (auto v : *clause->get_vars()) {
             for (int i=0; i< size; i++) {
-                std::string name = std::to_string(encoded[i] >> 1);
+                int name = encoded[i] >> 1;
                 bool encoded_val = encoded[i] % 2 == 1;
                 if (v->get_name() == name) {
                     v->set_assigned(true);
@@ -282,7 +282,7 @@ std::vector<unsigned> Worker::encode_variables(std::set<Variable *> *variables) 
     std::set<Variable *>::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
-            unsigned encoded_var = (unsigned) std::stoi((*iterator)->get_name()) << 1;
+            unsigned encoded_var = (unsigned) (*iterator)->get_name() << 1;
             if ((*iterator)->get_value()) {
                 encoded_var++;
             }
