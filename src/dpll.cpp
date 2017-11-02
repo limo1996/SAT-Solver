@@ -181,13 +181,10 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
 DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
     if (CERR_LEVEL >= 2) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
-        std::cerr << "branch " << var->get_name() << std::endl;
     }
     CNF *cnf_copy = nullptr;
     if (config->callback_on_branch) {
-        cout_clauses(cnf->get_clauses());
         set_variable_value(cnf, var, false);
-        cout_clauses(cnf->get_clauses());
         config->worker->dpll_callback(cnf->get_model());
         unset_variable_value(cnf, var);
     } else {

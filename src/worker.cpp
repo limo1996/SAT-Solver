@@ -68,12 +68,9 @@ bool Worker::stop_received_before_message_completion(MPI_Request *mpi_requests, 
             MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
         }
     }
-
     if (flag != MPI_SUCCESS && !this->stop) {
         struct meta meta;
-        //std::cerr << "Before " << this->stop;
         MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        //std::cerr << "After";
         if (meta.message_type != 1) {
             if(CERR_LEVEL >= 1){
                 std::cerr << "Worker " << worker_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
@@ -109,9 +106,9 @@ void Worker::dpll_callback(std::set<Variable *> *variables) {
     mpi_requests[0] = send_meta(10, num_assigned);
     mpi_requests[1] = send_model(encode_variables(variables));
     bool stop = stop_received_before_message_completion(mpi_requests, 2);
-    //if (stop) {
-      //  this->stop = true;
-    //}
+    if (stop) {
+        this->stop = true;
+    }
 }
 
 /**
@@ -151,20 +148,23 @@ MPI_Request Worker::send_model(std::vector<unsigned> assigned) {
  */
 void Worker::send_sat(CNF *cnf) {
     if (!this->stop) {
-        std::set<Variable *> *vars = cnf->get_vars();
+        std::set<Variable *> *vars = cnf->get_model();
+        // go through the variables and assign true to all the unassigned ones
+        for (auto v : *vars) {
+            if(!v->get_assigned()) {
+                v->set_assigned(true);
+                v->set_value(true);
+            }
+        }
         unsigned num_assigned = count_assigned(vars);
         if (CERR_LEVEL >= 1) {
             cerr_model("sends sat model to master", vars);
         }
         MPI_Request requests[2];
         requests[0] = send_meta(12, num_assigned);
-        //requests[1] = send_model(encode_variables(vars));
+        requests[1] = send_model(encode_variables(vars));
 
-        // we found a model, so we can just print it here!
-        std::cout << "sat" << std::endl;
-        DPLL::output_model(cnf->get_model());
-
-        bool stop_received = stop_received_before_message_completion(requests, 1);
+        bool stop_received = stop_received_before_message_completion(requests, 2);
         if (!stop_received) {
             wait_for_instructions_from_master();
         } else {
@@ -210,10 +210,18 @@ void Worker::wait_for_instructions_from_master() {
     if (meta.message_type == 0) {
         unsigned encoded_model[meta.count];
         if (CERR_LEVEL >= 1) {
-            std::cerr << "Worker " << worker_rank << ": received meta data of model (message type 0)" << std::endl;
+            std::cerr << "Worker " << worker_rank << ": received meta data (message type: 0, count: "
+                      << meta.count << ")" << std::endl;
         }
         if (meta.count > 0) {
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (CERR_LEVEL >= 2) {
+                std::cerr << "Worker " << worker_rank << ": encoded_model: ";
+                for (int i = 0; i < meta.count; i++) {
+                    std::cerr << encoded_model[i] << " ";
+                }
+                std::cerr << std::endl;
+            }
             parse_and_update_variables(encoded_model, meta.count);
             if(CERR_LEVEL >= 1){
                 cerr_model("received model of size " + std::to_string(meta.count), cnf->get_model());
@@ -241,8 +249,6 @@ void Worker::wait_for_instructions_from_master() {
  * @param size the size of the array
  */
 void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
-    std::set<Variable *> vars;
-
     // first "unset" all the variables in this::cnf
     for (auto clause : *cnf->get_clauses()) {
         for (auto v : *clause->get_vars()) {
@@ -254,7 +260,7 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
         for (auto v : *clause->get_vars()) {
             for (int i=0; i< size; i++) {
                 std::string name = std::to_string(encoded[i] >> 1);
-                bool encoded_val = encoded[i] % 2 == 0;
+                bool encoded_val = encoded[i] % 2 == 1;
                 if (v->get_name() == name) {
                     v->set_assigned(true);
                     v->set_value(encoded_val);
