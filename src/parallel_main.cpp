@@ -1,9 +1,14 @@
 #include <iostream>
+#include <chrono>
+#include <unistd.h>
+#include <fstream>
+
 #include "cnfparser.h"
 #include "worker.h"
 #include "Master.h"
 
 using namespace std;
+using namespace std::chrono;
 
 int CERR_LEVEL = 0;
 
@@ -11,6 +16,9 @@ int CERR_LEVEL = 0;
  * Main entry point to sequential version.
  */
 int main(int argc, char *argv[]) {
+    // for time measurment
+    const char *path = "runtime_parallel.txt";
+
     CNFParser *parser;
     try {
         parser = new CNFParser(argv[1]);                                            // create parser
@@ -27,6 +35,9 @@ int main(int argc, char *argv[]) {
     }
 
     CNF cnf = *(*(cnfs.begin()));                                                   // take first one
+
+    // time start
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     MPI_Init(&argc, &argv);                                                         // mpi initialization
 
@@ -56,6 +67,15 @@ int main(int argc, char *argv[]) {
     }
 
     MPI_Finalize();                                                                 // mpi end
+
+    // time end
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+    ofstream myfile;
+    myfile.open (path, std::ios_base::app);
+    myfile << "RunTime: " << duration << " ms " << std::endl;;
+    myfile.close();
+    //cout << "RunTime: " << duration << " ms " << std::endl;
 
     return EXIT_SUCCESS;
 }

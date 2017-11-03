@@ -24,13 +24,16 @@ int main()
     int ite = 10;
     int array[ite];
 
-    string name = "example.txt";
-    const char* path = name.c_str();
-    if(ifstream(path))
-    {
-        // std::cout << "File already exists" << std::endl;
-        remove(path);
-    }
+    // "/home/ziwei/DPHPC/SAT-Solver/src"
+    // string name = "/home/ziwei/DPHPC/SAT-Solver/src";
+    // const char* path = name.c_str();
+    const char *path = "example.txt";
+
+    // if(ifstream(path))
+    // {
+    //     std::cout << "File already exists" << std::endl;
+    //     remove(path);
+    // }
 
 
     for(int k = 0; k < ite; k++){
@@ -41,17 +44,19 @@ int main()
         //auto duration = duration_cast<microseconds>( t2 - t1 ).count();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
         sum = sum + duration;
-        cout << "RunTime: " << duration << " ms " << std::endl;;
+        cout << "RunTime: " << duration << " ms " << std::endl;
         array[k] = duration;
         
     }
     ofstream myfile;
-    myfile.open (path);
+    myfile.open (path, std::ios_base::app);
     for (int i = 0; i < ite; i++)
         myfile << array[i] << "\n";
 
     myfile << "Average RunTime: " << sum/ite << " ms " << std::endl;;
     myfile.close();
+
+    cout << "Average RunTime: " << sum/ite << " ms " << std::endl;
 
     return 0;
 }
