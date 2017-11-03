@@ -9,6 +9,9 @@
 
 using namespace std;
 
+
+int CERR_LEVEL = 0;
+
 void printHelp();
 void printErr();
 bool readArgv(char *argv[], int argc, int pos, bool *flags, int &format, string& outputFile);
@@ -74,15 +77,25 @@ int main(int argc, char *argv[])
         dpll = new DPLL(*(*it_CNF), config);
         bool result = dpll->DPLL_SATISFIABLE();
 
+        /*
         if(format == 1)
             cout << (*it_CNF)->get_sentence();
+        */
+        if (result) {
+            std::cout << "sat" << std::endl;
+            dpll->output_model(dpll->get_cnf()->get_model());
+        } else {
+            std::cout << "unsat" << std::endl;
+        }
 
+        /*
         if(result == true) {
             format == 1 ? cout << " ->  satisfiable\n" : cout << "sat\n";
             if(flags[0] || flags[1])
-                dpll->print((*it_CNF)->get_clauses(), (*it_CNF)->get_var(), flags[1], format);
+                dpll->print((*it_CNF)->get_clauses(), (*it_CNF)->get_vars(), flags[1], format);
         } else
             format == 1 ? cout << " ->  not satisfiable\n" : cout << "unsat\n";
+        */
         delete dpll;
     }
 

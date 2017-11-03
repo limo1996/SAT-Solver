@@ -21,6 +21,7 @@ class CnfParser(object):
 
     def _parse_line(self, cnf, line):
         numbers = line.split(' ')[:-1]
+        numbers = list(filter(lambda _n: _n != '', numbers))
         literals = []
         for n in numbers:
             n_int = int(n)

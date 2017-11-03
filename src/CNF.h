@@ -1,5 +1,5 @@
 /****************************************************************************
- *	Implemented by:	Psallidas Fotis                                         *
+ *	Inspired by an implementation by:	Psallidas Fotis                     *
  *	A.M.:1115200600170                                                      *
  *	email:std06170@di.uoa.gr                                                *
  *	Before starting executing and reading                                   *
@@ -18,16 +18,15 @@
 
 class CNF {                         /* class CNF contains */
 private:
-    std::set<Variable*> var;		/* a set of variables */
     std::set<Clause*> clauses;		/* a set of clauses */
-    std::string sentence;           /* the whole cnf as a string */
 public:
-    CNF(std::set<Variable*> _var, std::set<Clause*> _clauses ,std::string _sentence);
+    CNF(std::set<Clause*> _clauses);
     CNF(CNF &_cnf);
+    CNF();
 
-    std::set<Variable*>* get_var();
+    std::set<Variable*>* get_vars();
+    std::set<Variable*>* get_model();
     std::set<Clause*>* get_clauses();
-    std::string get_sentence() const;
-    void print_var();
+    void print();
 };
 #endif // CNF_H

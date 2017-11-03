@@ -1,5 +1,5 @@
 /****************************************************************************
- *	Implemented by:	Psallidas Fotis                                         *
+ *	Inspired by an implementation by:	Psallidas Fotis                     *
  *	A.M.:1115200600170                                                      *
  *	email:std06170@di.uoa.gr                                                *
  *	Before starting executing and reading                                   *
@@ -22,45 +22,6 @@ CNFParser::CNFParser(char* filename) {			/* constructor */
     input = new std::fstream(filename, std::fstream::in);	/* take the .cnf stream */
     if(input->fail())
         throw file_open_fail(filename);
-}
-bool CNFParser::fix_pureness(const Variable *v) {		/* check if a variable already exists and fix the pureness if so */
-    std::set<Variable *>::iterator it_v;
-    bool flag = true;
-    for(it_v = var.begin() ; it_v != var.end() ; it_v++) {
-        if((*it_v)->get_name()==v->get_name() ) {
-            if( v->get_sign() !=(*it_v)->get_sign() ) (*it_v)->set_pure(false);
-            flag = false;
-            break;
-        }
-    }
-    return flag;
-}
-void CNFParser::printCNF() {
-    std::set<Clause*>::iterator it_c;
-    std::cout<<"CNF: ";
-    for(it_c = Clauses.begin() ; it_c != Clauses.end() ; it_c++) {
-        std::cout << "( ";
-        (*it_c)->print();
-        std::cout << " ) ";
-        if((++it_c) != Clauses.end())
-            std::cout<<" v ";
-        it_c--;
-    }
-    std::cout << std::endl;
-}
-
-std::string CNFParser::take_format(){
-    std::set<Clause*>::iterator it_c;
-    std::string cnf;
-    cnf = "CNF: ";
-    for(it_c = Clauses.begin() ; it_c != Clauses.end() ; it_c++) {
-        cnf += "( ";
-        cnf+=(*it_c)->get_unit();
-        cnf += " ) ";
-        if((++it_c) != Clauses.end() )cnf+=" v ";
-        it_c--;
-    }
-    return cnf;
 }
 
 int CNFParser::parsing(){
@@ -108,12 +69,7 @@ int CNFParser::parsing(){
                             sign = true;                                /* so assign its sign as true */
                             name = VAR;                                 /* and take its name */
                         }
-                        v = new Variable(sign,true,true,name);          /* create a new variable */
-                        if( fix_pureness(v) == true ) {                 /* check if variable already exists in variables' set */
-                            vtmp = new Variable(*v);                    /* if doesn't exist */
-                            var.insert(vtmp);                           /* insert nariable into the variable set */
-                            vtmp = NULL;
-                        }
+                        v = new Variable(sign, true, name);             /* create a new variable */
                         _var.insert(v);                                 /* insert into clause's variables set */
                     }
                     clause = new Clause(_var);                          /* create new clause */
@@ -125,7 +81,7 @@ int CNFParser::parsing(){
                     delete ins;
                 }
             }
-            cnf = new CNF(var,Clauses,take_format());                   /* create new cnf */
+            cnf = new CNF(Clauses);                   /* create new cnf */
             cnfs.insert(cnf);                                           /* add to cnfs (to solve) set */
             Clauses.clear();
             var.clear();

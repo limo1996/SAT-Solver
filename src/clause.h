@@ -1,5 +1,5 @@
 /****************************************************************************
- *	Implemented by:	Psallidas Fotis                                         *
+ *	Inspired by an implementation by:	Psallidas Fotis                     *
  *	A.M.:1115200600170                                                      *
  *	email:std06170@di.uoa.gr                                                *
  *	Before starting executing and reading                                   *
@@ -16,18 +16,13 @@
 class Clause {
 private:                            /* class clause contains */
     std::set<Variable*> var;		/* a set of variables */
-    bool value;                     /* a value */
-    bool assigned;                  /* a flag to know if it is assigned or not */
 public:
-    Clause(const std::set<Variable*> _var);
-    void print(int i);
+    Clause(std::set<Variable *> _var);
     void print();
-    bool get_assigned();
-    bool get_value();
-    void set_value(bool _value);
-    void set_assigned(bool _assigned);
-    std::set<Variable*>* get_var();
-    std::string get_unit();
+    bool is_true();
+    bool is_false();
+    std::set<Variable*>* get_vars();
+    std::string to_string();
 };
 
 #endif // CLAUSE_H
