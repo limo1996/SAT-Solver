@@ -4,7 +4,7 @@ from test import Tester
 import shutil
 import os
 
-path = '/home/ziwei/DPHPC/SAT-Solver/randomCNF/examples' # the folder save examples
+path = '/home/ziwei/DPHPC/SAT-Solver/large_tests' # the folder save examples
 # remove the old folder in case old examples exist when generate new examples
 if os.path.exists(path):
 	shutil.rmtree(path)

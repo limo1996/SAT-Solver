@@ -24,7 +24,7 @@ bool readArgv(char *argv[], int argc, int pos, bool *flags, int &format, string&
 int main(int argc, char *argv[])
 {
     // for timestamp
-    const char *path = "runtime.txt";
+    const char *path = "examples.time";
     //if(ifstream(path))
     //{
     //    // std::cout << "File already exists" << std::endl;
