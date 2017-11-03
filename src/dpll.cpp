@@ -139,7 +139,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     Variable *var;
     std::set<Clause *> *clauses = cnf->get_clauses();
     std::set<Variable *> *vars = cnf->get_vars();
-    if (CERR_LEVEL >= 2) {
+    if (CERR_LEVEL >= 3) {
         cout_clauses(clauses);
     }
     if (ALL_CLAUSES_ARE_TRUE(clauses))
@@ -159,6 +159,8 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
         set_variable_value(cnf, var, var->get_sign());
         if (CERR_LEVEL >= 2) {
             std::cerr << "unit clause rule on " << var->get_name() << std::endl;
+        }
+        if (CERR_LEVEL >= 3) {
             cout_clauses(cnf->get_clauses());
         }
         return DPLLalgorithm(cnf);
@@ -183,7 +185,9 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
     }
     CNF *cnf_copy = nullptr;
-    if (config->callback_on_branch) {
+    std::cerr << "dpll branch num_callbacks:" << config->num_callbacks << std::endl;
+    if (config->num_callbacks > 0) {
+        config->num_callbacks--;
         set_variable_value(cnf, var, false);
         config->worker->dpll_callback(cnf->get_model());
         unset_variable_value(cnf, var);
@@ -195,7 +199,7 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
     if (res->sat) {
         return new DpllResult(true, res->model_cnf);
     } else {
-        if (config->callback_on_branch) {
+        if (config->num_callbacks >= 0) {
             return new DpllResult(false, nullptr);
         } else {
             if (CERR_LEVEL >= 2) {
