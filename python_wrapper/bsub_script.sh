@@ -11,7 +11,7 @@ FILES=*.cnf
 
 for file in ${FILES}
 do
-    for run in 1 2 3 4
+    for run in 1 2 3 4 5 6 7 8 9 10
     do
         ../sequential_main "$file" -p 2 > "$file".out
     done
@@ -21,7 +21,7 @@ for nodes in ${num_nodes}
 do
     for file in ${FILES}
     do
-        for run in 1 2 3 4
+        for run in 1 2 3 4 5 6 7 8 9 10
         do
             mpirun -np "$nodes" ../parallel_main "$file" -p 2 > "$file".out
         done
