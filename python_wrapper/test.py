@@ -15,9 +15,9 @@ class Tester(object):
     def __init__(self, folder, parallel):
         folder = os.path.join(os.pardir, folder)
         self.folder = folder
-        self.files = [os.path.join(folder, f)
-                      for f in os.listdir(folder)
-                      if os.path.isfile(os.path.join(folder, f))]
+        self.files = sorted([os.path.join(folder, f)
+                             for f in os.listdir(folder)
+                             if os.path.isfile(os.path.join(folder, f))])
         self.cnf_parser = CnfParser()
         self.parallel = parallel
         self.solver = self.compile_and_create_solver()
@@ -151,12 +151,14 @@ class ParallelSolver(SequentialSolver):
         :return: a list of lines that the solver did output to std_out
         """
         command = 'mpirun -np {0} {1} {2} > out'.format(self.num_cores, self.executable, input_file)
+        start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
+        stop = datetime.now()
+        runtime = (stop - start).total_seconds() * 1000 # in miliseconds
         if ret != 0:
             raise SolverError("Solver did not return 0")
 
         f = open('out', 'r')
-        runtime = -1
         return [line for line in f], runtime

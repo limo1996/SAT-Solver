@@ -14,17 +14,16 @@ class Worker;
 
 class Config {
 public:
-    bool callback_on_branch;
+    int num_callbacks;
     Worker *worker;
 
-    //void (*callback)(std::set<Variable *> *vars);
-    Config(bool _callback_on_branch) {
-        callback_on_branch = _callback_on_branch;
+    Config() {
+        num_callbacks = -1;
         worker = nullptr;
     }
 
-    Config(bool _callback_on_branch, Worker *_worker) {
-        callback_on_branch = _callback_on_branch;
+    Config(int _num_callbacks, Worker *_worker) {
+        num_callbacks = _num_callbacks;
         worker = _worker;
     }
 };

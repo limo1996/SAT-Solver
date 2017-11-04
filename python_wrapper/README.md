@@ -7,7 +7,11 @@ There are 2 arguments:
     - ``integration-test-local`` -> runs the integration tests locally (sequentially)
     - ``parallel-test-local`` -> runs the parallel tests on the local machine with as many cores as available
     - ``parallel-test-euler`` -> will run the parallel test on euler
-- ``nethz_username``: is only used with ``--mode parallel test_euler``, if not provided, it will be prompted for
+- ``cnf_folder``(optional): folder where the cnf files are located in.
+    Note that the path is relative to the project root folder. Defaults are:
+    - ``integration_tests`` for mode ``integration-test-local``
+    - ``parallel_tests`` for modes ``parallel-test-local`` and ``parallel_test_euler``
+- ``nethz_username``: is only used with ``--mode parallel_test_euler``, if not provided, it will be prompted for
 
 Example usage:
 ```bash
