@@ -4,10 +4,15 @@
 #include "cnfparser.h"
 #include "dpll.h"
 
+
 #include <fstream>
 #include <cstring>
+#include <chrono>
+#include <iostream>
+#include <unistd.h>
 
 using namespace std;
+using namespace std::chrono;
 
 
 int CERR_LEVEL = 0;
@@ -18,6 +23,27 @@ bool readArgv(char *argv[], int argc, int pos, bool *flags, int &format, string&
 
 int main(int argc, char *argv[])
 {
+    // for timestamp
+    const char *path = argv[1];
+
+    std::string s;
+    s = path;
+    size_t lastindex = s.find_last_of(".");
+    string rawname = s.substr(0,lastindex);
+    rawname = rawname + ".time";
+    char *pathnew = &rawname[0u];
+    // path = pathnew;
+    //if(ifstream(path))
+    //{
+    //    // std::cout << "File already exists" << std::endl;
+    //    remove(path);
+    //}
+
+
+    // time start
+    // high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+
     CNFParser *parser;
     set<CNF*>::iterator it_CNF;
     DPLL *dpll;
@@ -72,6 +98,9 @@ int main(int argc, char *argv[])
         cout.rdbuf(out.rdbuf()); //redirect std::cout to output file
     }
 
+    // timestamp starter
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
         Config *config = new Config(false);
         dpll = new DPLL(*(*it_CNF), config);
@@ -102,6 +131,15 @@ int main(int argc, char *argv[])
     //if output path was specified than redirect output back to console
     if(flags[2])
         cout.rdbuf(coutbuf); //reset to standard output again
+
+    // time end
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+    ofstream myfile;
+    myfile.open (pathnew, std::ios_base::app);
+    myfile << duration << std::endl;;
+    myfile.close();
+    //cout << "RunTime: " << duration << " ms " << std::endl;
 
     return EXIT_SUCCESS;
 }
