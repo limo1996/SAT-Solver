@@ -17,7 +17,7 @@ class Tester(object):
         self.folder = folder
         self.files = sorted([os.path.join(folder, f)
                              for f in os.listdir(folder)
-                             if os.path.isfile(os.path.join(folder, f))])
+                             if os.path.isfile(os.path.join(folder, f)) and f.endswith('.cnf')])
         self.cnf_parser = CnfParser()
         self.parallel = parallel
         self.solver = self.compile_and_create_solver()

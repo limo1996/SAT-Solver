@@ -21,6 +21,17 @@ void printHelp();
 void printErr();
 bool readArgv(char *argv[], int argc, int pos, bool *flags, int &format, string& outputFile);
 
+int get_file_size(char* path) {
+    ifstream myfile (path, ios::binary);
+    streampos begin,end;
+    begin = myfile.tellg();
+    myfile.seekg (0, ios::end);
+    end = myfile.tellg();
+    myfile.close();
+    int file_size = end-begin;
+    return file_size;
+}
+
 int main(int argc, char *argv[])
 {
     // for timestamp
@@ -32,17 +43,7 @@ int main(int argc, char *argv[])
     string rawname = s.substr(0,lastindex);
     rawname = rawname + ".time";
     char *pathnew = &rawname[0u];
-    // path = pathnew;
-    //if(ifstream(path))
-    //{
-    //    // std::cout << "File already exists" << std::endl;
-    //    remove(path);
-    //}
-
-
-    // time start
-    // high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
+    int file_size = get_file_size(pathnew);
 
     CNFParser *parser;
     set<CNF*>::iterator it_CNF;
@@ -137,7 +138,9 @@ int main(int argc, char *argv[])
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
     ofstream myfile;
     myfile.open (pathnew, std::ios_base::app);
-    myfile << duration << std::endl;;
+    if (file_size > 0){
+        myfile << std::endl;;
+    }
     myfile.close();
     //cout << "RunTime: " << duration << " ms " << std::endl;
 
