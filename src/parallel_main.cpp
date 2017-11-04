@@ -25,7 +25,6 @@ int main(int argc, char *argv[]) {
     string rawname = s.substr(0,lastindex);
     rawname = rawname + ".time";
     char *pathnew = &rawname[0u];
-    ofstream myfile;
 
     CNFParser *parser;
     try {
@@ -64,8 +63,11 @@ int main(int argc, char *argv[]) {
      * Master sends tasks to free workers and collects tasks that needs to be done from them. If someone found solution master stops all workers and program ends.
      */
     if (rank == 0) {
-        myfile.open(pathnew, std::ios_base::app);
-        myfile << std::endl;
+        ofstream file;
+        file.open(pathnew, std::ios_base::app);
+        file << std::endl;
+        file.close();
+
         Master* master = new Master((size_t)size, 0, meta_data_type);
         master->start();
         
@@ -81,6 +83,7 @@ int main(int argc, char *argv[]) {
     // time end
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+    ofstream myfile;
     myfile.open (pathnew, std::ios_base::app);
     myfile << duration << ' ';
     myfile.close();
