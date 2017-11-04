@@ -21,9 +21,10 @@ int main(int argc, char *argv[]) {
 
     std::string s;
     s = path;
+    size_t firstindex = s.find_last_of("/");
     size_t lastindex = s.find_last_of(".");
-    string rawname = s.substr(0,lastindex);
-    rawname = rawname + ".time";
+    string rawname = s.substr(firstindex+1,lastindex);
+    rawname = "../parallel_test_measurement/" + rawname + ".time";
     char *pathnew = &rawname[0u];
 
     CNFParser *parser;
