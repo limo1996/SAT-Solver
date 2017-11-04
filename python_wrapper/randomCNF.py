@@ -163,7 +163,7 @@ if __name__ == '__main__':
     sample_size = 100
     accepted_variance = 4
     num_cnfs = 50
-    folder_name = '../5sat_instances_small'
+    folder_name = '../5-sat_instances_small'
     for num_vars in num_variables:
         parameterChoose = ParameterChooser(sat_prob, clause_size,
                                            sample_size, accepted_variance)

@@ -15,9 +15,9 @@ class Tester(object):
     def __init__(self, folder, parallel):
         folder = os.path.join(os.pardir, folder)
         self.folder = folder
-        self.files = [os.path.join(folder, f)
-                      for f in os.listdir(folder)
-                      if os.path.isfile(os.path.join(folder, f))]
+        self.files = sorted([os.path.join(folder, f)
+                             for f in os.listdir(folder)
+                             if os.path.isfile(os.path.join(folder, f))])
         self.cnf_parser = CnfParser()
         self.parallel = parallel
         self.solver = self.compile_and_create_solver()
