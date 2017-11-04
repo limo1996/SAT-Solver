@@ -17,15 +17,15 @@ private:
     bool sign;                  /* sign */
     bool value;                 /* value considering the sign */
     bool assigned;              /* flag to know if it is assigned or not */
-    std::string name;			/* its name */
+    unsigned name;			    /* its name */
 
 public:
-    Variable(bool _sign, bool _value, std::string _name);
+    Variable(bool _sign, bool _value, unsigned _name);
     Variable(const Variable &v);
 
     bool get_sign() const;
     bool get_value() const;
-    std::string get_name() const;
+    unsigned get_name() const;
     bool get_assigned() const;
     bool get_real_value() const;
 

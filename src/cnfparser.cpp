@@ -28,11 +28,12 @@ int CNFParser::parsing(){
     Clause *clause;
     CNF *cnf;
     std::set<Variable*> _var;
-    std::string line, VAR, name, p;
+    std::string line, VAR, p;
     Variable *v,*vtmp;
     bool sign,pflag = false ,cflag = false;
     std::istringstream *ins;
     int i = 1,j = 0 ,nvars,nclauses;
+    unsigned name;
     *input >> std::ws;
 
     std::getline(*input,line);
@@ -64,10 +65,10 @@ int CNFParser::parsing(){
                         if(VAR =="0") break;                            /* if 0 then the clause ends */
                         else if(VAR[0]=='-') {                          /* if variable has e negative sign */
                             sign = false;                               /* assign its sign as false */
-                            name = VAR.substr(1);                       /* take the name of the variable */
+                            name = std::stoi(VAR.substr(1));            /* take the name of the variable */
                         } else {                                        /* else variable has a positive sign */
                             sign = true;                                /* so assign its sign as true */
-                            name = VAR;                                 /* and take its name */
+                            name = std::stoi(VAR);                      /* and take its name */
                         }
                         v = new Variable(sign, true, name);             /* create a new variable */
                         _var.insert(v);                                 /* insert into clause's variables set */

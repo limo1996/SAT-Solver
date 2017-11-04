@@ -119,6 +119,20 @@ void Master::add_new_task(int size, int rank){
 }
 
 /**
+ * Receives a sat model and outputs it
+ */
+void Master::receive_and_output_sat_model(int size, int rank) {
+    unsigned* encoded_model = new unsigned[size];
+    MPI_Recv(encoded_model, size, MPI_UNSIGNED, rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    std::cout  << "sat" << std::endl;
+    for (int i=0; i< size; i++) {
+        std::string name = std::to_string(encoded_model[i] >> 1);
+        bool encoded_val = encoded_model[i] % 2 == 1;
+        std::cout <<name << " " << (encoded_val ? "t" : "f") << std::endl;
+    }
+}
+
+/**
  * Prints final solution.
  */
 void Master::print_solution(bool *flags, std::string filename, int format){
@@ -179,6 +193,7 @@ bool Master::listen_to_workers(){
             }
             break;
         case 12:
+            receive_and_output_sat_model(meta.count, status.MPI_SOURCE);
             if (CERR_LEVEL >= 1) {
                 std::cerr << "Master: sending bcast to stop" << std::endl;
             }

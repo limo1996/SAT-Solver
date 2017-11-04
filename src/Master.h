@@ -39,7 +39,8 @@ private:
     
     void send_task_to_worker(Model task, int worker_rank);                      // Sends task to worker. Message value: 0
     void stop_workers();                                                        // Prevens all workes from further work. Result found. Message type: 1
-    
+    void receive_and_output_sat_model(int size, int rank);
+
     MPI_Request send_meta(int to_rank, char message_type, unsigned assigned_count);    // Sends meta data
     MPI_Request send_model(unsigned int *variables, size_t size, int worker_rank);         // Sends model to worker.
 public:

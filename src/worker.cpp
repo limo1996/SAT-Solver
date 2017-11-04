@@ -44,7 +44,7 @@ void Worker::cerr_model(std::string info, std::set<Variable *> *variables) {
  * runs dpll on the cnf store in this::cnf
  */
 void Worker::run_dpll() {
-    Config *config = new Config(true, this);
+    Config *config = new Config(5, this);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->DPLL_SATISFIABLE();
     if (sat) {
@@ -148,7 +148,14 @@ MPI_Request Worker::send_model(std::vector<unsigned> assigned) {
  */
 void Worker::send_sat(CNF *cnf) {
     if (!this->stop) {
-        std::set<Variable *> *vars = cnf->get_vars();
+        std::set<Variable *> *vars = cnf->get_model();
+        // go through the variables and assign true to all the unassigned ones
+        for (auto v : *vars) {
+            if(!v->get_assigned()) {
+                v->set_assigned(true);
+                v->set_value(true);
+            }
+        }
         unsigned num_assigned = count_assigned(vars);
         if (CERR_LEVEL >= 1) {
             cerr_model("sends sat model to master", vars);
@@ -156,10 +163,6 @@ void Worker::send_sat(CNF *cnf) {
         MPI_Request requests[2];
         requests[0] = send_meta(12, num_assigned);
         requests[1] = send_model(encode_variables(vars));
-
-        // we found a model, so we can just print it here!
-        std::cout << "sat" << std::endl;
-        DPLL::output_model(cnf->get_model());
 
         bool stop_received = stop_received_before_message_completion(requests, 2);
         if (!stop_received) {
@@ -207,10 +210,18 @@ void Worker::wait_for_instructions_from_master() {
     if (meta.message_type == 0) {
         unsigned encoded_model[meta.count];
         if (CERR_LEVEL >= 1) {
-            std::cerr << "Worker " << worker_rank << ": received meta data of model (message type 0)" << std::endl;
+            std::cerr << "Worker " << worker_rank << ": received meta data (message type: 0, count: "
+                      << meta.count << ")" << std::endl;
         }
         if (meta.count > 0) {
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (CERR_LEVEL >= 2) {
+                std::cerr << "Worker " << worker_rank << ": encoded_model: ";
+                for (int i = 0; i < meta.count; i++) {
+                    std::cerr << encoded_model[i] << " ";
+                }
+                std::cerr << std::endl;
+            }
             parse_and_update_variables(encoded_model, meta.count);
             if(CERR_LEVEL >= 1){
                 cerr_model("received model of size " + std::to_string(meta.count), cnf->get_model());
@@ -238,8 +249,6 @@ void Worker::wait_for_instructions_from_master() {
  * @param size the size of the array
  */
 void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
-    std::set<Variable *> vars;
-
     // first "unset" all the variables in this::cnf
     for (auto clause : *cnf->get_clauses()) {
         for (auto v : *clause->get_vars()) {
@@ -250,8 +259,8 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
     for (auto clause : *cnf->get_clauses()) {
         for (auto v : *clause->get_vars()) {
             for (int i=0; i< size; i++) {
-                std::string name = std::to_string(encoded[i] >> 1);
-                bool encoded_val = encoded[i] % 2 == 0;
+                int name = encoded[i] >> 1;
+                bool encoded_val = encoded[i] % 2 == 1;
                 if (v->get_name() == name) {
                     v->set_assigned(true);
                     v->set_value(encoded_val);
@@ -273,7 +282,7 @@ std::vector<unsigned> Worker::encode_variables(std::set<Variable *> *variables) 
     std::set<Variable *>::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
-            unsigned encoded_var = (unsigned) std::stoi((*iterator)->get_name()) << 1;
+            unsigned encoded_var = (unsigned) (*iterator)->get_name() << 1;
             if ((*iterator)->get_value()) {
                 encoded_var++;
             }
