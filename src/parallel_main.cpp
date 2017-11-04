@@ -17,7 +17,14 @@ int CERR_LEVEL = 0;
  */
 int main(int argc, char *argv[]) {
     // for time measurment
-    const char *path = "runtime_parallel.txt";
+    const char *path = argv[1];
+
+    std::string s;
+    s = path;
+    size_t lastindex = s.find_last_of(".");
+    string rawname = s.substr(0,lastindex);
+    rawname = rawname + ".time";
+    char *pathnew = &rawname[0u];
 
     CNFParser *parser;
     try {
@@ -72,8 +79,8 @@ int main(int argc, char *argv[]) {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
     ofstream myfile;
-    myfile.open (path, std::ios_base::app);
-    myfile << "RunTime: " << duration << " ms " << std::endl;;
+    myfile.open (pathnew, std::ios_base::app);
+    myfile << duration << ' ';
     myfile.close();
     //cout << "RunTime: " << duration << " ms " << std::endl;
 

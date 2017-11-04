@@ -7,15 +7,14 @@ import os
 # generate examples without considering probability of sat
 # n_variables, n_clauses, examples, path
 
-path = '/home/ziwei/DPHPC/SAT-Solver/large_tests' # the folder save examples
+n_variables = 20
+n_clauses = 200
+n_examples = 10
+
+path = '/home/ziwei/DPHPC/SAT-Solver/randomCNF/Examples' + str(n_variables) + '_' + str(n_clauses) + '_' +str(n_examples) # the folder save examples
 # remove the old folder in case old examples exist when generate new examples
 if os.path.exists(path):
 	shutil.rmtree(path)
-
-# parameters
-n_variables = 200
-n_clauses = 500
-n_examples = 1000
 
 cnfGenerator = CNFGenerator(n_variables, n_clauses, n_examples, path) 
 cnfGenerator.saveCNF()
