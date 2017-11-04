@@ -12,17 +12,6 @@ using namespace std::chrono;
 
 int CERR_LEVEL = 0;
 
-int get_file_size(char* path) {
-    ifstream myfile (path, ios::binary);
-    streampos begin,end;
-    begin = myfile.tellg();
-    myfile.seekg (0, ios::end);
-    end = myfile.tellg();
-    myfile.close();
-    int file_size = end-begin;
-    return file_size;
-}
-
 /**
  * Main entry point to sequential version.
  */
@@ -37,7 +26,6 @@ int main(int argc, char *argv[]) {
     rawname = rawname + ".time";
     char *pathnew = &rawname[0u];
     ofstream myfile;
-    int file_size = get_file_size(pathnew);
 
     CNFParser *parser;
     try {
@@ -76,10 +64,8 @@ int main(int argc, char *argv[]) {
      * Master sends tasks to free workers and collects tasks that needs to be done from them. If someone found solution master stops all workers and program ends.
      */
     if (rank == 0) {
-        if (file_size != 0) {
-            myfile.open(pathnew, std::ios_base::app);
-            myfile << std::endl;
-        }
+        myfile.open(pathnew, std::ios_base::app);
+        myfile << std::endl;
         Master* master = new Master((size_t)size, 0, meta_data_type);
         master->start();
         

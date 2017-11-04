@@ -65,6 +65,9 @@ submitting compilation and run job to the batch system...
 Job <52097985> is submitted to queue <normal.4h>.
 job submitted, exiting
 #########################################################
+once the job is finished, run the following command to download the results file:
+<there_will_a_command_here>
+
 ```
 
 You can then ssh to euler manually with (once again you need to enter your netz password):
@@ -77,3 +80,5 @@ watch -n 5 bbjobs 52097985
 ```
 - any cout output will be stored in: ``/cluster/home/<netz-id>/sat_solver/lsf.o<job-id>``
 - per test file output will be stored depending on what is done in ``bsub_script.sh``...
+- you can download the tar-ball that contains the measurements with the command that was printed in the last line of the
+output (<there_will_be_a_command_here> from above)
