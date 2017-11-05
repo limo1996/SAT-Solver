@@ -1,3 +1,4 @@
+#include <climits>
 #include "worker.h"
 
 extern int CERR_LEVEL;
@@ -44,7 +45,7 @@ void Worker::cerr_model(std::string info, std::set<Variable *> *variables) {
  * runs dpll on the cnf store in this::cnf
  */
 void Worker::run_dpll() {
-    Config *config = new Config(5, this);
+    Config *config = new Config(INT_MAX, this);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->DPLL_SATISFIABLE();
     if (sat) {

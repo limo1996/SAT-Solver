@@ -185,7 +185,6 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
     }
     CNF *cnf_copy = nullptr;
-    std::cerr << "dpll branch num_callbacks:" << config->num_callbacks << std::endl;
     if (config->num_callbacks > 0) {
         config->num_callbacks--;
         set_variable_value(cnf, var, false);
