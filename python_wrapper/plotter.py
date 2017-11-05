@@ -1,5 +1,6 @@
 import os
 import re
+import random
 from sets import Set
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -29,6 +30,7 @@ class Plotter(object):
             for line in file:
                 line = line.strip()
                 line = line.strip('\x00')
+                line = line.replace('\x00', '')
                 if not line or line == "":
                     continue
                 numbers = map(int, line.split(' '))
@@ -45,8 +47,9 @@ class Plotter(object):
                     local_dic[local_len] = float(sum)
                     counts_dic[local_len] = 1
             for i in threads:
-                local_dic[i] = float(local_dic[i]/counts_dic[i])
-            pattern = re.compile(r"""3-sat_var_(?P<n1>.*?)_cla_(?P<n2>.*?)_is-sat_case_(?P<ccc>.*?).time""", re.VERBOSE)
+                if i in local_dic:
+                    local_dic[i] = float(local_dic[i]/counts_dic[i])
+            pattern = re.compile(r"""3-sat_var_(?P<n1>.*?)_cla_(?P<n2>.*?)_is-(?P<sat>.*?)_case_(?P<ccc>.*?).time""", re.VERBOSE)
             match = pattern.match(os.path.basename(f))
             case = match.group("ccc")
             variables = float(match.group("n1"))
@@ -62,6 +65,8 @@ class Plotter(object):
         self.plot_threads = sorted(self.plot_threads)
         j = 1
         for i in self.plot_threads:
+            if not self.is_valid(i):
+                continue
             if i != 1:
                 patches.append(mpatches.Patch(color=colors[j][0], label="Parallel version - {i} nodes".format(i=i)))
                 j += 1
@@ -69,25 +74,38 @@ class Plotter(object):
                 patches.insert(0, mpatches.Patch(color='r', label='Sequential version'))
 
         var_arr = {}
-        vars = []
+        vars = {}
         for i in self.plot_threads:
             var_arr[i] = []
+            vars[i] = []
 
         for i in self.plot_data:
-            vars.append(i[0])
             for j in self.plot_threads:
-                var_arr[j].append(i[1][j])
-                print"x:{first} y:{second}".format(first=i[0], second=i[1][j])
+                if j in i[1] and self.is_valid(j):
+                    var_arr[j].append(i[1][j])
+                    vars[j].append(float(i[0] + self.map_random(j)))
+                    print"x:{first} y:{second}".format(first=i[0], second=i[1][j])
 
         j = 1
         for i in self.plot_threads:
+            if not self.is_valid(i):
+                continue
             if i == 1:
-                plt.plot(vars, var_arr[i], colors[0])
+                plt.plot(vars[i], var_arr[i], colors[0], markersize=2)
             else:
-                plt.plot(vars, var_arr[i], colors[j])
+                plt.plot(vars[i], var_arr[i], colors[j], markersize=2)
                 j += 1
 
         plt.xlabel("Variables")
         plt.ylabel("Time (ms)")
         plt.legend(handles=patches)
         plt.show()
+
+    def is_valid(self, num):
+        'states if a number is a power of two'
+        return num in [1, 4, 8, 16, 24, 32, 64]
+
+    def map_random(self, point):
+        '-0.8, -0.5, -0.1, +0.1, +0.25, +0.4'
+        mapped = {1: -0.8, 4: -0.5, 8: -0.2, 16: 0.2, 24: 0.5, 32: 0.8}
+        return mapped[point]
