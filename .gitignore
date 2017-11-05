@@ -90,4 +90,6 @@ CMakeFiles/
 cmake-build-debug/
 cmake_install.cmake
 
+# the local timing results
+*.time
 
