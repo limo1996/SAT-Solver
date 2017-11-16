@@ -15,7 +15,7 @@ for file in ${FILES}
 do
     for run in $(seq 1 $num_runs)
     do
-        ../sequential_main "$file" -p 2 > "$file".out
+        timeout "$timeout"s ../sequential_main "$file" -p 2 > "$file".out
     done
 done
 
