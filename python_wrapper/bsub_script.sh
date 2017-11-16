@@ -3,6 +3,8 @@ cmake .
 make
 
 num_nodes=$(cat num_nodes.txt)
+num_runs=$(cat num_runs.txt)
+timeout=$(cat timeout.txt)
 
 # yes, this is a nasty as it looks...
 cd $(cat test_folder.txt)
@@ -11,7 +13,7 @@ FILES=*.cnf
 
 for file in ${FILES}
 do
-    for run in 1 2 3 4 5 6 7 8 9 10
+    for run in $(seq 1 $num_runs)
     do
         ../sequential_main "$file" -p 2 > "$file".out
     done
@@ -21,9 +23,9 @@ for nodes in ${num_nodes}
 do
     for file in ${FILES}
     do
-        for run in 1 2 3 4 5 6 7 8 9 10
+        for run in $(seq 1 $num_runs)
         do
-            mpirun -np "$nodes" ../parallel_main "$file" -p 2 > "$file".out
+            timeout "$timeout"s mpirun -np "$nodes" ../parallel_main "$file" -p 2 > "$file".out
         done
     done
 done

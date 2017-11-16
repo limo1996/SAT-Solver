@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import subprocess
 from datetime import datetime
@@ -136,7 +137,7 @@ class SequentialSolver(object):
 
 class ParallelSolver(SequentialSolver):
     def __init__(self):
-        self.num_cores = 4
+        self.num_cores = max(4, multiprocessing.cpu_count())
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'parallel_main')
         if not os.path.exists(self.executable):

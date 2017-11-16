@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 num_nodes=$(cat num_nodes.txt)
-minutes=10
+minutes=$(cat overall_runtime_minutes.txt)
 
 echo "#########################################################"
 echo "run_me_on_euler.sh is taking over"
