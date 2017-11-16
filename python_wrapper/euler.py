@@ -19,7 +19,7 @@ class EulerTester(object):
         tar.add(os.path.join(os.pardir, 'CMakeLists.txt'),
                 arcname='CMakeLists.txt')
         tar.add(os.path.join(os.pardir, 'src'), arcname='src')
-        tar.add(os.path.join(os.pardir, self.folder),
+        tar.add(os.path.join(os.path.join(os.pardir, 'cnfs'), self.folder),
                 arcname=self.folder)
         tar.add('num_nodes.txt')
         tar.add('test_folder.txt')

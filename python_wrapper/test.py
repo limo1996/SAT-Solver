@@ -13,7 +13,7 @@ class SolverError(Exception):
 
 class Tester(object):
     def __init__(self, folder, parallel):
-        folder = os.path.join(os.pardir, folder)
+        folder = os.path.join(os.pardir, os.path.join('cnfs', folder))
         self.folder = folder
         self.files = sorted([os.path.join(folder, f)
                              for f in os.listdir(folder)

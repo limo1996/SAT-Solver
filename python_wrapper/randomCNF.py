@@ -11,14 +11,15 @@ from cnf_parser import CnfIntermediateRep, Literal, Clause
 
 
 class ParameterChooser(object):
-    def __init__(self, sat_prob, clause_size, sample_size, accepted_variance):
+    def __init__(self, sat_prob, clause_size, sample_size, accepted_variance, prev):
         self.sat_prob = sat_prob
         self.clause_size = clause_size
         self.sample_size = sample_size
         self.accepted_variance = accepted_variance
+        self.prev = prev
 
     def find_parameters(self, num_vars):
-        num_clauses = 2 * num_vars  # initial clause size
+        num_clauses = self.prev  # initial clause size
         generator = CNFGenerator('', self.clause_size)
         sample_sat_count = -100
         while abs(sample_sat_count - self.sample_size*self.sat_prob) > \
@@ -42,6 +43,7 @@ class ParameterChooser(object):
                       file=sys.stderr)
             print('sat prob %1.2f' % (float(sample_sat_count)/float(self.sample_size)),
                   file=sys.stderr)
+        self.prev = num_clauses
         print("num_vars:{0} sat_prob:{1} num_clauses:{2}".format(num_vars,
                                                                  self.sat_prob,
                                                                  num_clauses))
@@ -157,17 +159,19 @@ class CNFGenerator(object):
 
 
 if __name__ == '__main__':
-    num_variables = [5, 10, 15, 20, 25, 30]
+    num_variables = [5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35]
     sat_prob = 0.5
-    clause_size = 5
+    clause_size = 3
     sample_size = 100
     accepted_variance = 4
-    num_cnfs = 50
-    folder_name = '../5-sat_instances_small'
+    num_cnfs = 10
+    folder_name = '../3-sat_instances_small_more'
+    prev = 0
     for num_vars in num_variables:
         parameterChoose = ParameterChooser(sat_prob, clause_size,
-                                           sample_size, accepted_variance)
+                                           sample_size, accepted_variance, prev)
         params = parameterChoose.find_parameters(num_vars)
+        prev = parameterChoose.prev
         print('found good parameters, writing {} formulas to file'
               .format(num_cnfs), file=sys.stderr)
         cnf_generator = CNFGenerator(folder_name, clause_size=clause_size)
