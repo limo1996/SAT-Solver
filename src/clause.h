@@ -9,19 +9,17 @@
 #ifndef CLAUSE_H
 #define CLAUSE_H
 
-#include <set>
-
 #include "variable.h"
 
 class Clause {
 private:                            /* class clause contains */
-    std::set<Variable*> var;		/* a set of variables */
+    std::unordered_set<Variable*> var;		/* a set of variables */
 public:
-    Clause(std::set<Variable *> _var);
+    Clause(std::unordered_set<Variable *> _var);
     void print();
     bool is_true();
     bool is_false();
-    std::set<Variable*>* get_vars();
+    std::unordered_set<Variable*>* get_vars();
     std::string to_string();
 };
 

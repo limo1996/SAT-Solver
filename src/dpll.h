@@ -42,9 +42,9 @@ class DPLL {
 private:
     CNF *cnf;
     Config *config;
-    Variable* find_first_unassigned(std::set<Variable*> *vars);
-    bool ALL_CLAUSES_ARE_TRUE(std::set<Clause*> *clauses);
-    bool ONE_CLAUSE_IS_FALSE(std::set<Clause*> *clauses);
+    Variable* find_first_unassigned(std::unordered_set<Variable*> *vars);
+    bool ALL_CLAUSES_ARE_TRUE(std::unordered_set<Clause*> *clauses);
+    bool ONE_CLAUSE_IS_FALSE(std::unordered_set<Clause*> *clauses);
     Variable* FIND_UNIT_CLAUSE(CNF *cnf);
     Variable* FIND_PURE_VAR(CNF *cnf);
     DpllResult * DPLLalgorithm(CNF *cnf);
@@ -53,7 +53,7 @@ private:
 public:
     DPLL(CNF _cnf, Config *_config);
     bool DPLL_SATISFIABLE();
-    static void output_model(std::set<Variable*> *vars);
+    static void output_model(std::unordered_set<Variable*> *vars);
     //static void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
     CNF *get_cnf();
 
