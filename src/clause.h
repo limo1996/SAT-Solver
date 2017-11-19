@@ -15,8 +15,7 @@ class Clause {
 private:                            /* class clause contains */
     std::unordered_set<Variable*> var;		/* a set of variables */
 public:
-    Clause(std::unordered_set<Variable *> _var);
-    void print();
+    explicit Clause(std::unordered_set<Variable *> _var);
     bool is_true();
     bool is_false();
     std::unordered_set<Variable*>* get_vars();

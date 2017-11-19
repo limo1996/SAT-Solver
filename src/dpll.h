@@ -54,7 +54,6 @@ public:
     DPLL(CNF _cnf, Config *_config);
     bool DPLL_SATISFIABLE();
     static void output_model(std::unordered_set<Variable*> *vars);
-    //static void print(std::set<Clause*> *clauses , std::set<Variable*> *vars, bool extended, int format);
     CNF *get_cnf();
 
 

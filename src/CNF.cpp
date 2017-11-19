@@ -11,15 +11,12 @@
 
 #include <iostream>
 
-CNF::CNF(){}
+CNF::CNF() = default;
 
 //creates new instance of CNF
 CNF::CNF(std::unordered_set<Clause*> _clauses) {
-    std::unordered_set<Variable*>::iterator it_v;
-    std::unordered_set<Clause*>::iterator it_c;
-
-    for(it_c=_clauses.begin(); it_c != _clauses.end(); it_c++) {
-        clauses.insert(*it_c);
+    for(auto c : _clauses) {
+        clauses.insert(c);
     }
 }
 
@@ -27,8 +24,8 @@ CNF::CNF(std::unordered_set<Clause*> _clauses) {
 CNF::CNF(CNF &_cnf){
     std::unordered_set<Clause*>::iterator it_c;
 
-    for(it_c=_cnf.get_clauses()->begin() ; it_c != _cnf.get_clauses()->end() ; it_c++){ /* get the the clauses */
-        this->clauses.insert(new Clause(*(*it_c)->get_vars()));
+    for (auto c : *(_cnf.get_clauses())) {
+        this->clauses.insert(new Clause(*(c->get_vars())));
     }
 }
 

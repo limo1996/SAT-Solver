@@ -11,11 +11,12 @@
 
 #include <iostream>
 
-//creates new instance of Clause
+/**
+ * creates a new instance of Clause
+ */
 Clause::Clause(std::unordered_set<Variable*> _var) {	/* constructor */
-    std::unordered_set<Variable*>::iterator it_v;
-    for(it_v=_var.begin() ; it_v != _var.end() ; it_v++){
-        var.insert(new Variable(**it_v));
+    for(auto v: _var){
+        var.insert(new Variable(*v));
     }
 }
 
@@ -45,11 +46,6 @@ bool Clause::is_false() {
     return true;
 }
 
-//prints Clause
-void Clause::print() {
-    std::cout << this->to_string() << std::endl;
-}
-
 //gets variables in clause
 std::unordered_set<Variable*>* Clause::get_vars() {
     return &this->var;
@@ -57,15 +53,15 @@ std::unordered_set<Variable*>* Clause::get_vars() {
 
 //gets clause in string
 std::string Clause::to_string() {
-    std::unordered_set<Variable*>::iterator it_v;
     std::string s;
     std::unordered_set<Variable*> assignedVars;
-    for(it_v = var.begin() ; it_v != var.end() ; it_v++){
-        if (!(*it_v)->get_assigned()) {
-            assignedVars.insert(*it_v);
+    for(auto v : var){
+        if (v->get_assigned()) {
+            assignedVars.insert(v);
         }
     }
 
+    std::unordered_set<Variable*>::iterator it_v;
     for (it_v = assignedVars.begin(); it_v != assignedVars.end(); it_v++) {
         if (it_v != assignedVars.begin()) {
             s += " or ";
@@ -75,7 +71,7 @@ std::string Clause::to_string() {
             s += "!";
         }
 
-        s += (*it_v)->get_name();
+        s += std::to_string((*it_v)->get_name());
     }
     return s;
 }
