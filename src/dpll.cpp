@@ -90,7 +90,7 @@ void DPLL::unset_variable_value(CNF *cnf, Variable *var) {
  *		routine used to find a pure symbol in the set of variables.
  */
 Variable *DPLL::FIND_PURE_VAR(CNF *cnf) {
-    for (auto variable : *cnf->get_vars()) {
+    for (auto variable : *cnf->get_model()) {
         bool occurred_positively = false;
         bool occurred_negatively = false;
         for (auto c: *cnf->get_clauses()) {
