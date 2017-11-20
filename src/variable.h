@@ -11,6 +11,7 @@
 #define VARIABLE_H
 
 #include <string>
+#include <unordered_set>
 
 class Variable{
 private:

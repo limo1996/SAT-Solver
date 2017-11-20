@@ -22,5 +22,11 @@ bsub -W "$minutes" -n "$nodes" < bsub_script.sh
 
 # note: the actual compilation is handled in bsub_script.sh
 
-echo "job submitted, exiting"
-echo "#########################################################"
+if [ $? -ne 0 ];
+then
+    echo "an error occurred during job submission, exiting"
+    echo "#########################################################"
+else
+    echo "job submitted, exiting"
+    echo "#########################################################"
+fi

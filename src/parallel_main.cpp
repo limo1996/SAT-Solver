@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     if (parser->parsing() == EXIT_FAILURE) {                                        // in case of wrong input format abort.
         return EXIT_FAILURE;
     }
-    set<CNF *> cnfs = parser->get_CNFS();                                           // get cnfs. Parser supports multiple ones but we use just one...
+    unordered_set<CNF *> cnfs = parser->get_CNFS();                                           // get cnfs. Parser supports multiple ones but we use just one...
     if (cnfs.size() != 1) {
         throw new runtime_error("why is there more than 1 cnf?");                   // optional error
     }
