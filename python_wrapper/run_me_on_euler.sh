@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 num_nodes=$(cat num_nodes.txt)
-minutes=10
+minutes=$(cat overall_runtime_minutes.txt)
 
 echo "#########################################################"
 echo "run_me_on_euler.sh is taking over"
@@ -22,5 +22,11 @@ bsub -W "$minutes" -n "$nodes" < bsub_script.sh
 
 # note: the actual compilation is handled in bsub_script.sh
 
-echo "job submitted, exiting"
-echo "#########################################################"
+if [ $? -ne 0 ];
+then
+    echo "an error occurred during job submission, exiting"
+    echo "#########################################################"
+else
+    echo "job submitted, exiting"
+    echo "#########################################################"
+fi

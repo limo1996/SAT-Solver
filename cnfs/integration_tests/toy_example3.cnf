@@ -1,0 +1,7 @@
+c sat
+c This is just a very simple example!
+c
+p cnf 2 3
+-1 -2 0
+1 -2 0
+1 2 0

@@ -28,8 +28,16 @@ def main(mode, nethz_username, cnf_folder):
         test_folder = 'parallel_tests'if cnf_folder == '' else cnf_folder
         if nethz_username == 'asdf':
             nethz_username = get_netz_username()
-            num_nodes = [4, 8, 16, 24, 32]
-        tester = EulerTester(test_folder, nethz_username, num_nodes)
+        # number of cores
+        num_nodes = [4, 8]
+        # number of runs per formula
+        num_runs = 2
+        # timeout per formula in seconds
+        timeout = 10
+        # overall runtime in minutes
+        overall_runtime_minutes = 10
+        tester = EulerTester(test_folder, nethz_username, num_nodes, num_runs,
+                             timeout, overall_runtime_minutes)
 
     if mode != 'parallel-test-euler':
         print('found ' + str(len(tester.files)) + ' test files in '

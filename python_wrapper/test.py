@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import subprocess
 from datetime import datetime
@@ -13,7 +14,7 @@ class SolverError(Exception):
 
 class Tester(object):
     def __init__(self, folder, parallel):
-        folder = os.path.join(os.pardir, folder)
+        folder = os.path.join(os.pardir, os.path.join('cnfs', folder))
         self.folder = folder
         self.files = sorted([os.path.join(folder, f)
                              for f in os.listdir(folder)
@@ -136,7 +137,7 @@ class SequentialSolver(object):
 
 class ParallelSolver(SequentialSolver):
     def __init__(self):
-        self.num_cores = 4
+        self.num_cores = max(4, multiprocessing.cpu_count())
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'parallel_main')
         if not os.path.exists(self.executable):

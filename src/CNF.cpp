@@ -11,30 +11,27 @@
 
 #include <iostream>
 
-CNF::CNF(){}
+CNF::CNF() = default;
 
 //creates new instance of CNF
-CNF::CNF(std::set<Clause*> _clauses) {
-    std::set<Variable*>::iterator it_v;
-    std::set<Clause*>::iterator it_c;
-
-    for(it_c=_clauses.begin(); it_c != _clauses.end(); it_c++) {
-        clauses.insert(*it_c);
+CNF::CNF(std::unordered_set<Clause*> _clauses) {
+    for(auto c : _clauses) {
+        clauses.insert(c);
     }
 }
 
 //creates copy of CNF
 CNF::CNF(CNF &_cnf){
-    std::set<Clause*>::iterator it_c;
+    std::unordered_set<Clause*>::iterator it_c;
 
-    for(it_c=_cnf.get_clauses()->begin() ; it_c != _cnf.get_clauses()->end() ; it_c++){ /* get the the clauses */
-        this->clauses.insert(new Clause(*(*it_c)->get_vars()));
+    for (auto c : *(_cnf.get_clauses())) {
+        this->clauses.insert(new Clause(*(c->get_vars())));
     }
 }
 
 //gets variables
-std::set<Variable*>* CNF::get_vars() {
-    auto *vars = new std::set<Variable*>();
+std::unordered_set<Variable*>* CNF::get_vars() {
+    auto *vars = new std::unordered_set<Variable*>();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             vars->insert(v);
@@ -43,8 +40,8 @@ std::set<Variable*>* CNF::get_vars() {
     return vars;
 }
 
-std::set<Variable*>* CNF::get_model() {
-    auto *model = new std::set<Variable*>();
+std::unordered_set<Variable*>* CNF::get_model() {
+    auto *model = new std::unordered_set<Variable*>();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             bool already_contained = false;
@@ -63,19 +60,17 @@ std::set<Variable*>* CNF::get_model() {
 }
 
 //gets clauses
-std::set<Clause*>* CNF::get_clauses() {
+std::unordered_set<Clause*>* CNF::get_clauses() {
     return &clauses;
 }
 
 void CNF::print() {
-    std::set<Clause*>::iterator it;
+    std::unordered_set<Clause*>::iterator it;
     for (it = clauses.begin(); it != clauses.end(); it++) {
-        std::cout << (*it)->to_string();
-        it++;
-        if (it != clauses.end()) {
+        if (it != clauses.begin()) {
             std::cout << " and ";
         }
-        it--;
+        std::cout << (*it)->to_string();
     }
     std::cout << std::endl;
 }

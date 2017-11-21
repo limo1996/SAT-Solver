@@ -2,25 +2,22 @@
 
 extern int CERR_LEVEL;
 
-/*
- *	variable* find_first_unassigned(set<variable*>*):
- *		Routine used to pick the first unassigned variable from variable's set
+/**
+ * Returns the first unassigned variable or nullptr if all variables are assigned
  */
-Variable *DPLL::find_first_unassigned(std::set<Variable *> *vars) {
-    std::set<Variable *>::iterator it_v;
-    for (it_v = vars->begin(); it_v != vars->end(); it_v++)
-        if (!(*it_v)->get_assigned()) {
-            return *it_v;
+Variable *DPLL::find_first_unassigned(std::unordered_set<Variable *> *vars) {
+    for (auto v : *vars) {
+        if (!v->get_assigned()) {
+            return v;
         }
+    }
     return nullptr;
 }
 
-/*
- *	bool ALL_CLAUSES_ARE_TRUE(set<Clause*> *):
- *		Routine used to check whether all clauses of cnf sentence
- *		are true. If so cnf is true else return false.
+/**
+ * Checks if all clauses are true
  */
-bool DPLL::ALL_CLAUSES_ARE_TRUE(std::set<Clause *> *clauses) {
+bool DPLL::ALL_CLAUSES_ARE_TRUE(std::unordered_set<Clause *> *clauses) {
     for (auto clause : *clauses) {
         if (!clause->is_true()) {
             return false;
@@ -29,12 +26,10 @@ bool DPLL::ALL_CLAUSES_ARE_TRUE(std::set<Clause *> *clauses) {
     return true;
 }
 
-/*
- *	bool ONE_CLAUSE_IS_FALSE(set<Clause*> *):
- *		Routine used to check whether all clauses of cnf sentence
- *		are true.If so cnf is false else return false.
+/**
+ * Checks if there exists a clause that is false
  */
-bool DPLL::ONE_CLAUSE_IS_FALSE(std::set<Clause *> *clauses) {
+bool DPLL::ONE_CLAUSE_IS_FALSE(std::unordered_set<Clause *> *clauses) {
     for (auto clause : *clauses) {
         if (clause->is_false()) {
             return true;
@@ -43,10 +38,10 @@ bool DPLL::ONE_CLAUSE_IS_FALSE(std::set<Clause *> *clauses) {
     return false;
 }
 
-/*
- *
- *	variable* FIND_UNIT_CLAUSE(set<Clause*> *,set<variable*> *):
- *		Routine used to find a unit clause in the set of clauses.
+/**
+ * Goes through the cnf formula and looks for a unit clause
+ * @param cnf the cnf object that represents the original formula and a partial model (var->value assignment)
+ * @return the variable of the unit clause if it found one, nullptr otherwise
  */
 Variable *DPLL::FIND_UNIT_CLAUSE(CNF *cnf) {
     for (auto c : *cnf->get_clauses()) {
@@ -68,6 +63,9 @@ Variable *DPLL::FIND_UNIT_CLAUSE(CNF *cnf) {
     return nullptr;
 }
 
+/**
+ * sets a given variable to a given value in the whole cnf
+ */
 void DPLL::set_variable_value(CNF *cnf, Variable *var, bool value) {
     for (auto variable : *cnf->get_vars()) {
         if (variable->get_name() == var->get_name()) {
@@ -85,12 +83,13 @@ void DPLL::unset_variable_value(CNF *cnf, Variable *var) {
     }
 }
 
-/*
- *	variable* FIND_PURE_SYMBOL(set<variable*> *)
- *		routine used to find a pure symbol in the set of variables.
+/**
+ * Goes through the cnf formula and looks for a pure variable
+ * @param cnf the cnf object that represents the original formula and a partial model (var->value assignment)
+ * @return a pure variable if it found one, nullptr otherwise
  */
 Variable *DPLL::FIND_PURE_VAR(CNF *cnf) {
-    for (auto variable : *cnf->get_vars()) {
+    for (auto variable : *cnf->get_model()) {
         bool occurred_positively = false;
         bool occurred_negatively = false;
         for (auto c: *cnf->get_clauses()) {
@@ -116,7 +115,10 @@ Variable *DPLL::FIND_PURE_VAR(CNF *cnf) {
     return nullptr;
 }
 
-void cout_clauses(std::set<Clause *> *clauses) {
+/**
+ * For debugging purposes: outputs a given set of clauses to std::cerr
+ */
+void cout_clauses(std::unordered_set<Clause *> *clauses) {
     for (auto c: *clauses) {
         if (!c->is_true()) {
             std::cerr << "(" << c->to_string() << ") ";
@@ -125,27 +127,30 @@ void cout_clauses(std::set<Clause *> *clauses) {
     std::cerr << std::endl;
 }
 
-/*
- *
- *	bool DPLLalgorithm(set<variable*> *,set<Clause*> *):
- *		DPLL algorithm implementation using aima's pseydocode.
- *		This effort is not based on minimizing complexity
- *		of DPLL efficiency but abstract as possible aima's algorithm.
- *		So dont expect to solve huge problems.
- *		The tested file it has succeded are on the folder spence
- *		and my_cnf_inputs.
+/**
+ * Run dpll on a given cnf object
+ * @param cnf the cnf object that represents the original formula and a partial model (var->value assignment)
+ * @return DpllResult object
  */
 DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     Variable *var;
-    std::set<Clause *> *clauses = cnf->get_clauses();
-    std::set<Variable *> *vars = cnf->get_vars();
+    std::unordered_set<Clause *> *clauses = cnf->get_clauses();
+    std::unordered_set<Variable *> *vars = cnf->get_vars();
     if (CERR_LEVEL >= 3) {
         cout_clauses(clauses);
     }
-    if (ALL_CLAUSES_ARE_TRUE(clauses))
+
+    // Is the formula sat for the given partial model?
+    if (ALL_CLAUSES_ARE_TRUE(clauses)) {
         return new DpllResult(true, cnf);
-    if (ONE_CLAUSE_IS_FALSE(clauses))
+    }
+
+    // Is the formula unsatisfiable for the given partial model?
+    if (ONE_CLAUSE_IS_FALSE(clauses)) {
         return new DpllResult(false, nullptr);
+    }
+
+    // Pure literal rule
     var = FIND_PURE_VAR(cnf);
     if (var != nullptr) {
         if (CERR_LEVEL >= 2) {
@@ -154,6 +159,8 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
         set_variable_value(cnf, var, var->get_sign());
         return DPLLalgorithm(cnf);
     }
+
+    // Unit clause rule
     var = FIND_UNIT_CLAUSE(cnf);
     if (var != nullptr) {
         set_variable_value(cnf, var, var->get_sign());
@@ -165,6 +172,8 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
         }
         return DPLLalgorithm(cnf);
     }
+
+    // branch on first unassigned variable
     var = find_first_unassigned(vars);
     if (var == nullptr) {
         return new DpllResult(false, nullptr);
@@ -225,10 +234,9 @@ CNF *DPLL::get_cnf() {
     return cnf;
 }
 
-void DPLL::output_model(std::set<Variable *> *vars) {
+void DPLL::output_model(std::unordered_set<Variable *> *vars) {
     for (auto v : *vars) {
         std::string true_false = v->get_value() ? "t" : "f";
         std::cout << v->get_name() << " " << true_false << std::endl;
     }
-
 }
