@@ -42,23 +42,25 @@ class DPLL {
 private:
     CNF *cnf;
     Config *config;
-    Variable* find_first_unassigned(std::unordered_set<Variable*> *vars);
-    bool ALL_CLAUSES_ARE_TRUE(std::unordered_set<Clause*> *clauses);
-    bool ONE_CLAUSE_IS_FALSE(std::unordered_set<Clause*> *clauses);
-    Variable* FIND_UNIT_CLAUSE(CNF *cnf);
-    Variable* FIND_PURE_VAR(CNF *cnf);
     DpllResult * DPLLalgorithm(CNF *cnf);
     DpllResult * branch_on_variable(Variable *var, CNF *cnf);
 
 public:
+    static Variable* find_first_unassigned(std::unordered_set<Variable*> *vars);
+    static bool ALL_CLAUSES_ARE_TRUE(std::unordered_set<Clause*> *clauses);
+    static bool ONE_CLAUSE_IS_FALSE(std::unordered_set<Clause*> *clauses);
+    static Variable* FIND_UNIT_CLAUSE(CNF *cnf);
+    static Variable* FIND_PURE_VAR(CNF *cnf);
     DPLL(CNF _cnf, Config *_config);
     bool DPLL_SATISFIABLE();
     static void output_model(std::unordered_set<Variable*> *vars);
     CNF *get_cnf();
 
 
-    void set_variable_value(CNF *cnf, Variable *var, bool value);
-    void unset_variable_value(CNF *cnf, Variable *var);
+    static void set_variable_value(CNF *cnf, Variable *var, bool value);
+    static void unset_variable_value(CNF *cnf, Variable *var);
+
+    static void cout_clauses(std::unordered_set<Clause *> *clauses);
 };
 
 #endif // DPLL_H

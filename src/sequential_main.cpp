@@ -3,6 +3,7 @@
 #include "CNF.h"
 #include "cnfparser.h"
 #include "dpll.h"
+#include "cdcl.h"
 
 
 #include <fstream>
@@ -15,7 +16,7 @@ using namespace std;
 using namespace std::chrono;
 
 
-int CERR_LEVEL = 0;
+int CERR_LEVEL = 3;
 
 void printHelp();
 void printErr();
@@ -36,6 +37,7 @@ int main(int argc, char *argv[])
     CNFParser *parser;
     unordered_set<CNF*>::iterator it_CNF;
     DPLL *dpll;
+    CDCL *cdcl;
     string outputFile;
     int format = 1;                         // default format is 1 i.e. readable format.
     bool flags[3] = {false, false, false};  // [0] => -p flag set, [1] => -pa flag set, [2] => -o flag set
@@ -93,7 +95,9 @@ int main(int argc, char *argv[])
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
         Config *config = new Config();
         dpll = new DPLL(*(*it_CNF), config);
-        bool result = dpll->DPLL_SATISFIABLE();
+        cdcl = new CDCL(*(*it_CNF));
+        bool result = cdcl->SATISFIABLE();
+        //result = dpll->DPLL_SATISFIABLE();
 
         /*
         if(format == 1)
@@ -101,7 +105,7 @@ int main(int argc, char *argv[])
         */
         if (result) {
             std::cout << "sat" << std::endl;
-            dpll->output_model(dpll->get_cnf()->get_model());
+            DPLL::output_model(cdcl->get_cnf()->get_model());
         } else {
             std::cout << "unsat" << std::endl;
         }

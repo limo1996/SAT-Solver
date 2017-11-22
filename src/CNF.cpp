@@ -64,13 +64,33 @@ std::unordered_set<Clause*>* CNF::get_clauses() {
     return &clauses;
 }
 
+void CNF::add_clause(Clause *clause) {
+    for (auto v: *clause->get_vars()) {
+        v->set_assigned(false);
+        for (auto m: *get_model()) {
+            if (v->get_name() == m->get_name()) {
+                v->set_value(m->get_value());
+                v->set_assigned(true);
+            }
+        }
+    }
+    clauses.insert(new Clause(*clause->get_vars()));
+}
+
 void CNF::print() {
     std::unordered_set<Clause*>::iterator it;
     for (it = clauses.begin(); it != clauses.end(); it++) {
-        if (it != clauses.begin()) {
-            std::cout << " and ";
+        if (!(*it)->is_true()) {
+            std::cout << "(";
+            if (it != clauses.begin()) {
+                std::cout << " and ";
+            }
+            if ((*it)->is_false()) {
+                std::cout << " false ";
+            }
+            std::cout << (*it)->to_string();
+            std::cout << ")";
         }
-        std::cout << (*it)->to_string();
     }
     std::cout << std::endl;
 }

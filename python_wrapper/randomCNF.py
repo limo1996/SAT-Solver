@@ -159,13 +159,13 @@ class CNFGenerator(object):
 
 
 if __name__ == '__main__':
-    num_variables = [5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 35]
+    num_variables = [100, 150, 200, 250, 300]
     sat_prob = 0.5
     clause_size = 3
     sample_size = 100
     accepted_variance = 4
-    num_cnfs = 10
-    folder_name = '../3-sat_instances_small_more'
+    num_cnfs = 20
+    folder_name = '../3-sat_instances_large'
     prev = 0
     for num_vars in num_variables:
         parameterChoose = ParameterChooser(sat_prob, clause_size,

@@ -54,16 +54,16 @@ std::unordered_set<Variable*>* Clause::get_vars() {
 //gets clause in string
 std::string Clause::to_string() {
     std::string s;
-    std::unordered_set<Variable*> assignedVars;
+    std::unordered_set<Variable*> unassignedVars;
     for(auto v : var){
-        if (v->get_assigned()) {
-            assignedVars.insert(v);
+        if (!v->get_assigned()) {
+            unassignedVars.insert(v);
         }
     }
 
     std::unordered_set<Variable*>::iterator it_v;
-    for (it_v = assignedVars.begin(); it_v != assignedVars.end(); it_v++) {
-        if (it_v != assignedVars.begin()) {
+    for (it_v = unassignedVars.begin(); it_v != unassignedVars.end(); it_v++) {
+        if (it_v != unassignedVars.begin()) {
             s += " or ";
         }
 

@@ -118,7 +118,7 @@ Variable *DPLL::FIND_PURE_VAR(CNF *cnf) {
 /**
  * For debugging purposes: outputs a given set of clauses to std::cerr
  */
-void cout_clauses(std::unordered_set<Clause *> *clauses) {
+void DPLL::cout_clauses(std::unordered_set<Clause *> *clauses) {
     for (auto c: *clauses) {
         if (!c->is_true()) {
             std::cerr << "(" << c->to_string() << ") ";
@@ -137,7 +137,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     std::unordered_set<Clause *> *clauses = cnf->get_clauses();
     std::unordered_set<Variable *> *vars = cnf->get_vars();
     if (CERR_LEVEL >= 3) {
-        cout_clauses(clauses);
+        DPLL::cout_clauses(clauses);
     }
 
     // Is the formula sat for the given partial model?
@@ -168,7 +168,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
             std::cerr << "unit clause rule on " << var->get_name() << std::endl;
         }
         if (CERR_LEVEL >= 3) {
-            cout_clauses(cnf->get_clauses());
+            DPLL::cout_clauses(cnf->get_clauses());
         }
         return DPLLalgorithm(cnf);
     }

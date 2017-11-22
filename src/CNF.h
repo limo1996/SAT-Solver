@@ -28,5 +28,7 @@ public:
     std::unordered_set<Variable*>* get_model();
     std::unordered_set<Clause*>* get_clauses();
     void print();
+
+    void add_clause(Clause *clause);
 };
 #endif // CNF_H
