@@ -42,8 +42,10 @@ void CDCL::add_dependency_edges_to_graph(unsigned name, bool sign, Clause *claus
         if (!(v->get_sign() == sign && v->get_name() == name)) {
             Literal *parent = dependency_graph->find_negation(v);
             if (parent != nullptr) {
-                parent->children.insert(l);
-                l->parents.insert(parent);
+                if (parent->name != name) {
+                    parent->children.insert(l);
+                    l->parents.insert(parent);
+                }
             } else {
                 throw std::runtime_error("there should exist some node here!");
             }
@@ -95,37 +97,31 @@ DpllResult *CDCL::CDCLAlgorithm(CNF *cnf) {
     if (DPLL::ALL_CLAUSES_ARE_TRUE(clauses))
         return new DpllResult(true, cnf);
     if (DPLL::ONE_CLAUSE_IS_FALSE(clauses))
-        throw std::runtime_error("there should be a conflict if one clause is false!");
-    var = DPLL::FIND_PURE_VAR(cnf);
-    if (var != nullptr) {
-        if (CERR_LEVEL >= 2) {
-            std::cerr << "pure rule on " << var->to_string() << std::endl;
+        if (parent_decision == nullptr) {
+            return new DpllResult(false, nullptr);
+        } else {
+            throw std::runtime_error("there should be a conflict if one clause is false!");
         }
-        DPLL::set_variable_value(cnf, var, var->get_sign());
-        return CDCLAlgorithm(cnf);
-    }
     std::pair<Clause*, Variable*> uc = CDCL::FIND_UNIT_CLAUSE(cnf);
     clause = uc.first;
     var = uc.second;
     if (clause != nullptr) {
         DPLL::set_variable_value(cnf, var, var->get_sign());
-        if (CERR_LEVEL >= 2) {
+        if (CERR_LEVEL >= 3) {
             std::cerr << "unit clause rule on " << var->to_string() << std::endl;
         }
         if (CERR_LEVEL >= 3) {
             DPLL::cout_clauses(cnf->get_clauses());
         }
-        //StandardLiteral *l = create_standard_literal(var);
-        //dependency_graph->add_node(l);
         add_dependency_edges_to_graph(var->get_name(), var->get_sign(), clause);
         if (DPLL::ONE_CLAUSE_IS_FALSE(cnf->get_clauses())) {
-            if (CERR_LEVEL >= 2) {
+            if (CERR_LEVEL >= 3) {
                 std::cerr << "forcing conflict because of false clause" << std::endl;
             }
             Clause *false_clause;
             for (auto c : *clauses) {
                 if (c->is_false()) {
-                    false_clause = clause;
+                    false_clause = c;
                 }
             }
             add_dependency_edges_to_graph(var->get_name(), !var->get_sign(), false_clause);
@@ -168,51 +164,13 @@ CNF *CDCL::conflict_resolution() {
     }
 
     // add the new clause to all decision nodes (means also applying the model to them)
-// add the new clause to all decision nodes (means also applying the model to them)
-for (auto l : dependency_graph->get_all_decision_literals()) {
-    l->cnf->add_clause(new Clause(new_clause_variables));
-}
-    cnf->add_clause(new Clause(new_clause_variables));
-    /*
     for (auto l : dependency_graph->get_all_decision_literals()) {
-        std::set<Variable*> *model = l->cnf->get_model();
-        std::set<Clause*> *clauses = l->cnf->get_clauses();
-        std::set<Clause*> new_clauses;
-        //TODO: it might be a lot faster to add this functionality to CNF directly, without all the copying
-        for (auto c : *clauses) {
-            new_clauses.insert(new Clause(*c->get_vars()));
-        }
-        for (auto v: new_clause_variables) {
-            v->set_assigned(false);
-            for (auto m: *model) {
-                if (v->get_name() == m->get_name()) {
-                    v->set_value(m->get_value());
-                    v->set_assigned(true);
-                }
-            }
-        }
-        new_clauses.insert(new Clause(new_clause_variables));
-        l->cnf = new CNF(new_clauses);
+        l->cnf->add_clause(new Clause(new_clause_variables));
     }
-    std::set<Variable*> *model = cnf->get_model();
-    std::set<Clause*> *clauses = cnf->get_clauses();
-    std::set<Clause*> new_clauses;
-    //TODO: it might be a lot faster to add this functionality to CNF directly, without all the copying
-    for (auto c : *clauses) {
-        new_clauses.insert(new Clause(*c->get_vars()));
+    cnf->add_clause(new Clause(new_clause_variables));
+    if (CERR_LEVEL >= 3) {
+        std::cerr << "learning clause: (" << (new Clause(new_clause_variables))->to_string() << ")" << std::endl;
     }
-    for (auto v: new_clause_variables) {
-        v->set_assigned(false);
-        for (auto m: *model) {
-            if (v->get_name() == m->get_name()) {
-                v->set_value(m->get_value());
-                v->set_assigned(true);
-            }
-        }
-    }
-    new_clauses.insert(new Clause(new_clause_variables));
-    cnf = new CNF(new_clauses);
-    */
 
     // identify the relevant decision literals
     LiteralSet relevant;
@@ -262,7 +220,7 @@ void CDCL::remove_all_consequences(DecisionLiteral *literal) {
         }
         DPLL::unset_variable_value(cnf_, new Variable(false, false, literal->name));
     }
-    if (CERR_LEVEL >= 3) {
+    if (CERR_LEVEL >= 4) {
         if (!literal->implies.empty()) {
             std::cerr << "unsetting: ";
             for (auto consequence : literal->implies) {

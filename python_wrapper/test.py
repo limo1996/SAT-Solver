@@ -121,11 +121,11 @@ class SequentialSolver(object):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = '{0} {1} -p 2 > out'.format(self.executable, input_file)
+        command = '{0} {1} -p 2 1> out'.format(self.executable, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=None)
         stop = datetime.now()
         runtime = (stop - start).total_seconds() * 1000 # in miliseconds
         if ret != 0:
@@ -151,11 +151,11 @@ class ParallelSolver(SequentialSolver):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = 'mpirun -np {0} {1} {2} > out'.format(self.num_cores, self.executable, input_file)
+        command = 'mpirun -np {0} {1} {2} 1> out'.format(self.num_cores, self.executable, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=None)
         stop = datetime.now()
         runtime = (stop - start).total_seconds() * 1000 # in miliseconds
         if ret != 0:

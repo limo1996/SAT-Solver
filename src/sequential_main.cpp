@@ -16,7 +16,7 @@ using namespace std;
 using namespace std::chrono;
 
 
-int CERR_LEVEL = 3;
+int CERR_LEVEL = 0;
 
 void printHelp();
 void printErr();
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
         Config *config = new Config();
-        dpll = new DPLL(*(*it_CNF), config);
+        //dpll = new DPLL(*(*it_CNF), config);
         cdcl = new CDCL(*(*it_CNF));
         bool result = cdcl->SATISFIABLE();
         //result = dpll->DPLL_SATISFIABLE();
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         } else
             format == 1 ? cout << " ->  not satisfiable\n" : cout << "unsat\n";
         */
-        delete dpll;
+        delete cdcl;
     }
 
     //if output path was specified than redirect output back to console
