@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     char *pathnew = &rawname[0u];
 
     CNFParser *parser;
-    unordered_set<CNF*>::iterator it_CNF;
+    set<CNF*>::iterator it_CNF;
     DPLL *dpll;
     CDCL *cdcl;
     string outputFile;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     if (!flags[0]) {
         cout << "OK!" << endl;
     }
-    unordered_set<CNF*> cnfs = parser->get_CNFS();
+    set<CNF*> cnfs = parser->get_CNFS();
 
     // if output path is specified than redirect output to the file
     streambuf *coutbuf = std::cout.rdbuf(); //save old buf

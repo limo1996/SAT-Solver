@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 class Literal;
-typedef std::unordered_set<Literal *> LiteralSet;
+typedef std::set<Literal *> LiteralSet;
 
 enum LType {
     DECISION, STANDARD
@@ -85,8 +85,8 @@ public:
         std::string key = var->get_sign() ? "!" + std::to_string(var->get_name()) : std::to_string(var->get_name());
         return find(key);
     }
-    std::unordered_set<DecisionLiteral*> get_all_decision_literals() {
-        std::unordered_set<DecisionLiteral*> res;
+    std::set<DecisionLiteral*> get_all_decision_literals() {
+        std::set<DecisionLiteral*> res;
         for (auto tuple : lookup_map) {
             Literal *l = tuple.second;
             if (l->type == DECISION) {

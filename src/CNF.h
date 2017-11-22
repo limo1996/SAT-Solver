@@ -10,7 +10,7 @@
 #ifndef CNF_H
 #define CNF_H
 
-#include <unordered_set>
+#include <set>
 #include <string>
 
 #include "variable.h"
@@ -18,15 +18,15 @@
 
 class CNF {                         /* class CNF contains */
 private:
-    std::unordered_set<Clause*> clauses;		/* a set of clauses */
+    std::set<Clause*> clauses;		/* a set of clauses */
 public:
-    CNF(std::unordered_set<Clause*> _clauses);
+    CNF(std::set<Clause*> _clauses);
     CNF(CNF &_cnf);
     CNF();
 
-    std::unordered_set<Variable*>* get_vars();
-    std::unordered_set<Variable*>* get_model();
-    std::unordered_set<Clause*>* get_clauses();
+    std::set<Variable*>* get_vars();
+    std::set<Variable*>* get_model();
+    std::set<Clause*>* get_clauses();
     void print();
 
     void add_clause(Clause *clause);

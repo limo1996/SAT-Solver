@@ -14,7 +14,7 @@
 CNF::CNF() = default;
 
 //creates new instance of CNF
-CNF::CNF(std::unordered_set<Clause*> _clauses) {
+CNF::CNF(std::set<Clause*> _clauses) {
     for(auto c : _clauses) {
         clauses.insert(c);
     }
@@ -22,7 +22,7 @@ CNF::CNF(std::unordered_set<Clause*> _clauses) {
 
 //creates copy of CNF
 CNF::CNF(CNF &_cnf){
-    std::unordered_set<Clause*>::iterator it_c;
+    std::set<Clause*>::iterator it_c;
 
     for (auto c : *(_cnf.get_clauses())) {
         this->clauses.insert(new Clause(*(c->get_vars())));
@@ -30,8 +30,8 @@ CNF::CNF(CNF &_cnf){
 }
 
 //gets variables
-std::unordered_set<Variable*>* CNF::get_vars() {
-    auto *vars = new std::unordered_set<Variable*>();
+std::set<Variable*>* CNF::get_vars() {
+    auto *vars = new std::set<Variable*>();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             vars->insert(v);
@@ -40,8 +40,8 @@ std::unordered_set<Variable*>* CNF::get_vars() {
     return vars;
 }
 
-std::unordered_set<Variable*>* CNF::get_model() {
-    auto *model = new std::unordered_set<Variable*>();
+std::set<Variable*>* CNF::get_model() {
+    auto *model = new std::set<Variable*>();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             bool already_contained = false;
@@ -60,7 +60,7 @@ std::unordered_set<Variable*>* CNF::get_model() {
 }
 
 //gets clauses
-std::unordered_set<Clause*>* CNF::get_clauses() {
+std::set<Clause*>* CNF::get_clauses() {
     return &clauses;
 }
 
@@ -78,7 +78,7 @@ void CNF::add_clause(Clause *clause) {
 }
 
 void CNF::print() {
-    std::unordered_set<Clause*>::iterator it;
+    std::set<Clause*>::iterator it;
     for (it = clauses.begin(); it != clauses.end(); it++) {
         if (!(*it)->is_true()) {
             std::cout << "(";

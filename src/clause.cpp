@@ -14,7 +14,7 @@
 /**
  * creates a new instance of Clause
  */
-Clause::Clause(std::unordered_set<Variable*> _var) {	/* constructor */
+Clause::Clause(std::set<Variable*> _var) {	/* constructor */
     for(auto v: _var){
         var.insert(new Variable(*v));
     }
@@ -47,21 +47,21 @@ bool Clause::is_false() {
 }
 
 //gets variables in clause
-std::unordered_set<Variable*>* Clause::get_vars() {
+std::set<Variable*>* Clause::get_vars() {
     return &this->var;
 }
 
 //gets clause in string
 std::string Clause::to_string() {
     std::string s;
-    std::unordered_set<Variable*> unassignedVars;
+    std::set<Variable*> unassignedVars;
     for(auto v : var){
         if (!v->get_assigned()) {
             unassignedVars.insert(v);
         }
     }
 
-    std::unordered_set<Variable*>::iterator it_v;
+    std::set<Variable*>::iterator it_v;
     for (it_v = unassignedVars.begin(); it_v != unassignedVars.end(); it_v++) {
         if (it_v != unassignedVars.begin()) {
             s += " or ";

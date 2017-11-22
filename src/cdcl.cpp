@@ -79,8 +79,8 @@ std::pair<Clause*, Variable*> CDCL::FIND_UNIT_CLAUSE(CNF *cnf) {
 DpllResult *CDCL::CDCLAlgorithm(CNF *cnf) {
     Variable *var;
     Clause *clause;
-    std::unordered_set<Clause *> *clauses = cnf->get_clauses();
-    std::unordered_set<Variable *> *vars = cnf->get_vars();
+    std::set<Clause *> *clauses = cnf->get_clauses();
+    std::set<Variable *> *vars = cnf->get_vars();
     if (CERR_LEVEL >= 3) {
         DPLL::cout_clauses(clauses);
         std::cerr << (dependency_graph->has_conflict ? "has conflict!" : "no conflict") << std::endl;
@@ -162,7 +162,7 @@ CNF *CDCL::conflict_resolution() {
     LiteralSet parents;
     parents.insert(p->parents.begin(), p->parents.end());
     parents.insert(n->parents.begin(), n->parents.end());
-    std::unordered_set<Variable*> new_clause_variables;
+    std::set<Variable*> new_clause_variables;
     for (auto parent : parents) {
         new_clause_variables.insert(new Variable(!parent->sign, false, parent->name));
     }
@@ -175,9 +175,9 @@ for (auto l : dependency_graph->get_all_decision_literals()) {
     cnf->add_clause(new Clause(new_clause_variables));
     /*
     for (auto l : dependency_graph->get_all_decision_literals()) {
-        std::unordered_set<Variable*> *model = l->cnf->get_model();
-        std::unordered_set<Clause*> *clauses = l->cnf->get_clauses();
-        std::unordered_set<Clause*> new_clauses;
+        std::set<Variable*> *model = l->cnf->get_model();
+        std::set<Clause*> *clauses = l->cnf->get_clauses();
+        std::set<Clause*> new_clauses;
         //TODO: it might be a lot faster to add this functionality to CNF directly, without all the copying
         for (auto c : *clauses) {
             new_clauses.insert(new Clause(*c->get_vars()));
@@ -194,9 +194,9 @@ for (auto l : dependency_graph->get_all_decision_literals()) {
         new_clauses.insert(new Clause(new_clause_variables));
         l->cnf = new CNF(new_clauses);
     }
-    std::unordered_set<Variable*> *model = cnf->get_model();
-    std::unordered_set<Clause*> *clauses = cnf->get_clauses();
-    std::unordered_set<Clause*> new_clauses;
+    std::set<Variable*> *model = cnf->get_model();
+    std::set<Clause*> *clauses = cnf->get_clauses();
+    std::set<Clause*> new_clauses;
     //TODO: it might be a lot faster to add this functionality to CNF directly, without all the copying
     for (auto c : *clauses) {
         new_clauses.insert(new Clause(*c->get_vars()));
@@ -251,7 +251,7 @@ for (auto l : dependency_graph->get_all_decision_literals()) {
 }
 
 void CDCL::remove_all_consequences(DecisionLiteral *literal) {
-    std::unordered_set<CNF*> cnfs;
+    std::set<CNF*> cnfs;
     for (auto dl : dependency_graph->get_all_decision_literals()) {
         cnfs.insert(dl->cnf);
     }

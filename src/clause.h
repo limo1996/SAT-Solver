@@ -13,12 +13,12 @@
 
 class Clause {
 private:                            /* class clause contains */
-    std::unordered_set<Variable*> var;		/* a set of variables */
+    std::set<Variable*> var;		/* a set of variables */
 public:
-    explicit Clause(std::unordered_set<Variable *> _var);
+    explicit Clause(std::set<Variable *> _var);
     bool is_true();
     bool is_false();
-    std::unordered_set<Variable*>* get_vars();
+    std::set<Variable*>* get_vars();
     std::string to_string();
 };
 

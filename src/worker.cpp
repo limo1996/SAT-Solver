@@ -10,9 +10,9 @@ Worker::Worker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_rank) {
     stop = false;
 }
 
-unsigned count_assigned(std::unordered_set<Variable *> *variables) {
+unsigned count_assigned(std::set<Variable *> *variables) {
     unsigned num_assigned = 0;
-    std::unordered_set<Variable *>::iterator iterator;
+    std::set<Variable *>::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             num_assigned++;
@@ -24,8 +24,8 @@ unsigned count_assigned(std::unordered_set<Variable *> *variables) {
 /**
  * outputs given variable assignments to stderr
  */
-void Worker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
-    std::unordered_set<Variable *>::iterator iterator;
+void Worker::cerr_model(std::string info, std::set<Variable *> *variables) {
+    std::set<Variable *>::iterator iterator;
     std::cerr << "Worker " << worker_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
@@ -98,7 +98,7 @@ bool Worker::stop_received_before_message_completion(MPI_Request *mpi_requests, 
  * callback that is used on a dpll branch
  * @param variables contains the variable assignments that some other worker should try
  */
-void Worker::dpll_callback(std::unordered_set<Variable *> *variables) {
+void Worker::dpll_callback(std::set<Variable *> *variables) {
     unsigned num_assigned = count_assigned(variables);
     if (CERR_LEVEL >= 1) {
         cerr_model("dpll branch", variables);
@@ -149,7 +149,7 @@ MPI_Request Worker::send_model(std::vector<unsigned> assigned) {
  */
 void Worker::send_sat(CNF *cnf) {
     if (!this->stop) {
-        std::unordered_set<Variable *> *vars = cnf->get_model();
+        std::set<Variable *> *vars = cnf->get_model();
         // go through the variables and assign true to all the unassigned ones
         for (auto v : *vars) {
             if(!v->get_assigned()) {
@@ -276,11 +276,11 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
  * @param variables the set of variables to encode (ony assigned ones are considered)
  * @return encoded vector
  */
-std::vector<unsigned> Worker::encode_variables(std::unordered_set<Variable *> *variables) {
+std::vector<unsigned> Worker::encode_variables(std::set<Variable *> *variables) {
     unsigned num_assigned = count_assigned(variables);
     std::vector<unsigned> encoded;
     encoded.reserve(num_assigned);
-    std::unordered_set<Variable *>::iterator iterator;
+    std::set<Variable *>::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             unsigned encoded_var = (unsigned) (*iterator)->get_name() << 1;
