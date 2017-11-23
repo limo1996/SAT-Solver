@@ -128,7 +128,7 @@ class SequentialSolver(object):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = '{0} {1} -p 2 1> out'.format(self.executable, input_file)
+        command = '{0} {1} 1> out'.format(self.executable, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
