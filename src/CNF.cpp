@@ -9,12 +9,10 @@
 
 #include "CNF.h"
 
-#include <iostream>
-
 CNF::CNF() = default;
 
 //creates new instance of CNF
-CNF::CNF(std::set<Clause*> _clauses) {
+CNF::CNF(ClauseSet _clauses) {
     for(auto c : _clauses) {
         clauses.insert(c);
     }
@@ -22,7 +20,7 @@ CNF::CNF(std::set<Clause*> _clauses) {
 
 //creates copy of CNF
 CNF::CNF(CNF &_cnf){
-    std::set<Clause*>::iterator it_c;
+    ClauseSet::iterator it_c;
 
     for (auto c : *(_cnf.get_clauses())) {
         this->clauses.insert(new Clause(*(c->get_vars())));
@@ -30,8 +28,8 @@ CNF::CNF(CNF &_cnf){
 }
 
 //gets variables
-std::set<Variable*>* CNF::get_vars() {
-    auto *vars = new std::set<Variable*>();
+VariableSet* CNF::get_vars() {
+    auto *vars = new VariableSet();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             vars->insert(v);
@@ -40,8 +38,8 @@ std::set<Variable*>* CNF::get_vars() {
     return vars;
 }
 
-std::set<Variable*>* CNF::get_model() {
-    auto *model = new std::set<Variable*>();
+VariableSet* CNF::get_model() {
+    auto *model = new VariableSet();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             bool already_contained = false;
@@ -60,7 +58,7 @@ std::set<Variable*>* CNF::get_model() {
 }
 
 //gets clauses
-std::set<Clause*>* CNF::get_clauses() {
+ClauseSet* CNF::get_clauses() {
     return &clauses;
 }
 
@@ -78,7 +76,7 @@ void CNF::add_clause(Clause *clause) {
 }
 
 void CNF::print() {
-    std::set<Clause*>::iterator it;
+    ClauseSet::iterator it;
     for (it = clauses.begin(); it != clauses.end(); it++) {
         if (!(*it)->is_true()) {
             std::cout << "(";

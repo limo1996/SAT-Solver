@@ -9,12 +9,10 @@
 
 #include "clause.h"
 
-#include <iostream>
-
 /**
  * creates a new instance of Clause
  */
-Clause::Clause(std::set<Variable*> _var) {	/* constructor */
+Clause::Clause(VariableSet _var) {	/* constructor */
     for(auto v: _var){
         var.insert(new Variable(*v));
     }
@@ -47,21 +45,21 @@ bool Clause::is_false() {
 }
 
 //gets variables in clause
-std::set<Variable*>* Clause::get_vars() {
+VariableSet* Clause::get_vars() {
     return &this->var;
 }
 
 //gets clause in string
 std::string Clause::to_string() {
     std::string s;
-    std::set<Variable*> unassignedVars;
+    VariableSet unassignedVars;
     for(auto v : var){
         if (!v->get_assigned()) {
             unassignedVars.insert(v);
         }
     }
 
-    std::set<Variable*>::iterator it_v;
+    VariableSet::iterator it_v;
     for (it_v = unassignedVars.begin(); it_v != unassignedVars.end(); it_v++) {
         if (it_v != unassignedVars.begin()) {
             s += " or ";

@@ -5,11 +5,11 @@
 #ifndef SAT_SOLVER_CDCL_H
 #define SAT_SOLVER_CDCL_H
 
-#include "dpll.h"
 #include <unordered_map>
+#include "dpll.h"
 
 class Literal;
-typedef std::set<Literal *> LiteralSet;
+typedef std::unordered_set<Literal *> LiteralSet;
 
 enum LType {
     DECISION, STANDARD
@@ -38,11 +38,9 @@ public:
 
 class DecisionLiteral : public Literal {
 public:
-    CNF *cnf;
     LiteralSet implies{};
-    explicit DecisionLiteral(unsigned _name, bool _sign, CNF *_cnf): Literal(_name, _sign) {
+    explicit DecisionLiteral(unsigned _name, bool _sign): Literal(_name, _sign) {
         type = DECISION;
-        cnf = _cnf;
     }
     void add_implies(Literal *l) {
         implies.insert(l);
@@ -97,15 +95,7 @@ public:
     }
     void remove_node(Literal *l) {
         if (l->type == STANDARD) {
-            throw std::runtime_error("why?");
-            /*
-            auto *sl = (StandardLiteral*) l;
-            for (auto c : sl->children) {
-                c->parents.erase(sl);
-            }
-            sl->implied_by->implies.erase(sl);
-            delete sl;
-             */
+            throw std::runtime_error("Not implemented, this shouldn't happen!");
         } else if (l->type == DECISION) {
             auto *dl = (DecisionLiteral*) l;
             for (auto i : dl->implies) {
@@ -113,7 +103,7 @@ public:
                     c->parents.erase(i);
                 }
                 lookup_map.erase(i->to_string());
-                //delete l;
+                //delete i;
             }
             lookup_map.erase(dl->to_string());
             //delete dl;
@@ -152,7 +142,7 @@ private:
     Graph *dependency_graph;
     DecisionLiteral *parent_decision;
     StandardLiteral *create_standard_literal(unsigned int name, bool sign);
-    DecisionLiteral *create_decision_literal(unsigned int name, bool sign, CNF *cnf);
+    DecisionLiteral *create_decision_literal(unsigned int name, bool sign);
     std::pair<Clause *, Variable *> FIND_UNIT_CLAUSE(CNF *cnf);
     void add_dependency_edges_to_graph(unsigned int name, bool sign, Clause *clause);
     CNF* conflict_resolution();

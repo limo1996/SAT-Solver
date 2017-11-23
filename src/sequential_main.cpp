@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     char *pathnew = &rawname[0u];
 
     CNFParser *parser;
-    set<CNF*>::iterator it_CNF;
+    unordered_set<CNF*>::iterator it_CNF;
     DPLL *dpll;
     CDCL *cdcl;
     string outputFile;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     if (!flags[0]) {
         cout << "OK!" << endl;
     }
-    set<CNF*> cnfs = parser->get_CNFS();
+    unordered_set<CNF*> cnfs = parser->get_CNFS();
 
     // if output path is specified than redirect output to the file
     streambuf *coutbuf = std::cout.rdbuf(); //save old buf
@@ -93,11 +93,11 @@ int main(int argc, char *argv[])
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
-        Config *config = new Config();
+        //Config *config = new Config();
         //dpll = new DPLL(*(*it_CNF), config);
         cdcl = new CDCL(*(*it_CNF));
         bool result = cdcl->SATISFIABLE();
-        //result = dpll->DPLL_SATISFIABLE();
+        //bool result = dpll->DPLL_SATISFIABLE();
 
         /*
         if(format == 1)
