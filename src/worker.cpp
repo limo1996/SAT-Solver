@@ -44,9 +44,9 @@ void Worker::cerr_model(std::string info, VariableSet *variables) {
  * runs dpll on the cnf store in this::cnf
  */
 void Worker::run_dpll() {
-    Config *config = new Config(INT_MAX, this);
+    auto *config = new Config(INT_MAX, this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
-    bool sat = dpll->DPLL_SATISFIABLE();
+    bool sat = dpll->SATISFIABLE();
     if (sat) {
         send_sat(dpll->get_cnf());
     } else {

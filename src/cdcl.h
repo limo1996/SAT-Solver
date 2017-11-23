@@ -9,7 +9,7 @@
 #include "dpll.h"
 #include "cdcl_dependency_graph.h"
 
-class CDCL {
+class CDCL: public Solver {
 private:
     CNF *cnf;
     Graph *dependency_graph;
@@ -23,10 +23,10 @@ private:
     void jump_back(LiteralSet relevant_literals);
     void remove_all_consequences(DecisionLiteral *literal);
 public:
-    explicit CDCL(CNF _cnf);
-    bool SATISFIABLE();
+    explicit CDCL(CNF *_cnf);
     DpllResult *CDCLAlgorithm(CNF *cnf);
-    CNF *get_cnf();
+    bool SATISFIABLE() override;
+    CNF *get_cnf() override;
 };
 
 

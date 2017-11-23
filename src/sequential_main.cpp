@@ -4,6 +4,7 @@
 #include "cnfparser.h"
 #include "dpll.h"
 #include "cdcl.h"
+#include "solver_controller.h"
 
 
 #include <fstream>
@@ -36,8 +37,7 @@ int main(int argc, char *argv[])
 
     CNFParser *parser;
     unordered_set<CNF*>::iterator it_CNF;
-    DPLL *dpll;
-    CDCL *cdcl;
+    Solver *solver;
     string outputFile;
     int format = 1;                         // default format is 1 i.e. readable format.
     bool flags[3] = {false, false, false};  // [0] => -p flag set, [1] => -pa flag set, [2] => -o flag set
@@ -93,32 +93,19 @@ int main(int argc, char *argv[])
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
-        Config *config = new Config();
-        //dpll = new DPLL(*(*it_CNF), config);
-        cdcl = new CDCL(*(*it_CNF));
-        bool result = cdcl->SATISFIABLE();
-        //bool result = dpll->DPLL_SATISFIABLE();
+        auto *config = new Config(DPLL_);
+        auto *controller = new SolverController(config, *it_CNF);
 
-        /*
-        if(format == 1)
-            cout << (*it_CNF)->get_sentence();
-        */
+        bool result = controller->SATISFIABLE();
+
         if (result) {
             std::cout << "sat" << std::endl;
-            DPLL::output_model(cdcl->get_cnf()->get_model());
+            DPLL::output_model(controller->get_cnf()->get_model());
         } else {
             std::cout << "unsat" << std::endl;
         }
 
-        /*
-        if(result == true) {
-            format == 1 ? cout << " ->  satisfiable\n" : cout << "sat\n";
-            if(flags[0] || flags[1])
-                dpll->print((*it_CNF)->get_clauses(), (*it_CNF)->get_vars(), flags[1], format);
-        } else
-            format == 1 ? cout << " ->  not satisfiable\n" : cout << "unsat\n";
-        */
-        delete cdcl;
+        delete controller;
     }
 
     //if output path was specified than redirect output back to console

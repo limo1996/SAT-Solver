@@ -224,7 +224,7 @@ DPLL::DPLL(CNF _cnf, Config *_config) {                /* constructor */
     config = _config;
 }
 
-bool DPLL::DPLL_SATISFIABLE() {
+bool DPLL::SATISFIABLE() {
     DpllResult *res = DPLLalgorithm(cnf);
     cnf = res->model_cnf;
     return res->sat;

@@ -7,8 +7,8 @@
 
 extern int CERR_LEVEL;
 
-CDCL::CDCL(CNF _cnf) {
-    cnf = new CNF(_cnf);
+CDCL::CDCL(CNF *_cnf) {
+    cnf = new CNF(*_cnf);
     dependency_graph = new Graph();
     parent_decision = nullptr;
 }
