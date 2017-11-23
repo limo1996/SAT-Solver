@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
-        //Config *config = new Config();
+        Config *config = new Config();
         //dpll = new DPLL(*(*it_CNF), config);
         cdcl = new CDCL(*(*it_CNF));
         bool result = cdcl->SATISFIABLE();

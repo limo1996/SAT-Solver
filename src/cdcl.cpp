@@ -2,6 +2,7 @@
 // Created by jan on 21.11.17.
 //
 
+#include <queue>
 #include "cdcl.h"
 
 extern int CERR_LEVEL;
@@ -18,6 +19,9 @@ bool CDCL::SATISFIABLE() {
     return res->sat;
 }
 
+/**
+ * Helper function to great a standard literal
+ */
 StandardLiteral *CDCL::create_standard_literal(unsigned name, bool sign) {
     auto *l = new StandardLiteral(name, sign, parent_decision);
     if (parent_decision != nullptr) {
@@ -26,15 +30,27 @@ StandardLiteral *CDCL::create_standard_literal(unsigned name, bool sign) {
     return l;
 }
 
+/**
+ * Helper function to great a decision literal
+ */
 DecisionLiteral *CDCL::create_decision_literal(unsigned name, bool sign) {
     auto *l = new DecisionLiteral(name, sign);
     if (parent_decision != nullptr) {
         parent_decision->add_child(l);
-        l->parents.insert((Literal*) parent_decision);
+        l->parents.insert((Literal *) parent_decision);
     }
     return l;
 }
 
+/**
+ * Adds the neccessary dependency edges to the graph after the unit clause rule was applied
+ *
+ * The edges are: per previously removed variable in the clause add an edge from the negation
+ * of that variable. The negation of the variable is guaranteed to be in the graph.
+ * @param name the name of the unit variable
+ * @param sign the sign of the unit variable
+ * @param clause the unit clause itself
+ */
 void CDCL::add_dependency_edges_to_graph(unsigned name, bool sign, Clause *clause) {
     Literal *l = create_standard_literal(name, sign);
     dependency_graph->add_node(l);
@@ -58,7 +74,7 @@ void CDCL::add_dependency_edges_to_graph(unsigned name, bool sign, Clause *claus
  * @param cnf the cnf object that represents the original formula and a partial model (var->value assignment)
  * @return the unit clause if it found one, nullptr otherwise
  */
-std::pair<Clause*, Variable*> CDCL::FIND_UNIT_CLAUSE(CNF *cnf) {
+std::pair<Clause *, Variable *> CDCL::FIND_UNIT_CLAUSE(CNF *cnf) {
     for (auto c : *cnf->get_clauses()) {
         if (!c->is_true()) {
             long count = c->get_vars()->size();
@@ -75,7 +91,7 @@ std::pair<Clause*, Variable*> CDCL::FIND_UNIT_CLAUSE(CNF *cnf) {
             }
         }
     }
-    return std::make_pair((Clause*) nullptr, (Variable*) nullptr);
+    return std::make_pair((Clause *) nullptr, (Variable *) nullptr);
 }
 
 DpllResult *CDCL::CDCLAlgorithm(CNF *cnf) {
@@ -102,7 +118,7 @@ DpllResult *CDCL::CDCLAlgorithm(CNF *cnf) {
         } else {
             throw std::runtime_error("there should be a conflict if one clause is false!");
         }
-    std::pair<Clause*, Variable*> uc = CDCL::FIND_UNIT_CLAUSE(cnf);
+    std::pair<Clause *, Variable *> uc = CDCL::FIND_UNIT_CLAUSE(cnf);
     clause = uc.first;
     var = uc.second;
     if (clause != nullptr) {
@@ -144,36 +160,76 @@ CNF *CDCL::get_cnf() {
     return cnf;
 }
 
+/**
+ * Applies conflict resolution to the dependency graph -> back jumping and clause learning
+ */
 CNF *CDCL::conflict_resolution() {
     if (CERR_LEVEL >= 2) {
         std::cerr << "conflict resolution" << std::endl;
     }
-    auto *p = (StandardLiteral*) dependency_graph->find(new Variable(true, false, dependency_graph->conflict));
-    auto *n = (StandardLiteral*) dependency_graph->find(new Variable(false, false, dependency_graph->conflict));
+    auto *p = (StandardLiteral *) dependency_graph->find(new Variable(true, false, dependency_graph->conflict));
+    auto *n = (StandardLiteral *) dependency_graph->find(new Variable(false, false, dependency_graph->conflict));
 
-    // cut the graph and retrieve a new clause that represents the conflict
-    LiteralSet parents;
-    parents.insert(p->parents.begin(), p->parents.end());
-    parents.insert(n->parents.begin(), n->parents.end());
-    VariableSet new_clause_variables;
-    for (auto parent : parents) {
-        new_clause_variables.insert(new Variable(!parent->sign, false, parent->name));
-    }
-
-    cnf->add_clause(new Clause(new_clause_variables));
-    if (CERR_LEVEL >= 3) {
-        std::cerr << "learning clause: (" << (new Clause(new_clause_variables))->to_string() << ")" << std::endl;
-    }
+    Clause *newClause = learn_clause(p, n);
+    cnf->add_clause(newClause);
 
     // identify the relevant decision literals
     LiteralSet relevant;
     relevant.insert((Literal *) p->implied_by);
     relevant.insert((Literal *) n->implied_by);
 
-    // pop one relevant literal and as many others as possible
+    jump_back(relevant);
+    dependency_graph->has_conflict = false;
+    return cnf;
+}
+
+/**
+ * Cuts the dependency graph and construct a new learned clause
+ * @param positive_literal the positive literal of the conflict
+ * @param negative_literal the negative literal of the conflict
+ * @return a new clause learned from the conflict
+ */
+Clause *CDCL::learn_clause(StandardLiteral *positive_literal, StandardLiteral *negative_literal) {
+    LiteralSet parents;
+    parents.insert(positive_literal->parents.begin(), positive_literal->parents.end());
+    parents.insert(negative_literal->parents.begin(), negative_literal->parents.end());
+    VariableSet new_clause_variables;
+    LiteralSet decisionParents;
+    std::queue<Literal *> workList;
+    for (auto parent : parents) {
+        workList.push(parent);
+    }
+    while (!workList.empty()) {
+        Literal *e = workList.front();
+        workList.pop();
+        if (e->type == DECISION) {
+            // NOTE: this step is done to get rid of duplicates
+            decisionParents.insert(e);
+        } else {
+            for (auto parent: e->parents) {
+                workList.push(parent);
+            }
+        }
+    }
+
+    for (auto parent : decisionParents) {
+        new_clause_variables.insert(new Variable(!parent->sign, false, parent->name));
+    }
+    Clause *result = new Clause(new_clause_variables);
+    if (CERR_LEVEL >= 3) {
+        std::cerr << "learning clause: (" << result->to_string() << ")" << std::endl;
+    }
+    return result;
+}
+
+/**
+ * Jumps back in the dependency graph
+ * Here we pop one relevant literal and as many others as possible (non-relevant ones)
+ */
+void CDCL::jump_back(LiteralSet relevant_literals) {
     bool one_popped = false;
     while (parent_decision != nullptr) {
-        if (relevant.find(parent_decision) != relevant.end()) {
+        if (relevant_literals.find(parent_decision) != relevant_literals.end()) {
             if (one_popped) {
                 break;
             } else {
@@ -193,8 +249,6 @@ CNF *CDCL::conflict_resolution() {
             parent_decision = nullptr;
         }
     }
-    dependency_graph->has_conflict = false;
-    return cnf;
 }
 
 void CDCL::remove_all_consequences(DecisionLiteral *literal) {
@@ -202,20 +256,5 @@ void CDCL::remove_all_consequences(DecisionLiteral *literal) {
         DPLL::unset_variable_value(cnf, new Variable(false, false, consequence->name));
     }
     DPLL::unset_variable_value(cnf, new Variable(false, false, literal->name));
-
-    if (CERR_LEVEL >= 4) {
-        if (!literal->implies.empty()) {
-            std::cerr << "unsetting: ";
-            for (auto consequence : literal->implies) {
-                std::cerr << " " << consequence->to_string();
-            }
-            std::cerr << std::endl;
-        } else {
-            std::cerr << "nothing to unset!" << std::endl;
-        }
-    }
     dependency_graph->remove_node(literal);
 }
-
-
-
