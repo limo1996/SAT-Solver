@@ -4,13 +4,12 @@
 #include <fstream>
 
 #include "cnfparser.h"
-#include "SlaveWorker.h"
-#include "Master.h"
+#include "StealingWorker.h"
 
 using namespace std;
 using namespace std::chrono;
 
-int CERR_LEVEL = 0;
+int CERR_LEVEL = 1;
 
 /**
  * Main entry point to sequential version.
@@ -18,14 +17,14 @@ int CERR_LEVEL = 0;
 int main(int argc, char *argv[]) {
     // for time measurment
     const char *path = argv[1];
-
+    
     std::string s;
     s = path;
     size_t lastindex = s.find_last_of(".");
     string rawname = s.substr(0,lastindex);
     rawname = rawname + ".time";
     char *pathnew = &rawname[0u];
-
+    
     CNFParser *parser;
     try {
         parser = new CNFParser(argv[1]);                                            // create parser
@@ -40,21 +39,21 @@ int main(int argc, char *argv[]) {
     if (cnfs.size() != 1) {
         throw new runtime_error("why is there more than 1 cnf?");                   // optional error
     }
-
+    
     CNF cnf = *(*(cnfs.begin()));                                                   // take first one
-
+    
     // time start
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
+    
     MPI_Init(&argc, &argv);                                                         // mpi initialization
-
+    
     MPI_Datatype meta_data_type = setup_meta_type();                                // create data type that is used in inter process communication.
-
+    
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);                                           // get rank and size of processes
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-
+    
     /**
      * Rank 0 is always master. Other n-1 ranks are workers. If program is run just on 1 process, the program will fail (Master will cause assertion failure).
      * Workers are listening to commands of master and are executing tasks. Worker can get to 3 states. It finds solution and let master know it,
@@ -67,19 +66,16 @@ int main(int argc, char *argv[]) {
         file.open(pathnew, std::ios_base::app);
         file << std::endl;
         file.close();
-
-        Master* master = new Master((size_t)size, 0, meta_data_type);
-        master->start();
         
-        while(!master->listen_to_workers());
-
+        StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
+        main_worker->start();
     } else {
-        SlaveWorker *w = new SlaveWorker(*(*(cnfs.begin())), meta_data_type, rank);
-        w->wait_for_instructions_from_master();
+        StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
+        w->check_and_process_message_from_worker(true);
     }
-
+    
     MPI_Finalize();                                                                 // mpi end
-
+    
     // time end
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
@@ -88,6 +84,6 @@ int main(int argc, char *argv[]) {
     myfile << duration << ' ';
     myfile.close();
     //cout << "RunTime: " << duration << " ms " << std::endl;
-
+    
     return EXIT_SUCCESS;
 }
