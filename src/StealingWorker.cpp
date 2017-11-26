@@ -19,6 +19,9 @@ StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_r
     next_to_send = 1;
 }
 
+/**
+ * Worker starts to solve cnf and sends one subproblem to each other worker.
+ */
 void StealingWorker::start(){
     run_dpll();
 }
