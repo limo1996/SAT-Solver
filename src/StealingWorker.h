@@ -33,6 +33,7 @@ private:
     void output_sat_model(CNF *cnf);
     void stop_workers();
     unsigned count_assigned(std::unordered_set<Variable *> *variables);
+    void debug_output(std::string line, bool newLine, int level = 1);
     
 public:
     explicit StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size);

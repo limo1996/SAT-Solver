@@ -138,6 +138,9 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request SlaveWorker::send_model(std::vector<unsigned> assigned) {
+    if (CERR_LEVEL >= 1) {
+        std::cerr << "SlaveWorker " << worker_rank << ": sending model of size " << assigned.size() << std::endl;
+    }
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, &request);
     return request;

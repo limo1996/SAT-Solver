@@ -3,6 +3,13 @@
 
 extern int CERR_LEVEL;
 
+void StealingWorker::debug_output(std::string line, bool newLine, int level){
+    if (CERR_LEVEL >= level) {
+        std::cerr << "StealingWorker " << this->my_rank << ": " << line;
+        if(newLine) std::cerr << std::endl;
+    }
+}
+
 StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size) {
     cnf = new CNF(_cnf);
     meta_data_type = _meta_data_type;
@@ -27,6 +34,7 @@ void StealingWorker::run_dpll() {
     if (sat) {
         print_sat_stop_workers(dpll->get_cnf());
     } else {
+        check_and_process_message_from_worker(false);
         get_model();
     }
 }
@@ -37,6 +45,8 @@ void StealingWorker::run_dpll() {
  * -> the caller is then responsible to * stop.
  */
 bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_requests, int size) {
+    debug_output("stop_received_before_message_completion", true);
+    
     int flag = 0;
     int all_done = 0;
     if (!this->stop) {
@@ -51,35 +61,30 @@ bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_re
         MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         if (meta.message_type == 1) {
             // steal message
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "StealingWorker " << my_rank << ": received steal message from worker " << status.MPI_SOURCE << ". Size of the local queue: " << this->stack.size() << std::endl;
-            }
-            
+            debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
+
+            MPI_Status* statuses;
             if(this->stack.empty()) {
                 MPI_Request mpi_requests[1];
                 mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, INT_MAX);
+                MPI_Waitall(1, mpi_requests, statuses);
             } else {
                 MPI_Request mpi_requests[2];
                 mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, count_assigned(this->stack.back()));
                 mpi_requests[1] = send_model(status.MPI_SOURCE, encode_variables(this->stack.back()));
-                
+                MPI_Waitall(2, mpi_requests, statuses);
                 this->stack.pop_back();
             }
         } else if (meta.message_type == 2){
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "StealingWorker " << my_rank
-                << ": stop received while waiting for message delivery, cancelling requests if necessary"
-                << std::endl;
-            }
+            debug_output("stop received while waiting for message delivery, cancelling requests if necessary", true);
             this->stop = true;
             if (!all_done) {
                 for (int i = 0; i < size; i++) {
                     MPI_Cancel(mpi_requests + i);
                 }
             }
-        } else if(CERR_LEVEL >= 1){
-            std::cerr << "StealingWorker " << my_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
-        }
+        } else
+            debug_output("weird message: " + std::to_string((int)meta.message_type) + " flag: " + std::to_string(flag) + " done all: " + std::to_string(all_done), true);
     }
     return flag != 0;
 }
@@ -93,19 +98,17 @@ bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_re
  * - or more work message -> setup variables start dpll
  */
 bool StealingWorker::check_and_process_message_from_worker(bool wait) {
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "StealingWorker " << my_rank << ": checks";
-        if(wait)
-            std::cerr << " and waits";
-        std::cerr << " for message from other workers." << std::endl;
-    }
+    std::string msg = "checks";
+    if(wait)
+        msg += " and waits";
+    msg += " for message from other workers.";
+    debug_output(msg, true);
+
     if(!wait){
         int flag = 0;
         MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
         if (flag == 0){
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "StealingWorker " << my_rank << ": no message to receive." << std::endl;
-            }
+            debug_output("no message to receive.", true);
             return true;
         }
     }
@@ -114,40 +117,29 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait) {
     MPI_Status status;
     MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     if (meta.message_type == 0) {
-        unsigned encoded_model[meta.count];
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "StealingWorker " << my_rank << ": received meta data (message type: 0, count: "
-            << meta.count << ")" << std::endl;
-        }
-        if(meta.count == INT_MAX){
+        debug_output("received meta data (message type: 0, count: " + std::to_string(meta.count) + ")", true);
+        if(meta.count == INT_MAX)
             return false;
-        } else if (meta.count > 0) {
+        if (meta.count > 0) {
+            unsigned encoded_model[meta.count];
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (CERR_LEVEL >= 2) {
-                std::cerr << "StealingWorker " << my_rank << ": encoded_model: ";
-                for (int i = 0; i < meta.count; i++) {
-                    std::cerr << encoded_model[i] << " ";
-                }
-                std::cerr << std::endl;
+            debug_output("encoded model: ", false, 2);
+            for (int i = 0; i < meta.count; i++) {
+                debug_output(std::to_string(encoded_model[i]) + " ", false, 2);
             }
+            debug_output("", true, 2);
             parse_and_update_variables(encoded_model, meta.count);
-            if(CERR_LEVEL >= 1){
-                cerr_model("received model of size " + std::to_string(meta.count), cnf->get_model());
-            }
+            cerr_model("received model of size " + std::to_string(meta.count), cnf->get_model());
         } else {
             unsigned encoded[0];
             parse_and_update_variables(encoded, 0);
-            if(CERR_LEVEL >= 1){
-                std::cerr << "StealingWorker " << my_rank
-                << ": received model of size 0 and will start solving" << std::endl;
-            }
+            debug_output("received model of size 0 and will start solving", true);
         }
         run_dpll();
     } else if (meta.message_type == 1){
         // steal message
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "StealingWorker " << my_rank << ": received steal message from worker " << status.MPI_SOURCE << ". Size of the local queue: " << this->stack.size() << std::endl;
-        }
+        debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
+        
         if(this->stack.empty()) {
             MPI_Request mpi_requests[1];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, INT_MAX);
@@ -162,17 +154,13 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait) {
         }
     } else if (meta.message_type == 2){
         // interrupt message. End silently...
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "StealingWorker " << my_rank << ": received broadcast message to stop." << std::endl;
-            std::cerr << "StealingWorker " << my_rank << ": gracefully stopping..." << std::endl;
-        }
+        debug_output("received broadcast message to stop.", true);
+        debug_output("gracefully stopping...", true);
         this->stop = true;
-    } else {
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "StealingWorker " << my_rank << ": received weird(" << (int)meta.message_type << ") message from worker" << status.MPI_SOURCE << std::endl;
-            //std::cerr << "StealingWorker " << my_rank << ": gracefully stopping..." << std::endl;
-        }
-    }
+        return false;
+    } else
+        debug_output("received weird(" + std::to_string((int)meta.message_type) + ") message from worker" + std::to_string(status.MPI_SOURCE), true);
+        
     return true;
 }
 
@@ -182,18 +170,14 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait) {
  */
 void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
     if(this->my_rank == 0 && this->next_to_send < this->workers_size){
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "StealingWorker " << this->my_rank << ": Sending starting model to StealingWorker " << this->next_to_send << std::endl;
-        }
+        debug_output("Sending starting model to StealingWorker " + std::to_string(this->next_to_send), true);
         MPI_Request mpi_requests[2];
         mpi_requests[0] = send_meta(this->next_to_send, 0, count_assigned(variables));
         mpi_requests[1] = send_model(this->next_to_send, encode_variables(variables));
         stop_received_before_message_completion(mpi_requests, 2);
         this->next_to_send++;
     } else {
-        if (CERR_LEVEL >= 1) {
-            cerr_model("dpll store to local stack", variables);
-        }
+        cerr_model("dpll store to local stack", variables);
         this->stack.push_front(variables);
         check_and_process_message_from_worker(false);
     }
@@ -205,18 +189,13 @@ void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
 void StealingWorker::get_model() {
     if (!this->stop) {
         if(!this->stack.empty()){
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "StealingWorker " << my_rank << ": finished branch with unsat. Takes another model from local queue. Size of the queue: " << this->stack.size() << std::endl;
-            }
+            debug_output("finished branch with unsat. Takes another model from local queue. Size of the queue: " + std::to_string(this->stack.size()), true);
             std::vector<unsigned> vars = encode_variables(this->stack.front());
             parse_and_update_variables(&vars[0], vars.size());
             this->stack.pop_front();
             run_dpll();
-            
         } else {
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "StealingWorker " << my_rank << ": finished branch with unsat. Tries to steal from worker " << (my_rank + 1) % workers_size << std::endl;
-            }
+            debug_output("finished branch with unsat. Tries to steal from worker " + std::to_string((my_rank + 1) % workers_size), true);
             MPI_Request request = send_meta((my_rank + 1) % workers_size, 1, 0);
             bool received = stop_received_before_message_completion(&request, 1);
             if (received) {
@@ -241,10 +220,7 @@ void StealingWorker::get_model() {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "StealingWorker " << my_rank << ": sending meta (i: " << (int) i << ", assigned: "
-        << assigned << ") to worker " << to_rank << std::endl;
-    }
+    debug_output("sending meta (i: " + std::to_string((int)i) + ", assigned: " + std::to_string(assigned) + ") to worker " + std::to_string(to_rank), true);
     struct meta meta;
     meta.message_type = i;
     meta.count = assigned;
@@ -261,6 +237,7 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request StealingWorker::send_model(int to_rank, std::vector<unsigned> assigned) {
+    debug_output("sending model of size " + std::to_string(assigned.size()), true);
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, to_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -272,15 +249,10 @@ MPI_Request StealingWorker::send_model(int to_rank, std::vector<unsigned> assign
  */
 void StealingWorker::print_sat_stop_workers(CNF *cnf) {
     if (!this->stop) {
-        
-        if (CERR_LEVEL >= 1) {
-            cerr_model("Found SAT model. Sends message type 2 to all workers.", cnf->get_model());
-        }
+        cerr_model("Found SAT model. Sends message type 2 to all workers.", cnf->get_model());
         stop_workers();
         output_sat_model(cnf);
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "StealingWorker " << my_rank << ": gracefully stopping..." << std::endl;
-        }
+        debug_output("gracefully stopping...", true);
     }
 }
 
@@ -299,13 +271,9 @@ void StealingWorker::stop_workers(){
             count++;
         }
     }
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "StealingWorker " << my_rank << ": broadcast initiated" << std::endl;
-    }
+    debug_output("broadcast initiated", true);
     MPI_Waitall(size, mpi_requests, MPI_STATUS_IGNORE);
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "StealingWorker " << my_rank << ": broadcast done" << std::endl;
-    }
+    debug_output("broadcast done", true);
 }
 
 void StealingWorker::output_sat_model(CNF *cnf){
@@ -393,6 +361,9 @@ unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variable
  * outputs given variable assignments to stderr
  */
 void StealingWorker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
+    if(CERR_LEVEL < 1)
+        return;
+    
     std::unordered_set<Variable *>::iterator iterator;
     std::cerr << "StealingWorker " << my_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
