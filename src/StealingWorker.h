@@ -36,6 +36,8 @@ private:
     bool stop_received_before_message_completion(MPI_Request *mpi_requests, int size);  // tests whether were all requests sends and if there is new message than processed it
     std::vector<unsigned> encode_variables(std::unordered_set<Variable *> *variables);  // encode variables to sendable format
     
+    bool respond_to(struct meta meta, MPI_Status status); 
+    
 public:
     explicit StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size);
     virtual void dpll_callback(std::unordered_set<Variable *> *variables);              // function that is called whenever dpll makes branching.

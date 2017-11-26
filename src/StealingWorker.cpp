@@ -43,9 +43,9 @@ void StealingWorker::run_dpll() {
 }
 
 /**
- * check if we receive a stop message from another worker before the messages are delivered to all workers
- * if that's the case, cancel the message sends and return true
- * -> the caller is then responsible to * stop.
+ * check if we receive a message from another worker before the messages are delivered to other worker
+ * if that's the case, cancel the message sends and return true. If there was some message received than react to it.
+ * Return false in case we should stop, true otherwise.
  */
 bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_requests, int size) {
     debug_output("stop_received_before_message_completion", true);
@@ -62,67 +62,31 @@ bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_re
         struct meta meta;
         MPI_Status status;
         MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        if (meta.message_type == 1) {
-            // steal message
-            debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
-
-            MPI_Status* statuses;
-            if(this->stack.empty()) {
-                MPI_Request mpi_requests[1];
-                mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, INT_MAX);
-                MPI_Waitall(1, mpi_requests, statuses);
-            } else {
-                MPI_Request mpi_requests[2];
-                mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, count_assigned(this->stack.back()));
-                mpi_requests[1] = send_model(status.MPI_SOURCE, encode_variables(this->stack.back()));
-                MPI_Waitall(2, mpi_requests, statuses);
-                this->stack.pop_back();
-            }
-        } else if (meta.message_type == 2){
+        bool res = respond_to(meta, status);
+        if (meta.message_type == 2){
             debug_output("stop received while waiting for message delivery, cancelling requests if necessary", true);
-            this->stop = true;
             if (!all_done) {
                 for (int i = 0; i < size; i++) {
                     MPI_Cancel(mpi_requests + i);
                 }
             }
-        } else
-            debug_output("weird message: " + std::to_string((int)meta.message_type) + " flag: " + std::to_string(flag) + " done all: " + std::to_string(all_done), true);
+        }
+        return meta.message_type == 0 && !this->stop; // if we received respond from stealing than its ok. Otherwise not.
     }
-    return flag != 0;
+    return false;
 }
 
-//bool StealingWorker::respond( )
-
 /**
- * Enters a blocking receive on messages from master
- * Handles received messages:
- * - either done message -> stop
- * - or more work message -> setup variables start dpll
+ * Performs action according to received msg type.
  */
-bool StealingWorker::check_and_process_message_from_worker(bool wait) {
-    std::string msg = "checks";
-    if(wait)
-        msg += " and waits";
-    msg += " for message from other workers.";
-    debug_output(msg, true);
-
-    if(!wait){
-        int flag = 0;
-        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
-        if (flag == 0){
-            debug_output("no message to receive.", true);
-            return true;
-        }
-    }
-    
-    struct meta meta;
-    MPI_Status status;
-    MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
     if (meta.message_type == 0) {
         debug_output("received meta data (message type: 0, count: " + std::to_string(meta.count) + ")", true);
-        if(meta.count == INT_MAX)
-            return false;
+        if(meta.count == INT_MAX){
+            debug_output("gracefully stopping...", true);
+            this->stop = true;
+            return false;   // empty queue, nothing to steal, end silently...
+        }
         if (meta.count > 0) {
             unsigned encoded_model[meta.count];
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -140,7 +104,7 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait) {
         }
         run_dpll();
     } else if (meta.message_type == 1){
-        // steal message
+        // steal message, respond accordingly
         debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
         
         if(this->stack.empty()) {
@@ -163,8 +127,43 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait) {
         return false;
     } else
         debug_output("received weird(" + std::to_string((int)meta.message_type) + ") message from worker" + std::to_string(status.MPI_SOURCE), true);
-        
+    
     return true;
+}
+
+/**
+ * Enters a receive on messages from master. If param wait is set to true than waits(blocking receive)
+ * otherwise just checks for message from the other workes.
+ * Handles received messages:
+ * - either done message(2) -> stop
+ * - steal msg(1) -> send model from the top of the stack or send INT_MAX if empty.
+ * - model recv msg(0) -> model can be either starting model or response of the steal(stealed model)
+ */
+bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinForMessage) {
+    std::string msg = "checks";
+    if(wait)
+        msg += " and waits";
+    msg += " for message from other workers.";
+    debug_output(msg, true);
+
+    if(!wait){
+        int flag = 0;
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+        if (flag == 0){
+            debug_output("no message to receive.", true);
+            return true;
+        }
+    }
+    
+    struct meta meta;
+    MPI_Status status;
+    MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+    bool res = respond_to(meta, status);
+    if(spinForMessage != meta.message_type && res)
+        return check_and_process_message_from_worker(wait, spinForMessage);
+    
+    return res;
 }
 
 /**
@@ -187,7 +186,10 @@ void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
 }
 
 /**
- * Sends unsat result to master and triggers waiting for further instructions
+ * Method is called whenever worker ends with unsat.
+ * Updates this->cnf with one of the following sources:
+ * 1.: gets the new model from local stack if is not empty.
+ * 2.: If local stack is empty than tries to steal new model from other workers.
  */
 void StealingWorker::get_model() {
     if (!this->stop) {
@@ -204,12 +206,9 @@ void StealingWorker::get_model() {
             if (received) {
                 run_dpll();
             } else {
-                bool res = check_and_process_message_from_worker(true);
-                if(res)
+                bool res = check_and_process_message_from_worker(true, 0);
+                if(res && !this->stop) // if we received god
                     run_dpll();
-                else if (CERR_LEVEL >= 1) {
-                        std::cerr << "StealingWorker " << my_rank << ": gracefully stopping..." << std::endl;
-                }
             }
         }
     }
@@ -247,7 +246,7 @@ MPI_Request StealingWorker::send_model(int to_rank, std::vector<unsigned> assign
 }
 
 /**
- * Sends sat meta data and satisfiable model to master, triggers waiting for further instructions
+ * Prints sat variables assignment and prevents other workers from further work.
  * @param cnf object that contains the assigned variables
  */
 void StealingWorker::print_sat_stop_workers(CNF *cnf) {
@@ -259,6 +258,9 @@ void StealingWorker::print_sat_stop_workers(CNF *cnf) {
     }
 }
 
+/**
+ * Sends stop msg to all workers.
+ */
 void StealingWorker::stop_workers(){
     struct meta meta;
     meta.message_type = 2;
@@ -279,6 +281,9 @@ void StealingWorker::stop_workers(){
     debug_output("broadcast done", true);
 }
 
+/**
+ * prints SAT model
+ */
 void StealingWorker::output_sat_model(CNF *cnf){
     std::unordered_set<Variable *> *vars = cnf->get_model();
     // go through the variables and assign true to all the unassigned ones
