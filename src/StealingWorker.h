@@ -14,11 +14,12 @@ class StealingWorker : Worker{
 private:
     //CNF *cnf;
     //MPI_Datatype meta_data_type;
-    std::list<std::unordered_set<Variable *> *> stack;                                  // local stack of models to process (can be stealed)
+    std::list<std::vector<unsigned> > stack;                                         // local stack of models to process (can be stealed)
    // int my_rank;
     int workers_size;                                                                   // number of workers (processes)
     int next_to_send;                                                                   // rank of next worker, where worker 0 will send next subproblem
     bool stop;                                                                          // indicates whether this worker was stopped
+    bool received_s_model;
     
     void run_dpll();                                                                    // runs dpll on this->cnf. Every branch is resolved by dpll_callback
     void get_model();                                                                   // gets next model to solve either by getting it from local queue or by stealing it.
@@ -44,6 +45,8 @@ public:
     bool check_and_process_message_from_worker(bool wait, int spinForMessage = -1);     // listens and responds for messages from other workers. When spinForMessage != 1 than receives and responds
                                                                                         // while received msg != spinForMesage
     void start();                                                                       // Worker starts to solve cnf and sends one subproblem to each other worker.
+    bool received_starting_model() { return received_s_model; }
+    bool stopped() { return stop; }
 };
 
 

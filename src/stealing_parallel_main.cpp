@@ -9,7 +9,7 @@
 using namespace std;
 using namespace std::chrono;
 
-int CERR_LEVEL = 1;
+int CERR_LEVEL = 0;
 
 /**
  * Main entry point to sequential version.
@@ -69,9 +69,14 @@ int main(int argc, char *argv[]) {
         
         StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
         main_worker->start();
+        while ((!main_worker->received_starting_model() || !main_worker->stopped()) && !main_worker->stopped()) {
+            main_worker->check_and_process_message_from_worker(true);
+        }
     } else {
         StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
-        w->check_and_process_message_from_worker(true);
+        while ((!w->received_starting_model() || !w->stopped()) && !w->stopped()) {
+            w->check_and_process_message_from_worker(true);
+        }
     }
     
     MPI_Finalize();                                                                 // mpi end

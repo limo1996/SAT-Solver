@@ -54,8 +54,8 @@ class Tester(object):
             try:
                 if result is 1:
                     self.handle_sat_case(f, cnf)
-                else:
-                    self.handle_unsat_case(f)
+                #else:
+                 #   self.handle_unsat_case(f)
             except SolverError:
                 print('[crash] {0}'.format(f))
                 self.fail_count += 1
@@ -139,7 +139,7 @@ class ParallelSolver(SequentialSolver):
     def __init__(self):
         self.num_cores = max(4, multiprocessing.cpu_count())
         cwd = os.path.join(os.getcwd(), os.path.pardir)
-        self.executable = os.path.join(cwd, 'parallel_main')
+        self.executable = os.path.join(cwd, 'stealing_main')
         if not os.path.exists(self.executable):
             raise ValueError('The executable parallel_main does not exist!')
 
