@@ -112,12 +112,12 @@ DpllResult *CDCL::CDCLAlgorithm(CNF *cnf) {
     }
     if (DPLL::ALL_CLAUSES_ARE_TRUE(clauses))
         return new DpllResult(true, cnf);
-    if (DPLL::ONE_CLAUSE_IS_FALSE(clauses))
+    if (DPLL::ONE_CLAUSE_IS_FALSE(clauses)) {
         if (parent_decision == nullptr) {
             return new DpllResult(false, nullptr);
-        } else {
+        } else
             throw std::runtime_error("there should be a conflict if one clause is false!");
-        }
+    }
     std::pair<Clause *, Variable *> uc = CDCL::FIND_UNIT_CLAUSE(cnf);
     clause = uc.first;
     var = uc.second;

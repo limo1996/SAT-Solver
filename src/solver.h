@@ -14,8 +14,8 @@ enum SolverType {
 class Solver {
 public:
     Solver() = default;
-    virtual bool SATISFIABLE() {};
-    virtual CNF *get_cnf() {};
+    virtual bool SATISFIABLE() = 0;
+    virtual CNF *get_cnf() = 0;
 };
 
 
