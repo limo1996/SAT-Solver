@@ -12,7 +12,7 @@ using namespace std::chrono;
 int CERR_LEVEL = 0;
 
 /**
- * Main entry point to sequential version.
+ * Main entry point to parallel stealing version.
  */
 int main(int argc, char *argv[]) {
     // for time measurment
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     if (parser->parsing() == EXIT_FAILURE) {                                        // in case of wrong input format abort.
         return EXIT_FAILURE;
     }
-    unordered_set<CNF *> cnfs = parser->get_CNFS();                                           // get cnfs. Parser supports multiple ones but we use just one...
+    unordered_set<CNF *> cnfs = parser->get_CNFS();                                 // get cnfs. Parser supports multiple ones but we use just one...
     if (cnfs.size() != 1) {
         throw new runtime_error("why is there more than 1 cnf?");                   // optional error
     }
@@ -55,11 +55,13 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
     /**
-     * Rank 0 is always master. Other n-1 ranks are workers. If program is run just on 1 process, the program will fail (Master will cause assertion failure).
-     * Workers are listening to commands of master and are executing tasks. Worker can get to 3 states. It finds solution and let master know it,
-     * finds out that current assignment is not correct and let master know it(master knows that he is free now)
-     * or it can branch(i.e. it finds two subproblems to solve. It will pick first one and send second one to master.
-     * Master sends tasks to free workers and collects tasks that needs to be done from them. If someone found solution master stops all workers and program ends.
+     * All workers are equal except two cases: Worker 0 takes role of the master at the beginning. It takes charge of sending initial models to other workers (it always solve one of them).
+     * When all workers have model to solve than worker 0 behaves as any other worker.
+     * Every worker has its own local stack. In every branch, worker stores one model to local stack and continues with solving another one.
+     * When it is cames to solution that current branch is unsatisfiable, it takes another model from the local stack and continues with solving.
+     * However local stack will became empty at some point (in case no of the models is sat). Then worker tries to steal model from stack of the other worker.
+     * If stack of other worker is not empty, than it continues solving the stolen model, otherwise waits.
+     * Worker 0 takes role of master at the end as well. When some worker (can be worker 0) finds SAT model, than it sends it to worker 0, which prints it and stops other workers.
      */
     if (rank == 0) {
         ofstream file;
@@ -67,14 +69,15 @@ int main(int argc, char *argv[]) {
         file << std::endl;
         file.close();
         
+        // worker 0 aka "temp master"
         StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
         main_worker->start();
-        while ((!main_worker->received_starting_model() || !main_worker->stopped()) && !main_worker->stopped()) {
+        while (!main_worker->stopped()) {
             main_worker->check_and_process_message_from_worker(true);
         }
     } else {
         StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
-        while ((!w->received_starting_model() || !w->stopped()) && !w->stopped()) {
+        while (!w->stopped()) {
             w->check_and_process_message_from_worker(true);
         }
     }

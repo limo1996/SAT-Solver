@@ -3,6 +3,12 @@
 
 extern int CERR_LEVEL;
 
+/**
+ * outputs string according to set debug_level
+ * @param line -> string that should be outputed
+ * @param newLine -> whether append new line after string
+ * @level -> level in which should be string printed, default is -1
+ */
 void StealingWorker::debug_output(std::string line, bool newLine, int level){
     if (CERR_LEVEL >= level) {
         std::cerr << "StealingWorker " << this->my_rank << ": " << line;
@@ -10,6 +16,9 @@ void StealingWorker::debug_output(std::string line, bool newLine, int level){
     }
 }
 
+/**
+ * Creates new instance of StelingWorker
+ */
 StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size) {
     cnf = new CNF(_cnf);
     meta_data_type = _meta_data_type;
@@ -17,15 +26,12 @@ StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_r
     workers_size = _workers_size;
     stop = false;
     next_to_send = 1;
-    received_s_model = false;
 }
 
 /**
- * Worker starts to solve cnf and sends one subproblem to each other worker.
+ * Worker starts solving cnf and sends one subproblem to each other worker.
  */
 void StealingWorker::start(){
-    unsigned encoded[0];
-    parse_and_update_variables(encoded, 0);
     run_dpll();
 }
 
@@ -39,9 +45,7 @@ void StealingWorker::run_dpll() {
     bool sat = dpll->DPLL_SATISFIABLE();
     if (sat) {
         if(my_rank == 0){
-            check_and_process_message_from_worker(false);
-            if(!this->stop)
-                print_sat_stop_workers(dpll->get_cnf());
+            print_sat_stop_workers(dpll->get_cnf());
         }
         else {
             std::unordered_set<Variable *> *vars = dpll->get_cnf()->get_model();
@@ -69,9 +73,8 @@ void StealingWorker::run_dpll() {
 }
 
 /**
- * check if we receive a message from another worker before the messages are delivered to other worker
- * if that's the case, cancel the message sends and return true. If there was some message received than react to it.
- * Return false in case we should stop, true otherwise.
+ * Waits for the completition of the requests and at the same time checks for new requests. I
+ * Return false in case we should stop or we received nothing, true otherwise.
  */
 bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_requests, int size) {
     if(this->stop)
@@ -91,14 +94,6 @@ bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_re
         MPI_Status status;
         MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         bool res = respond_to(meta, status);
-        if (meta.message_type == 2){
-            /*debug_output("stop received while waiting for message delivery, cancelling requests if necessary", true);
-            if (!all_done) {
-                for (int i = 0; i < size; i++) {
-                    MPI_Cancel(mpi_requests + i);
-                }
-            }*/
-        }
         return meta.message_type == 0 && !this->stop; // if we received respond from stealing than its ok. Otherwise not.
     }
     return false;
@@ -106,22 +101,15 @@ bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_re
 
 /**
  * Performs action according to received msg type.
+ * Returns true if we should continue in solving, false otherwise.
  */
 bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
     debug_output("respond to " + std::to_string(meta.message_type), true);
     if (meta.message_type == 0) {
         debug_output("received meta data (message type: 0, count: " + std::to_string(meta.count) + ")", true);
         if(meta.count == INT_MAX){
-            //if(my_rank == 0){
-              //  check_and_process_message_from_worker(true);
-            //} else {
-              //debug_output("gracefully stopping...", true);
-              //this->stop = true;
-              return false;   // empty queue, nothing to steal, end silently...
-                
-            //}
+              return false;   // empty queue, nothing to steal, nothing to do, returns.. In main recv will be called again.
         }
-        received_s_model = true;
         if (meta.count > 0) {
             unsigned encoded_model[meta.count];
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -165,15 +153,17 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         debug_output("received sat-model of size " + std::to_string(meta.count) + " from worker " + std::to_string(status.MPI_SOURCE), true);
         unsigned encoded_model[meta.count];
         MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        
+        // debug output of model
         debug_output("encoded model: ", false, 2);
         for (int i = 0; i < meta.count; i++) {
             debug_output(std::to_string(encoded_model[i]) + " ", false, 2);
         }
         debug_output("", true, 2);
+        
+        // trick to convert received msg to cnf object
         parse_and_update_variables(encoded_model, meta.count);
         print_sat_stop_workers(this->cnf);
-        //debug_output("gracefully stopping...", true);
-        //this->stop = true;
         return false;
     } else
         debug_output("received weird(" + std::to_string((int)meta.message_type) + ") message from worker" + std::to_string(status.MPI_SOURCE), true);
@@ -243,30 +233,29 @@ void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
 /**
  * Method is called whenever worker ends with unsat.
  * Updates this->cnf with one of the following sources:
- * 1.: gets the new model from local stack if is not empty.
+ * 1.: gets new model from the local stack if is not empty.
  * 2.: If local stack is empty than tries to steal new model from other workers.
  */
 void StealingWorker::get_model() {
     if (this->stop)
         return;
     if(!this->stack.empty()){
+        // get model from the local stack
         debug_output("finished branch with unsat. Takes another model from local queue. Size of the queue: " + std::to_string(this->stack.size()), true);
         std::vector<unsigned> vars = this->stack.front();
         parse_and_update_variables(&vars[0], vars.size());
         this->stack.pop_front();
         run_dpll();
     } else {
+        // try to steal. If stealing is successful that continue solving otherwise wait for the end message
         debug_output("finished branch with unsat. Tries to steal from worker " + std::to_string((my_rank + 1) % workers_size), true);
         MPI_Request request = send_meta((my_rank + 1) % workers_size, 1, 0);
         bool received = stop_received_before_message_completion(&request, 1);
         if (received) {
             run_dpll();
         } else {
-            bool res = check_and_process_message_from_worker(true, 0);
-            if(res && !this->stop) // if we received god
+            if(check_and_process_message_from_worker(true, 0)) // if we received model than continue solving
                 run_dpll();
-            //else
-                //check_and_process_message_from_worker(true);
         }
     }
 }
@@ -309,6 +298,7 @@ MPI_Request StealingWorker::send_model(int to_rank, std::vector<unsigned> assign
 void StealingWorker::print_sat_stop_workers(CNF *cnf) {
     if (this->stop)
         return;
+    this->stop = true;
     
     cerr_model("Found SAT model. Sends message type 2 to all workers.", cnf->get_model());
     stop_workers();
@@ -317,7 +307,7 @@ void StealingWorker::print_sat_stop_workers(CNF *cnf) {
 }
 
 /**
- * Sends stop msg to all workers.
+ * Sends stop msg to all workers except myself.
  */
 void StealingWorker::stop_workers(){
     struct meta meta;
@@ -335,7 +325,7 @@ void StealingWorker::stop_workers(){
         }
     }
     debug_output("broadcast initiated", true);
-    //MPI_Waitall(size, mpi_requests, MPI_STATUS_IGNORE);
+    // We will not wait for messages to be proceed because some workers may ended. In other words we do not care about message delivery.
     debug_output("broadcast done", true);
 }
 
@@ -343,10 +333,6 @@ void StealingWorker::stop_workers(){
  * prints SAT model
  */
 void StealingWorker::output_sat_model(CNF *cnf){
-    if(this->stop)
-        return;
-    this->stop = true;
-    
     debug_output("prints sat model", true);
     std::unordered_set<Variable *> *vars = cnf->get_model();
     // go through the variables and assign true to all the unassigned ones
@@ -397,7 +383,7 @@ void StealingWorker::parse_and_update_variables(unsigned int encoded[], int size
 
 /**
  * encodes the given variables as an unsigned array
- * @param variables the set of variables to encode (ony assigned ones are considered)
+ * @param variables the set of variables to encode (only assigned ones are considered)
  * @return encoded vector
  */
 std::vector<unsigned> StealingWorker::encode_variables(std::unordered_set<Variable *> *variables) {
@@ -417,6 +403,10 @@ std::vector<unsigned> StealingWorker::encode_variables(std::unordered_set<Variab
     return encoded;
 }
 
+/**
+ * counts number of assigned variables passed as parameter.
+ * @return number of assigned variables
+ */
 unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variables) {
     unsigned num_assigned = 0;
     std::unordered_set<Variable *>::iterator iterator;
