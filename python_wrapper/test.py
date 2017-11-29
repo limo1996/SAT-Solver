@@ -57,8 +57,8 @@ class Tester(object):
             try:
                 if result is 1:
                     self.handle_sat_case(f, cnf)
-                #else:
-                 #   self.handle_unsat_case(f)
+                elif not self.stealing:
+                    self.handle_unsat_case(f)
             except SolverError:
                 print('[crash] {0}'.format(f))
                 self.fail_count += 1
