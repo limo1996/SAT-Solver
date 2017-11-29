@@ -12,18 +12,22 @@ def get_netz_username():
 @click.command()
 @click.option('--mode', type=click.Choice(['integration-test-local',
                                            'parallel-test-local',
-                                           'parallel-test-euler']),
+                                           'parallel-test-euler',
+                                           'stealing-test-local']),
               prompt='please specify a mode ('
-                     'integration-test-local | parallel-test-local | parallel-test-euler)')
+                     'integration-test-local | parallel-test-local | parallel-test-euler | stealing-test-local)')
 @click.option('--nethz_username', default='asdf')
 @click.option('--cnf_folder', default='')
 def main(mode, nethz_username, cnf_folder):
     if mode == 'integration-test-local':
         test_folder = 'integration_tests' if cnf_folder == '' else cnf_folder
-        tester = Tester(test_folder, parallel=False)
+        tester = Tester(test_folder, parallel=False, stealing=False)
     elif mode == 'parallel-test-local':
         test_folder = 'parallel_tests' if cnf_folder == '' else cnf_folder
-        tester = Tester(test_folder, parallel=True)
+        tester = Tester(test_folder, parallel=True, stealing=False)
+    elif mode == 'stealing-test-local':
+        test_folder = 'parallel_tests' if cnf_folder == '' else cnf_folder
+        tester = Tester(test_folder, parallel=False, stealing=True)
     else:
         test_folder = 'parallel_tests'if cnf_folder == '' else cnf_folder
         if nethz_username == 'asdf':

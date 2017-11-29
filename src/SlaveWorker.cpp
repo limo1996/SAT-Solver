@@ -6,7 +6,7 @@ extern int CERR_LEVEL;
 SlaveWorker::SlaveWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_rank) {
     cnf = new CNF(_cnf);
     meta_data_type = _meta_data_type;
-    worker_rank = _worker_rank;
+    my_rank = _worker_rank;
     stop = false;
 }
 
@@ -26,7 +26,7 @@ unsigned count_assigned(std::unordered_set<Variable *> *variables) {
  */
 void SlaveWorker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
     std::unordered_set<Variable *>::iterator iterator;
-    std::cerr << "SlaveWorker " << worker_rank << ": " << info << " model: (";
+    std::cerr << "SlaveWorker " << my_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             std::cerr << (*iterator)->get_name() << ":";
@@ -74,13 +74,13 @@ bool SlaveWorker::stop_received_before_message_completion(MPI_Request *mpi_reque
         MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         if (meta.message_type != 1) {
             if(CERR_LEVEL >= 1){
-                std::cerr << "SlaveWorker " << worker_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
+                std::cerr << "SlaveWorker " << my_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
             }
-            throw new std::runtime_error("SlaveWorker " + std::to_string(worker_rank)
+            throw new std::runtime_error("SlaveWorker " + std::to_string(my_rank)
                                          + " received weird message from master");
         }
         if (CERR_LEVEL >= 1) {
-            std::cerr << "SlaveWorker " << worker_rank
+            std::cerr << "SlaveWorker " << my_rank
             << ": stop received while waiting for message delivery, cancelling requests if necessary"
             << std::endl;
         }
@@ -120,7 +120,7 @@ void SlaveWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
  */
 MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
     if (CERR_LEVEL >= 1) {
-        std::cerr << "SlaveWorker " << worker_rank << ": sending meta (i: " << (int) i << ", assigned: "
+        std::cerr << "SlaveWorker " << my_rank << ": sending meta (i: " << (int) i << ", assigned: "
         << assigned << ")" << std::endl;
     }
     struct meta meta;
@@ -138,9 +138,6 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request SlaveWorker::send_model(std::vector<unsigned> assigned) {
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "SlaveWorker " << worker_rank << ": sending model of size " << assigned.size() << std::endl;
-    }
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -173,7 +170,7 @@ void SlaveWorker::send_sat(CNF *cnf) {
             wait_for_instructions_from_master();
         } else {
             if (CERR_LEVEL >= 1) {
-                std::cerr << "SlaveWorker " << worker_rank << ": gracefully stopping..." << std::endl;
+                std::cerr << "SlaveWorker " << my_rank << ": gracefully stopping..." << std::endl;
             }
         }
     }
@@ -185,7 +182,7 @@ void SlaveWorker::send_sat(CNF *cnf) {
 void SlaveWorker::send_unsat() {
     if (!this->stop) {
         if (CERR_LEVEL >= 1) {
-            std::cerr << "SlaveWorker " << worker_rank << ": sends unsat to master" << std::endl;
+            std::cerr << "SlaveWorker " << my_rank << ": sends unsat to master" << std::endl;
         }
         MPI_Request request = send_meta(11, 0);
         bool stop_received = stop_received_before_message_completion(&request, 1);
@@ -193,7 +190,7 @@ void SlaveWorker::send_unsat() {
             wait_for_instructions_from_master();
         } else {
             if (CERR_LEVEL >= 1) {
-                std::cerr << "SlaveWorker " << worker_rank << ": gracefully stopping..." << std::endl;
+                std::cerr << "SlaveWorker " << my_rank << ": gracefully stopping..." << std::endl;
             }
         }
     }
@@ -207,20 +204,20 @@ void SlaveWorker::send_unsat() {
  */
 void SlaveWorker::wait_for_instructions_from_master() {
     if (CERR_LEVEL >= 1) {
-        std::cerr << "SlaveWorker " << worker_rank << ": is waiting for instructions from master" << std::endl;
+        std::cerr << "SlaveWorker " << my_rank << ": is waiting for instructions from master" << std::endl;
     }
     struct meta meta;
     MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     if (meta.message_type == 0) {
         unsigned encoded_model[meta.count];
         if (CERR_LEVEL >= 1) {
-            std::cerr << "SlaveWorker " << worker_rank << ": received meta data (message type: 0, count: "
+            std::cerr << "SlaveWorker " << my_rank << ": received meta data (message type: 0, count: "
             << meta.count << ")" << std::endl;
         }
         if (meta.count > 0) {
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             if (CERR_LEVEL >= 2) {
-                std::cerr << "SlaveWorker " << worker_rank << ": encoded_model: ";
+                std::cerr << "SlaveWorker " << my_rank << ": encoded_model: ";
                 for (int i = 0; i < meta.count; i++) {
                     std::cerr << encoded_model[i] << " ";
                 }
@@ -234,15 +231,15 @@ void SlaveWorker::wait_for_instructions_from_master() {
             unsigned encoded[0];
             parse_and_update_variables(encoded, 0);
             if(CERR_LEVEL >= 1){
-                std::cerr << "SlaveWorker " << worker_rank
+                std::cerr << "SlaveWorker " << my_rank
                 << ": received model of size 0 and will start solving" << std::endl;
             }
         }
         run_dpll();
     } else {
         if (CERR_LEVEL >= 1) {
-            std::cerr << "SlaveWorker " << worker_rank << ": received done message from master" << std::endl;
-            std::cerr << "SlaveWorker " << worker_rank << ": gracefully stopping..." << std::endl;
+            std::cerr << "SlaveWorker " << my_rank << ": received done message from master" << std::endl;
+            std::cerr << "SlaveWorker " << my_rank << ": gracefully stopping..." << std::endl;
         }
     }
 }
@@ -295,4 +292,3 @@ std::vector<unsigned> SlaveWorker::encode_variables(std::unordered_set<Variable 
     }
     return encoded;
 }
-

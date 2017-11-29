@@ -13,7 +13,7 @@ class SolverError(Exception):
 
 
 class Tester(object):
-    def __init__(self, folder, parallel):
+    def __init__(self, folder, parallel, stealing):
         folder = os.path.join(os.pardir, os.path.join('cnfs', folder))
         self.folder = folder
         self.files = sorted([os.path.join(folder, f)
@@ -21,6 +21,7 @@ class Tester(object):
                              if os.path.isfile(os.path.join(folder, f)) and f.endswith('.cnf')])
         self.cnf_parser = CnfParser()
         self.parallel = parallel
+        self.stealing = stealing
         self.solver = self.compile_and_create_solver()
         self.fail_count = 0
 
@@ -37,6 +38,8 @@ class Tester(object):
         print('compilation done!')
         if self.parallel:
             return ParallelSolver()
+        elif self.stealing:
+            return StealingSolver()
         else:
             return SequentialSolver()
 
@@ -139,7 +142,7 @@ class ParallelSolver(SequentialSolver):
     def __init__(self):
         self.num_cores = max(4, multiprocessing.cpu_count())
         cwd = os.path.join(os.getcwd(), os.path.pardir)
-        self.executable = os.path.join(cwd, 'stealing_main')
+        self.executable = os.path.join(cwd, 'parallel_main')
         if not os.path.exists(self.executable):
             raise ValueError('The executable parallel_main does not exist!')
 
@@ -161,5 +164,34 @@ class ParallelSolver(SequentialSolver):
         if ret != 0:
             raise SolverError("Solver did not return 0")
 
+        f = open('out', 'r')
+        return [line for line in f], runtime
+
+class StealingSolver(SequentialSolver):
+    def __init__(self):
+        self.num_cores = max(4, multiprocessing.cpu_count())
+        cwd = os.path.join(os.getcwd(), os.path.pardir)
+        self.executable = os.path.join(cwd, 'stealing_main')
+        if not os.path.exists(self.executable):
+            raise ValueError('The executable stealing_main does not exist!')
+        
+        print('running in parallel on {0} cores'.format(self.num_cores))
+    
+    def solve(self, input_file):
+        """ Invokes the solver for a given input file
+            
+            :param input_file: the path to the input file
+            :return: a list of lines that the solver did output to std_out
+            """
+        command = 'mpirun -np {0} {1} {2} > out'.format(self.num_cores, self.executable, input_file)
+        start = datetime.now()
+        ret = subprocess.call(command, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        stop = datetime.now()
+        runtime = (stop - start).total_seconds() * 1000 # in miliseconds
+        if ret != 0:
+            raise SolverError("Solver did not return 0")
+                              
         f = open('out', 'r')
         return [line for line in f], runtime

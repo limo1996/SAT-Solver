@@ -1,21 +1,21 @@
-#ifndef SAT_SOLVER_WORKER_H
-#define SAT_SOLVER_WORKER_H
+#ifndef SAT_SLAVE_SOLVER_WORKER_H
+#define SAT_SLAVE_SOLVER_WORKER_H
 
 
 #include "CNF.h"
 #include "dpll.h"
 #include "mpi_types.h"
+#include "worker.h"
 #include <stdexcept>
 #include <vector>
-#include "worker.h"
 
-class SlaveWorker : public Worker {
+class SlaveWorker : Worker {
 private:
     //CNF *cnf;
     
     //MPI_Datatype meta_data_type;
     
-    int worker_rank;
+    //int worker_rank;
     
     bool stop;
     
@@ -46,5 +46,4 @@ public:
 };
 
 
-#endif //SAT_SOLVER_WORKER_H
-
+#endif //SAT_SLAVE_SOLVER_WORKER_H

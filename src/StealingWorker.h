@@ -12,10 +12,7 @@
 
 class StealingWorker : Worker{
 private:
-    //CNF *cnf;
-    //MPI_Datatype meta_data_type;
     std::list<std::vector<unsigned> > stack;                                            // local stack of models to process (can be stealed)
-   // int my_rank;
     int workers_size;                                                                   // number of workers (processes)
     int next_to_send;                                                                   // rank of next worker, where worker 0 will send next subproblem
     bool stop;                                                                          // indicates whether this worker was stopped
