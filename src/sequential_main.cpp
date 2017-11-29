@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     auto *parser = new CNFParser(argv[argc - 1]);
     parser->parsing();
     unordered_set<CNF*>::iterator it_CNF;
-    SolverType solver_type = arg_map["-p"] == "CDCL" ? CDCL_ : DPLL_;
+    SolverType solver_type = arg_map["-s"] == "CDCL" ? CDCL_ : DPLL_;
     unordered_set<CNF*> cnfs = parser->get_CNFS();
 
     // timestamp starter
@@ -83,13 +83,17 @@ void parse_args(map<std::string, std::string> *arg_map, int argc, char *argv[]) 
             key = string(argv[count]);
         } else {
             val = string(argv[count]);
+            if (arg_map->find(key) != arg_map->end()) {
+                arg_map->erase(key);
+            }
+            arg_map->insert({key, val});
         }
         count++;
     }
 }
 
 void default_args(map<string, string> *arg_map) {
-    arg_map->insert({"-p", "DPLL"});
+    arg_map->insert({"-s", "DPLL"});
 };
 
 /*
