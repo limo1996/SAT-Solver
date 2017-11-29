@@ -183,22 +183,3 @@ class StealingSolver(ParallelSolver):
             raise ValueError('The executable stealing_main does not exist!')
         
         print('running in parallel on {0} cores'.format(self.num_cores))
-    '''
-    def solve(self, input_file):
-        """ Invokes the solver for a given input file
-            
-            :param input_file: the path to the input file
-            :return: a list of lines that the solver did output to std_out
-            """
-        command = 'mpirun -np {0} {1} {2} > out'.format(self.num_cores, self.executable, input_file)
-        start = datetime.now()
-        ret = subprocess.call(command, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
-        stop = datetime.now()
-        runtime = (stop - start).total_seconds() * 1000 # in miliseconds
-        if ret != 0:
-            raise SolverError("Solver did not return 0")
-                              
-        f = open('out', 'r')
-        return [line for line in f], runtime'''
