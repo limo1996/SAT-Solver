@@ -10,15 +10,16 @@
 #define CLAUSE_H
 
 #include "variable.h"
+#include "internal_types.h"
 
 class Clause {
 private:                            /* class clause contains */
-    std::unordered_set<Variable*> var;		/* a set of variables */
+    VariableSet var;		/* a set of variables */
 public:
-    explicit Clause(std::unordered_set<Variable *> _var);
+    explicit Clause(VariableSet _var);
     bool is_true();
     bool is_false();
-    std::unordered_set<Variable*>* get_vars();
+    VariableSet* get_vars();
     std::string to_string();
 };
 

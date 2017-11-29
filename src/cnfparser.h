@@ -10,22 +10,21 @@
 #ifndef CNFPARSER_H
 #define CNFPARSER_H
 
+#include <unordered_set>
+#include <string>
 #include "variable.h"
 #include "clause.h"
 #include "CNF.h"
-
-#include <unordered_set>
-#include <string>
+#include "internal_types.h"
 
 class CNFParser {                           /* class CNFparse used to parse a .cnf file using dimacs format ,contains*/
 private:
-    std::unordered_set<Variable*> var;				/* a set of variables */
-    std::unordered_set<Clause*> Clauses;				/* a set of clauses */
+    VariableSet var;				/* a set of variables */
+    ClauseSet Clauses;				/* a set of clauses */
     std::unordered_set<CNF*> cnfs;					/* a set of cnfs */
     std::fstream *input;					/* the .cnf file using dimacs format */
 public:
-    CNFParser(char* filename);
-    bool fix_pureness(const Variable *v);
+    explicit CNFParser(char* filename);
     int parsing();
     std::unordered_set<CNF*> get_CNFS();
 };

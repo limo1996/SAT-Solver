@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 
         Master* master = new Master((size_t)size, 0, meta_data_type);
         master->start();
-        
+
         while(!master->listen_to_workers());
 
     } else {

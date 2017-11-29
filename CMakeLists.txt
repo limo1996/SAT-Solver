@@ -14,11 +14,11 @@ use_cxx11()
 
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
-set(SOURCE_FILES src/sequential_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/worker.cpp src/dpll.cpp src/exceptions.cpp src/variable.cpp src/Model.h src/Model.cpp src/Master.h src/Master.cpp)
+set(SOURCE_FILES src/sequential_main.cpp src/config.h src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/worker.cpp src/dpll.cpp src/exceptions.cpp src/variable.cpp src/Model.cpp src/Master.cpp src/cdcl.cpp src/cdcl_dependency_graph.cpp src/solver.h src/solver_controller.cpp)
 add_executable(sequential_main ${SOURCE_FILES})
 target_link_libraries(sequential_main ${MPI_LIBRARIES})
 
 include_directories(${MPI_INCLUDE_PATH})
-set(SOURCE_FILES src/parallel_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/worker.cpp  src/dpll.cpp src/exceptions.cpp src/variable.cpp src/mpi_types.h src/Model.h src/Model.cpp src/Master.h src/Master.cpp)
+set(SOURCE_FILES src/parallel_main.cpp src/config.h src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/worker.cpp  src/dpll.cpp src/exceptions.cpp src/variable.cpp src/mpi_types.h src/Model.cpp src/Master.cpp src/cdcl.cpp src/cdcl_dependency_graph.cpp src/solver.h src/solver_controller.cpp)
 add_executable(parallel_main ${SOURCE_FILES})
 target_link_libraries(parallel_main ${MPI_LIBRARIES})

@@ -5,7 +5,7 @@ extern int CERR_LEVEL;
 /**
  * Returns the first unassigned variable or nullptr if all variables are assigned
  */
-Variable *DPLL::find_first_unassigned(std::unordered_set<Variable *> *vars) {
+Variable *DPLL::find_first_unassigned(VariableSet *vars) {
     for (auto v : *vars) {
         if (!v->get_assigned()) {
             return v;
@@ -17,7 +17,7 @@ Variable *DPLL::find_first_unassigned(std::unordered_set<Variable *> *vars) {
 /**
  * Checks if all clauses are true
  */
-bool DPLL::ALL_CLAUSES_ARE_TRUE(std::unordered_set<Clause *> *clauses) {
+bool DPLL::ALL_CLAUSES_ARE_TRUE(ClauseSet *clauses) {
     for (auto clause : *clauses) {
         if (!clause->is_true()) {
             return false;
@@ -29,7 +29,7 @@ bool DPLL::ALL_CLAUSES_ARE_TRUE(std::unordered_set<Clause *> *clauses) {
 /**
  * Checks if there exists a clause that is false
  */
-bool DPLL::ONE_CLAUSE_IS_FALSE(std::unordered_set<Clause *> *clauses) {
+bool DPLL::ONE_CLAUSE_IS_FALSE(ClauseSet *clauses) {
     for (auto clause : *clauses) {
         if (clause->is_false()) {
             return true;
@@ -118,7 +118,7 @@ Variable *DPLL::FIND_PURE_VAR(CNF *cnf) {
 /**
  * For debugging purposes: outputs a given set of clauses to std::cerr
  */
-void cout_clauses(std::unordered_set<Clause *> *clauses) {
+void DPLL::cout_clauses(ClauseSet *clauses) {
     for (auto c: *clauses) {
         if (!c->is_true()) {
             std::cerr << "(" << c->to_string() << ") ";
@@ -134,10 +134,10 @@ void cout_clauses(std::unordered_set<Clause *> *clauses) {
  */
 DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
     Variable *var;
-    std::unordered_set<Clause *> *clauses = cnf->get_clauses();
-    std::unordered_set<Variable *> *vars = cnf->get_vars();
+    ClauseSet *clauses = cnf->get_clauses();
+    VariableSet *vars = cnf->get_vars();
     if (CERR_LEVEL >= 3) {
-        cout_clauses(clauses);
+        DPLL::cout_clauses(clauses);
     }
 
     // Is the formula sat for the given partial model?
@@ -168,7 +168,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
             std::cerr << "unit clause rule on " << var->get_name() << std::endl;
         }
         if (CERR_LEVEL >= 3) {
-            cout_clauses(cnf->get_clauses());
+            DPLL::cout_clauses(cnf->get_clauses());
         }
         return DPLLalgorithm(cnf);
     }
@@ -224,7 +224,7 @@ DPLL::DPLL(CNF _cnf, Config *_config) {                /* constructor */
     config = _config;
 }
 
-bool DPLL::DPLL_SATISFIABLE() {
+bool DPLL::SATISFIABLE() {
     DpllResult *res = DPLLalgorithm(cnf);
     cnf = res->model_cnf;
     return res->sat;
@@ -234,7 +234,7 @@ CNF *DPLL::get_cnf() {
     return cnf;
 }
 
-void DPLL::output_model(std::unordered_set<Variable *> *vars) {
+void DPLL::output_model(VariableSet *vars) {
     for (auto v : *vars) {
         std::string true_false = v->get_value() ? "t" : "f";
         std::cout << v->get_name() << " " << true_false << std::endl;

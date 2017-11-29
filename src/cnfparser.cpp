@@ -27,7 +27,7 @@ CNFParser::CNFParser(char* filename) {			/* constructor */
 int CNFParser::parsing(){
     Clause *clause;
     CNF *cnf;
-    std::unordered_set<Variable*> _var;
+    VariableSet _var;
     std::string line, VAR, p;
     Variable *v,*vtmp;
     bool sign,pflag = false ,cflag = false;

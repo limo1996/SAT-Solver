@@ -1,4 +1,3 @@
-#include <climits>
 #include "worker.h"
 
 extern int CERR_LEVEL;
@@ -10,9 +9,9 @@ Worker::Worker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_rank) {
     stop = false;
 }
 
-unsigned count_assigned(std::unordered_set<Variable *> *variables) {
+unsigned count_assigned(VariableSet *variables) {
     unsigned num_assigned = 0;
-    std::unordered_set<Variable *>::iterator iterator;
+    VariableSet::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             num_assigned++;
@@ -24,8 +23,8 @@ unsigned count_assigned(std::unordered_set<Variable *> *variables) {
 /**
  * outputs given variable assignments to stderr
  */
-void Worker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
-    std::unordered_set<Variable *>::iterator iterator;
+void Worker::cerr_model(std::string info, VariableSet *variables) {
+    VariableSet::iterator iterator;
     std::cerr << "Worker " << worker_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
@@ -45,9 +44,9 @@ void Worker::cerr_model(std::string info, std::unordered_set<Variable *> *variab
  * runs dpll on the cnf store in this::cnf
  */
 void Worker::run_dpll() {
-    Config *config = new Config(INT_MAX, this);
+    auto *config = new Config(INT_MAX, this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
-    bool sat = dpll->DPLL_SATISFIABLE();
+    bool sat = dpll->SATISFIABLE();
     if (sat) {
         send_sat(dpll->get_cnf());
     } else {
@@ -98,7 +97,7 @@ bool Worker::stop_received_before_message_completion(MPI_Request *mpi_requests, 
  * callback that is used on a dpll branch
  * @param variables contains the variable assignments that some other worker should try
  */
-void Worker::dpll_callback(std::unordered_set<Variable *> *variables) {
+void Worker::dpll_callback(VariableSet *variables) {
     unsigned num_assigned = count_assigned(variables);
     if (CERR_LEVEL >= 1) {
         cerr_model("dpll branch", variables);
@@ -149,7 +148,7 @@ MPI_Request Worker::send_model(std::vector<unsigned> assigned) {
  */
 void Worker::send_sat(CNF *cnf) {
     if (!this->stop) {
-        std::unordered_set<Variable *> *vars = cnf->get_model();
+        VariableSet *vars = cnf->get_model();
         // go through the variables and assign true to all the unassigned ones
         for (auto v : *vars) {
             if(!v->get_assigned()) {
@@ -276,11 +275,11 @@ void Worker::parse_and_update_variables(unsigned int encoded[], int size) {
  * @param variables the set of variables to encode (ony assigned ones are considered)
  * @return encoded vector
  */
-std::vector<unsigned> Worker::encode_variables(std::unordered_set<Variable *> *variables) {
+std::vector<unsigned> Worker::encode_variables(VariableSet *variables) {
     unsigned num_assigned = count_assigned(variables);
     std::vector<unsigned> encoded;
     encoded.reserve(num_assigned);
-    std::unordered_set<Variable *>::iterator iterator;
+    VariableSet::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             unsigned encoded_var = (unsigned) (*iterator)->get_name() << 1;

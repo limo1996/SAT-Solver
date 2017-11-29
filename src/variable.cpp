@@ -69,3 +69,7 @@ void Variable::print(){
     std::cout<<"value: "<< value << std::endl;
 }
 
+std::string Variable::to_string() {
+    return sign ? std::to_string(name) : "!" + std::to_string(name);
+}
+

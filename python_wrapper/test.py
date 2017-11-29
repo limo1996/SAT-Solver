@@ -16,9 +16,16 @@ class Tester(object):
     def __init__(self, folder, parallel):
         folder = os.path.join(os.pardir, os.path.join('cnfs', folder))
         self.folder = folder
-        self.files = sorted([os.path.join(folder, f)
-                             for f in os.listdir(folder)
-                             if os.path.isfile(os.path.join(folder, f)) and f.endswith('.cnf')])
+        self.files = []
+        folders = [folder]
+        for f in os.listdir(folder):
+            if os.path.isdir(os.path.join(folder, f)):
+                folders.append(os.path.join(folder, f))
+        for fo in folders:
+            self.files.extend(sorted([os.path.join(fo, f)
+                                      for f in os.listdir(fo)
+                                      if os.path.isfile(os.path.join(fo, f))
+                                      and f.endswith('.cnf')]))
         self.cnf_parser = CnfParser()
         self.parallel = parallel
         self.solver = self.compile_and_create_solver()
@@ -121,11 +128,11 @@ class SequentialSolver(object):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = '{0} {1} -p 2 > out'.format(self.executable, input_file)
+        command = '{0} {1} 1> out'.format(self.executable, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=None)
         stop = datetime.now()
         runtime = (stop - start).total_seconds() * 1000 # in miliseconds
         if ret != 0:
@@ -151,11 +158,11 @@ class ParallelSolver(SequentialSolver):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = 'mpirun -np {0} {1} {2} > out'.format(self.num_cores, self.executable, input_file)
+        command = 'mpirun -np {0} {1} {2} 1> out'.format(self.num_cores, self.executable, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=None)
         stop = datetime.now()
         runtime = (stop - start).total_seconds() * 1000 # in miliseconds
         if ret != 0:

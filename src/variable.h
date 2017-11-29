@@ -11,7 +11,7 @@
 #define VARIABLE_H
 
 #include <string>
-#include <unordered_set>
+#include <set>
 
 class Variable{
 private:
@@ -33,6 +33,7 @@ public:
     void set_value(bool _value);
     void set_assigned(bool _assigned);
     void set_sign(bool _sign);
+    std::string to_string();
 
     Variable& operator = (const Variable &v);
     bool operator == (const Variable &v);

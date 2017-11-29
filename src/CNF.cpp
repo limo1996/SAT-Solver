@@ -9,12 +9,10 @@
 
 #include "CNF.h"
 
-#include <iostream>
-
 CNF::CNF() = default;
 
 //creates new instance of CNF
-CNF::CNF(std::unordered_set<Clause*> _clauses) {
+CNF::CNF(ClauseSet _clauses) {
     for(auto c : _clauses) {
         clauses.insert(c);
     }
@@ -22,7 +20,7 @@ CNF::CNF(std::unordered_set<Clause*> _clauses) {
 
 //creates copy of CNF
 CNF::CNF(CNF &_cnf){
-    std::unordered_set<Clause*>::iterator it_c;
+    ClauseSet::iterator it_c;
 
     for (auto c : *(_cnf.get_clauses())) {
         this->clauses.insert(new Clause(*(c->get_vars())));
@@ -30,8 +28,8 @@ CNF::CNF(CNF &_cnf){
 }
 
 //gets variables
-std::unordered_set<Variable*>* CNF::get_vars() {
-    auto *vars = new std::unordered_set<Variable*>();
+VariableSet* CNF::get_vars() {
+    auto *vars = new VariableSet();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             vars->insert(v);
@@ -40,8 +38,8 @@ std::unordered_set<Variable*>* CNF::get_vars() {
     return vars;
 }
 
-std::unordered_set<Variable*>* CNF::get_model() {
-    auto *model = new std::unordered_set<Variable*>();
+VariableSet* CNF::get_model() {
+    auto *model = new VariableSet();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
             bool already_contained = false;
@@ -60,17 +58,37 @@ std::unordered_set<Variable*>* CNF::get_model() {
 }
 
 //gets clauses
-std::unordered_set<Clause*>* CNF::get_clauses() {
+ClauseSet* CNF::get_clauses() {
     return &clauses;
 }
 
-void CNF::print() {
-    std::unordered_set<Clause*>::iterator it;
-    for (it = clauses.begin(); it != clauses.end(); it++) {
-        if (it != clauses.begin()) {
-            std::cout << " and ";
+void CNF::add_clause(Clause *clause) {
+    for (auto v: *clause->get_vars()) {
+        v->set_assigned(false);
+        for (auto m: *get_model()) {
+            if (v->get_name() == m->get_name()) {
+                v->set_value(m->get_value());
+                v->set_assigned(true);
+            }
         }
-        std::cout << (*it)->to_string();
+    }
+    clauses.insert(new Clause(*clause->get_vars()));
+}
+
+void CNF::print() {
+    ClauseSet::iterator it;
+    for (it = clauses.begin(); it != clauses.end(); it++) {
+        if (!(*it)->is_true()) {
+            std::cout << "(";
+            if (it != clauses.begin()) {
+                std::cout << " and ";
+            }
+            if ((*it)->is_false()) {
+                std::cout << " false ";
+            }
+            std::cout << (*it)->to_string();
+            std::cout << ")";
+        }
     }
     std::cout << std::endl;
 }
