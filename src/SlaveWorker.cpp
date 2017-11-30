@@ -66,7 +66,7 @@ bool SlaveWorker::stop_received_before_message_completion(MPI_Request *mpi_reque
     if (!this->stop) {
         while (flag == 0 && all_done == 0) {
             MPI_Testall(size, mpi_requests, &all_done, MPI_STATUS_IGNORE);
-            MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+            MPI_Iprobe(0, 1, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
         }
     }
     if (flag != MPI_SUCCESS && !this->stop) {
@@ -76,7 +76,7 @@ bool SlaveWorker::stop_received_before_message_completion(MPI_Request *mpi_reque
             if(CERR_LEVEL >= 1){
                 std::cerr << "SlaveWorker " << my_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
             }
-            throw new std::runtime_error("SlaveWorker " + std::to_string(my_rank)
+            throw std::runtime_error("SlaveWorker " + std::to_string(my_rank)
                                          + " received weird message from master");
         }
         if (CERR_LEVEL >= 1) {
@@ -126,7 +126,7 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
     struct meta meta;
     meta.message_type = i;
     meta.count = assigned;
-    
+
     MPI_Request request;
     MPI_Isend(&meta, 1, meta_data_type, 0, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -164,7 +164,7 @@ void SlaveWorker::send_sat(CNF *cnf) {
         MPI_Request requests[2];
         requests[0] = send_meta(12, num_assigned);
         requests[1] = send_model(encode_variables(vars));
-        
+
         bool stop_received = stop_received_before_message_completion(requests, 2);
         if (!stop_received) {
             wait_for_instructions_from_master();
