@@ -26,7 +26,7 @@ class StealVsMaster(AbstractExperiment):
         self.nethz_username = nethz_username
         self.onEuler = onEuler
 
-        if self.onEuler:
+        if not self.onEuler:
             self.name = 'StealVsMaster'
         else:
             self.name = 'StealVsMasterEuler'
