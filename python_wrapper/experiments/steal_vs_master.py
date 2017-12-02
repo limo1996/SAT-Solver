@@ -1,4 +1,7 @@
 import os
+import sys
+
+from experimentEuler import EulerTester
 
 import click
 import matplotlib.pyplot as plt
@@ -7,6 +10,7 @@ import numpy as np
 from abstract_experiment import AbstractExperiment
 from utils import run_n_times, get_results, delete_files_in_folder, get_info, \
     Info, conf_95_mean
+
 
 FOLDER = 'steal_vs_master'
 parent_parent = os.path.join(os.pardir, os.pardir)
@@ -17,11 +21,22 @@ TIMEOUT = 10
 
 
 class StealVsMaster(AbstractExperiment):
-    def __init__(self):
+    def __init__(self, onEuler, nethz_username):
         super(StealVsMaster, self).__init__()
-        self.name = 'StealVsMaster'
+        self.nethz_username = nethz_username
+        self.onEuler = onEuler
+
+        if self.onEuler:
+            self.name = 'StealVsMaster'
+        else:
+            self.name = 'StealVsMasterEuler'
 
     def run_experiment(self):
+        if self.onEuler:
+            self.run_euler_experiment(self.nethz_username)
+            self.processs_euler_experiment()
+            return
+
         self.re_init_data()
         files = sorted([os.path.join(CNF_FOLDER, f)
                         for f in os.listdir(CNF_FOLDER)
@@ -37,6 +52,38 @@ class StealVsMaster(AbstractExperiment):
                 self.data[s][f]['info'] = get_info(f).__dict__
                 command = 'gtimeout {} mpirun -np 4 {} {}'.format(TIMEOUT, exe, f)
                 run_n_times(command, REPETITIONS)
+                timing_file = f[:-3] + 'time'
+                times = get_results(timing_file)
+                self.data[s][f]['time'] = times
+
+
+    def run_euler_experiment(self, nethz_username):
+        if nethz_username == 'xxx':
+            return
+        # number of cores
+        num_nodes = [4, 8, 12]
+        # overall runtime in minutes
+        overall_runtime_minutes = 10
+        tester = EulerTester(FOLDER, nethz_username, num_nodes, REPETITIONS,
+                             TIMEOUT, overall_runtime_minutes)
+        tester.run_test()
+
+    def processs_euler_experiment(self):
+        self.re_init_data()
+        files = sorted([os.path.join(CNF_FOLDER, f)
+                        for f in os.listdir(CNF_FOLDER)
+                        if os.path.isfile(os.path.join(CNF_FOLDER, f))
+                        and f.endswith('.cnf')])
+        for s in EXECUTABLES:
+            #exe = os.path.join(parent_parent,"./{}".format(s))
+            #delete_files_in_folder(CNF_FOLDER, 'time')
+            self.data[s] = {}
+            for f in files:
+                print('main: {}  file: {}'.format(s, f))
+                self.data[s][f] = {}
+                self.data[s][f]['info'] = get_info(f).__dict__
+                #command = 'gtimeout {} mpirun -np 4 {} {}'.format(TIMEOUT, exe, f)
+                #run_n_times(command, REPETITIONS)
                 timing_file = f[:-3] + 'time'
                 times = get_results(timing_file)
                 self.data[s][f]['time'] = times
@@ -61,9 +108,12 @@ class StealVsMaster(AbstractExperiment):
                     x_offsets[info.variables] = -2.5
                 x_offsets[info.variables] = x_offsets[info.variables] + 0.5
                 xs.append(info.variables + x_offsets[info.variables])
-                mean = np.mean(data)
+                data1 = []
+                for d in data:
+                    data1.append(np.mean(d))
+                mean = np.mean(data1)
                 ys.append(mean)
-                lower, upper = conf_95_mean(data)
+                lower, upper = conf_95_mean(data1)
                 lower_error.append(mean-lower)
                 upper_error.append(upper-mean)
             plt.errorbar(xs, ys,
@@ -81,18 +131,27 @@ class StealVsMaster(AbstractExperiment):
         plt.legend(loc=2)
         plt.show()
 
+def get_netz_username():
+    nethz_username = raw_input('please enter your nethz_account name : ')
+    return nethz_username
 
 @click.command()
-@click.option('--rerun/--no-rerun', default=False,
-              help='Rerun the experiments')
-def main(rerun):
-    e = StealVsMaster()
+@click.option('--mode', type=click.Choice(['rerun-local',
+                                           'no-rerun-local',
+                                           'rerun-euler',
+                                           'no-rerun-euler']),
+              prompt='please specify a mode ('
+                     'rerun-local | no-rerun-local | rerun-euler | no-rerun-euler)')
+@click.option('--nethz_username', default='xxx')
+def main(mode, nethz_username):
+    euler = 'euler' in mode
+    rerun = 'no' not in mode
+    e = StealVsMaster(euler, nethz_username)
     if rerun:
         e.run_experiment()
         e.results_to_json()
     e.results_from_json()
     e.plot()
-
 
 if __name__ == '__main__':
     main()

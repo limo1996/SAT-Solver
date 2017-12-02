@@ -10,6 +10,9 @@ using namespace std;
 using namespace std::chrono;
 
 int CERR_LEVEL = 0;
+double STEALING_RATIO = 0.5;
+int CHECK_PERIOD = 2;
+int MIN_STACK_SIZE = 3;
 
 /**
  * Main entry point to parallel stealing version.
@@ -70,15 +73,18 @@ int main(int argc, char *argv[]) {
         file.close();
         
         // worker 0 aka "temp master"
-        StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
+        StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
         main_worker->start();
         while (!main_worker->stopped()) {
-            main_worker->check_and_process_message_from_worker(true);
+            main_worker->check_and_process_message_from_worker(false);
+            main_worker->get_model();
         }
     } else {
-        StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size);
+        StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        w->start();
         while (!w->stopped()) {
-            w->check_and_process_message_from_worker(true);
+            w->check_and_process_message_from_worker(false);
+            w->get_model();
         }
     }
     

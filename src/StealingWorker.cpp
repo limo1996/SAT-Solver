@@ -18,21 +18,32 @@ void StealingWorker::debug_output(std::string line, bool newLine, int level){
 
 /**
  * Creates new instance of StelingWorker
+ * requires min_stack_size >= 1
  */
-StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size) {
+StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size, double stealing_ratio, int check_interval, int min_stack_size) {
     cnf = new CNF(_cnf);
     meta_data_type = _meta_data_type;
     my_rank = _my_rank;
     workers_size = _workers_size;
     stop = false;
     next_to_send = 1;
+    this->stealing_ratio = stealing_ratio;
+    this->check_interval = check_interval;
+    this->check_counter = 0;
+    this->min_stack_size = min_stack_size > 0 ? min_stack_size : 1;
 }
 
 /**
  * Worker starts solving cnf and sends one subproblem to each other worker.
  */
 void StealingWorker::start(){
-    run_dpll();
+    if(my_rank == 0)
+        run_dpll();
+    else {
+        bool res = check_and_process_message_from_worker(true, 0);
+        if(res)
+            run_dpll();
+    }
 }
 
 /**
@@ -62,8 +73,8 @@ void StealingWorker::run_dpll() {
             MPI_Request mpi_requests[2];
             mpi_requests[0] = send_meta(0, 3, num_assigned);
             mpi_requests[1] = send_model(0, encode_variables(vars));
-            bool stop = stop_received_before_message_completion(mpi_requests, 2);
-            if(!stop)
+            //bool stop = stop_received_before_message_completion(mpi_requests, 2);
+            //if(!stop)
                 check_and_process_message_from_worker(true, 2);
         }
     } else {
@@ -84,11 +95,11 @@ bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_re
     int flag = 0;
     int all_done = 0;
     
-    while (flag == 0 && all_done == 0) {
+    while (/*flag == 0 && */all_done == 0) {
         MPI_Testall(size, mpi_requests, &all_done, MPI_STATUS_IGNORE);
-        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+        //MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
     }
-    
+    MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
     if (flag != 0) {
         struct meta meta;
         MPI_Status status;
@@ -125,20 +136,20 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
             parse_and_update_variables(encoded, 0);
             debug_output("received model of size 0 and will start solving", true);
         }
-        run_dpll();
+        //run_dpll();
     } else if (meta.message_type == 1){
         // steal message, respond accordingly
         debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
         
-        if(this->stack.empty()) {
+        if(this->stack.size() < this->min_stack_size) {
             MPI_Request mpi_requests[1];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, INT_MAX);
-            stop_received_before_message_completion(mpi_requests, 1);
+            //stop_received_before_message_completion(mpi_requests, 1);
         } else {
             MPI_Request mpi_requests[2];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, this->stack.back().size());
             mpi_requests[1] = send_model(status.MPI_SOURCE, this->stack.back());
-            stop_received_before_message_completion(mpi_requests, 2);
+            //stop_received_before_message_completion(mpi_requests, 2);
             
             this->stack.pop_back();
         }
@@ -220,13 +231,14 @@ void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
         MPI_Request mpi_requests[2];
         mpi_requests[0] = send_meta(this->next_to_send, 0, count_assigned(variables));
         mpi_requests[1] = send_model(this->next_to_send, encode_variables(variables));
-        stop_received_before_message_completion(mpi_requests, 2);
+        //stop_received_before_message_completion(mpi_requests, 2);
         this->next_to_send++;
     } else {
         cerr_model("dpll store to local stack", variables);
-        
         this->stack.push_front(encode_variables(variables));
-        check_and_process_message_from_worker(false);
+        this->check_counter++;
+        if(this->check_counter % this->check_interval == 0)
+            check_and_process_message_from_worker(false);
     }
 }
 
@@ -248,16 +260,53 @@ void StealingWorker::get_model() {
         run_dpll();
     } else {
         // try to steal. If stealing is successful that continue solving otherwise wait for the end message
-        debug_output("finished branch with unsat. Tries to steal from worker " + std::to_string((my_rank + 1) % workers_size), true);
-        MPI_Request request = send_meta((my_rank + 1) % workers_size, 1, 0);
-        bool received = stop_received_before_message_completion(&request, 1);
-        if (received) {
+        debug_output("finished branch with unsat.", true);
+        int n = (int)(this->stealing_ratio * this->workers_size);
+        if(n == this->workers_size)
+            n--;
+        if(try_to_steal_from_n_workers(n)){
+            debug_output("Stealing successful. run_dpll()", true);
             run_dpll();
-        } else {
-            if(check_and_process_message_from_worker(true, 0)) // if we received model than continue solving
-                run_dpll();
-        }
+        } else
+            debug_output("Stealing unsuccessful. Stopping...", true);
     }
+}
+
+/**
+ *
+ */
+bool StealingWorker::try_to_steal_from_n_workers(int n) {
+    std::set<int> to_send = generate_rand_workers(this->workers_size - 1, n);
+    for(auto it = to_send.begin(); it != to_send.end(); ++it){
+        debug_output("Tries to steal from worker " + std::to_string(*it), true);
+        MPI_Request request = send_meta(*it, 1, 0);
+        //bool received = stop_received_before_message_completion(&request, 1);
+        //if (received) {
+          //  return true;
+        //} else {
+            if(check_and_process_message_from_worker(true, 0)) // if we received model than return
+                return true;
+        //}
+        if(this->stop)
+            break;
+    }
+    return false;
+}
+
+std::set<int> StealingWorker::generate_rand_workers(int max, int n) {
+	std::set<int> result;
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine generator(seed);
+	std::uniform_int_distribution<int> distribution(0, max);
+
+	auto dice = std::bind (distribution, generator);
+    int random_number;
+	while(result.size() < n){
+        random_number = dice();
+        if(random_number != this->my_rank)
+            result.insert(random_number);
+    }
+    return result;
 }
 
 /**
