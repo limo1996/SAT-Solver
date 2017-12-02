@@ -29,7 +29,7 @@ Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
             this->available_ranks.push(i);
         }
     }
-    
+
     if(CERR_LEVEL >= 1){
         std::cerr << "Master: created with rank: " << my_rank << ", number of processes: " << ranks << "(" << ranks - 1 << " workers)" << std::endl;
         std::cerr << "Master: Number of free processes: " << available_ranks.size() << std::endl;
@@ -47,7 +47,7 @@ MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_
     if(CERR_LEVEL >= 1){
         std::cerr << "Master: sending metadata... to rank: " << to_rank << " msg type: " << (int)message_type << " count: " << assigned_count << std::endl;
     }
-    
+
     struct meta meta;
     meta.message_type = message_type;
     meta.count = assigned_count;
@@ -71,7 +71,7 @@ void Master::stop_workers(){
     for (int i=0; i<all_ranks; i++) {
         if (i != my_rank) {
             struct meta meta_copy = meta;
-            MPI_Isend(&meta_copy, 1, this->meta_type, i, 0, MPI_COMM_WORLD, mpi_requests + count);
+            MPI_Isend(&meta_copy, 1, this->meta_type, i, 1, MPI_COMM_WORLD, mpi_requests + count);
             count++;
         }
     }
