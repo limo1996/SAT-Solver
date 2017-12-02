@@ -73,41 +73,12 @@ void StealingWorker::run_dpll() {
             MPI_Request mpi_requests[2];
             mpi_requests[0] = send_meta(0, 3, num_assigned);
             mpi_requests[1] = send_model(0, encode_variables(vars));
-            //bool stop = stop_received_before_message_completion(mpi_requests, 2);
-            //if(!stop)
-                check_and_process_message_from_worker(true, 2);
+            check_and_process_message_from_worker(true, 2);
         }
     } else {
         check_and_process_message_from_worker(false);
         get_model();
     }
-}
-
-/**
- * Waits for the completition of the requests and at the same time checks for new requests. I
- * Return false in case we should stop or we received nothing, true otherwise.
- */
-bool StealingWorker::stop_received_before_message_completion(MPI_Request *mpi_requests, int size) {
-    if(this->stop)
-        return false;
-    debug_output("stop_received_before_message_completion", true);
-    
-    int flag = 0;
-    int all_done = 0;
-    
-    while (/*flag == 0 && */all_done == 0) {
-        MPI_Testall(size, mpi_requests, &all_done, MPI_STATUS_IGNORE);
-        //MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
-    }
-    MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
-    if (flag != 0) {
-        struct meta meta;
-        MPI_Status status;
-        MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        bool res = respond_to(meta, status);
-        return meta.message_type == 0 && !this->stop; // if we received respond from stealing than its ok. Otherwise not.
-    }
-    return false;
 }
 
 /**
@@ -144,12 +115,10 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         if(this->stack.size() < this->min_stack_size) {
             MPI_Request mpi_requests[1];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, INT_MAX);
-            //stop_received_before_message_completion(mpi_requests, 1);
         } else {
             MPI_Request mpi_requests[2];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, this->stack.back().size());
             mpi_requests[1] = send_model(status.MPI_SOURCE, this->stack.back());
-            //stop_received_before_message_completion(mpi_requests, 2);
             
             this->stack.pop_back();
         }
@@ -231,7 +200,6 @@ void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
         MPI_Request mpi_requests[2];
         mpi_requests[0] = send_meta(this->next_to_send, 0, count_assigned(variables));
         mpi_requests[1] = send_model(this->next_to_send, encode_variables(variables));
-        //stop_received_before_message_completion(mpi_requests, 2);
         this->next_to_send++;
     } else {
         cerr_model("dpll store to local stack", variables);
@@ -280,13 +248,9 @@ bool StealingWorker::try_to_steal_from_n_workers(int n) {
     for(auto it = to_send.begin(); it != to_send.end(); ++it){
         debug_output("Tries to steal from worker " + std::to_string(*it), true);
         MPI_Request request = send_meta(*it, 1, 0);
-        //bool received = stop_received_before_message_completion(&request, 1);
-        //if (received) {
-          //  return true;
-        //} else {
-            if(check_and_process_message_from_worker(true, 0)) // if we received model than return
-                return true;
-        //}
+        if(check_and_process_message_from_worker(true, 0)) // if we received model than return
+            return true;
+
         if(this->stop)
             break;
     }

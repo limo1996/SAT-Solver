@@ -39,7 +39,6 @@ private:
     MPI_Request send_model(int to_rank, std::vector<unsigned int> assigned);            // sends model to given rank
     
     unsigned count_assigned(std::unordered_set<Variable *> *variables);                 // returns number of assigned variables
-    bool stop_received_before_message_completion(MPI_Request *mpi_requests, int size);  // tests whether were all requests sends and if there is new message than processed it
     std::vector<unsigned> encode_variables(std::unordered_set<Variable *> *variables);  // encode variables to sendable format
     std::set<int> generate_rand_workers(int max, int n);                                // generates n unique random numbers in range (0, max)
     
