@@ -5,6 +5,8 @@
 
 \documentclass[letterpaper]{article}
 \usepackage{spconf,amsmath,amssymb,graphicx}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
 
 
 % Example definitions.
@@ -147,11 +149,22 @@ answer from the plot in its discussion.
 \item Every plot should be referenced and discussed.
 \end{itemize}
 
-\begin{figure}\centering
-  \includegraphics[scale=0.33]{dft-performance.eps}
-  \caption{Performance of four single precision implementations of the
-  discrete Fourier transform. The operations count is roughly the
-  same. The labels in this plot are maybe a little bit too small.\label{fftperf}}
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl_scatter}
+  \caption{TODO.\label{dpll_vs_cdcl_speedup}}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl_speedup}
+  \caption{Speedup of CDCL compared to DPLL. Both algorithms were run sequentially.\label{dpll_vs_cdcl_speedup}}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl_histo}
+  \caption{TODO.\label{dpll_vs_cdcl_speedup}}
 \end{figure}
 
 \section{Conclusions}
