@@ -210,6 +210,7 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
         if (config->num_callbacks >= 0) {
             return new DpllResult(false, nullptr);
         } else {
+            delete cnf;
             if (CERR_LEVEL >= 2) {
                 std::cerr << "branch !" << var->get_name() << std::endl;
             }

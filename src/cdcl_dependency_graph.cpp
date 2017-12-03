@@ -98,10 +98,10 @@ void Graph::remove_node(Literal *l) {
                 c->parents.erase(i);
             }
             lookup_map.erase(i->hash());
-            //delete i;
+            delete i;
         }
         lookup_map.erase(dl->hash());
-        //delete dl;
+        delete dl;
     }
 
 }
