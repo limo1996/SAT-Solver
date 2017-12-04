@@ -49,12 +49,9 @@ class EulerTester(object):
         test_folder_file.write(str(self.folder))
         test_folder_file.close()
         num_nodes_string = '4'
-        if not len(self.num_nodes) is 0:
-            num_nodes_string = list(map(lambda n: str(n), self.num_nodes))
-            num_nodes_string = " ".join(num_nodes_string)
         num_nodes_file = open('../num_nodes.txt', 'w')
         num_nodes_file.truncate()
-        num_nodes_file.write(num_nodes_string)
+        num_nodes_file.write("{}".format(self.num_nodes))
         num_nodes_file.close()
 
         num_runs_file = open('../num_runs.txt', 'w')

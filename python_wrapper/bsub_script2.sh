@@ -11,27 +11,22 @@ cd $(cat test_folder.txt)
 rm -rf *.time
 FILES=*.cnf
 
-for nodes in ${num_nodes}
+for file in ${FILES}
 do
-    for file in ${FILES}
+	for run in $(seq 1 $num_runs)
     do
-        for run in $(seq 1 $num_runs)
-        do
-            timeout "$timeout"s mpirun -np "$nodes" ../parallel_main "$file" > "$file".out
-        done
+    	timeout "$timeout"s mpirun -np "$num_nodes" ../parallel_main "$file" > "$file"_parallel.out
     done
 done
 
-for nodes in ${num_nodes}
+for file in ${FILES}
 do
-    for file in ${FILES}
+	for run in $(seq 1 $num_runs)
     do
-        for run in $(seq 1 $num_runs)
-        do
-            timeout "$timeout"s mpirun -np "$nodes" ../stealing_main "$file" > "$file".out
-        done
+    	timeout "$timeout"s mpirun -np "$num_nodes" ../stealing_main "$file" > "$file"_stealing.out
     done
 done
+
 tar -cf time_measurements.tar *.time
 echo "tar file (time_measurements.tar) with measurements created"
 

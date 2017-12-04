@@ -15,9 +15,9 @@ from utils import run_n_times, get_results, delete_files_in_folder, get_info, \
 FOLDER = 'steal_vs_master'
 parent_parent = os.path.join(os.pardir, os.pardir)
 CNF_FOLDER = os.path.join(parent_parent, os.path.join('cnfs', FOLDER))
-EXECUTABLES = ['stealing_main', 'parallel_main']
-REPETITIONS = 20
-TIMEOUT = 10
+EXECUTABLES = ['stealing', 'parallel']
+REPETITIONS = 10
+TIMEOUT = 20
 
 
 class StealVsMaster(AbstractExperiment):
@@ -43,7 +43,7 @@ class StealVsMaster(AbstractExperiment):
                         if os.path.isfile(os.path.join(CNF_FOLDER, f))
                         and f.endswith('.cnf')])
         for s in EXECUTABLES:
-            exe = os.path.join(parent_parent,"./{}".format(s))
+            exe = os.path.join(parent_parent,"./{}_main".format(s))
             delete_files_in_folder(CNF_FOLDER, 'time')
             self.data[s] = {}
             for f in files:
@@ -61,9 +61,9 @@ class StealVsMaster(AbstractExperiment):
         if nethz_username == 'xxx':
             return
         # number of cores
-        num_nodes = [4, 8, 12]
+        num_nodes = 4#[4, 8, 12]
         # overall runtime in minutes
-        overall_runtime_minutes = 10
+        overall_runtime_minutes = 80
         tester = EulerTester(FOLDER, nethz_username, num_nodes, REPETITIONS,
                              TIMEOUT, overall_runtime_minutes)
         tester.run_test()
@@ -75,17 +75,14 @@ class StealVsMaster(AbstractExperiment):
                         if os.path.isfile(os.path.join(CNF_FOLDER, f))
                         and f.endswith('.cnf')])
         for s in EXECUTABLES:
-            #exe = os.path.join(parent_parent,"./{}".format(s))
-            #delete_files_in_folder(CNF_FOLDER, 'time')
             self.data[s] = {}
             for f in files:
-                print('main: {}  file: {}'.format(s, f))
+                time_file = f.replace('.cnf', '_{}.time'.format(s))
+                print('main: {}  file: {}'.format(s, time_file))
+
                 self.data[s][f] = {}
                 self.data[s][f]['info'] = get_info(f).__dict__
-                #command = 'gtimeout {} mpirun -np 4 {} {}'.format(TIMEOUT, exe, f)
-                #run_n_times(command, REPETITIONS)
-                timing_file = f[:-3] + 'time'
-                times = get_results(timing_file)
+                times = get_results(time_file)
                 self.data[s][f]['time'] = times
 
     def plot(self):

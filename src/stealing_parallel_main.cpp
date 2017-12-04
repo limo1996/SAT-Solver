@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     s = path;
     size_t lastindex = s.find_last_of(".");
     string rawname = s.substr(0,lastindex);
-    rawname = rawname + ".time";
+    rawname = rawname + "_stealing.time";
     char *pathnew = &rawname[0u];
     
     CNFParser *parser;
