@@ -13,8 +13,8 @@ FOLDER = 'dpll_vs_cdcl'
 parent_parent = os.path.join(os.pardir, os.pardir)
 CNF_FOLDER = os.path.join(parent_parent, os.path.join('cnfs', FOLDER))
 EXECUTABLE = './sequential_main'
-REPETITIONS = 20
-TIMEOUT = 10
+REPETITIONS = 10
+TIMEOUT = 16
 
 VAR_LOWER = 5
 VAR_UPPER = 42
