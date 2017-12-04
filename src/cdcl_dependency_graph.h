@@ -50,6 +50,7 @@ class Graph {
 private:
     std::unordered_map<unsigned, Literal *> lookup_map;
     Literal *find(unsigned key);
+    std::unordered_set<Literal *> to_free;
 
 public:
     bool has_conflict;
@@ -59,6 +60,7 @@ public:
     Literal *find_negation(Variable *var);
     void remove_node(Literal *l);
     void add_node(Literal *l);
+    void free_freeable_nodes();
 };
 
 #endif //SAT_SOLVER_CDCL_DEPENDENCY_GRAPH_H

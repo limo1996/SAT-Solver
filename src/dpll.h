@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "solver.h"
+#include "cdcl.h"
 #include "config.h"
 #include "variable.h"
 #include "clause.h"
@@ -14,6 +15,7 @@
 
 class Worker;
 class Solver;
+class CDCL;
 
 class DpllResult {
 public:

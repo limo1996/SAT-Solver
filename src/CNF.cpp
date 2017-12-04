@@ -92,3 +92,60 @@ void CNF::print() {
     }
     std::cout << std::endl;
 }
+
+VariableSet* CNF::get_partial_model() {
+    auto *model = new VariableSet();
+    for (auto c : clauses) {
+        for (auto v: *c->get_vars()) {
+            if (!v->get_assigned()) {
+                continue;
+            }
+            bool already_contained = false;
+            for (auto v_model : *model) {
+                if (v_model->get_name() == v->get_name()) {
+                    already_contained = true;
+                    break;
+                }
+            }
+            if (!already_contained) {
+                model->insert(v);
+            }
+        }
+    }
+    return model;
+}
+
+int CNF::count_un_assigned() {
+    return (int) get_model()->size() - get_partial_model()->size();
+}
+
+CNF *CNF::build_fresh_cnf_from() {
+    ClauseSet new_clauses;
+    for (auto clause : clauses) {
+        if (!clause->is_true()) {
+            VariableSet new_clause;
+            for (auto v : *clause->get_vars()) {
+                if (!v->get_assigned()) {
+                    new_clause.insert(new Variable(v->get_sign(), v->get_value(), v->get_name()));
+                }
+            }
+            new_clauses.insert(new Clause(new_clause));
+        }
+    }
+    return new CNF(new_clauses);
+}
+
+void set_variable_value(CNF *cnf, Variable *var, bool value) {
+    for (auto variable : *cnf->get_vars()) {
+        if (variable->get_name() == var->get_name()) {
+            variable->set_value(value);
+            variable->set_assigned(true);
+        }
+    }
+}
+
+void CNF::overwrite_assignments(VariableSet *partial_model) {
+    for (auto pv : *partial_model) {
+        set_variable_value(this, pv, pv->get_value());
+    }
+}
