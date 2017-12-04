@@ -24,6 +24,6 @@ add_executable(parallel_main ${SOURCE_FILES})
 target_link_libraries(parallel_main ${MPI_LIBRARIES})
 
 include_directories(${MPI_INCLUDE_PATH})
-set(SOURCE_FILES src/stealing_parallel_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/worker.h src/StealingWorker.h src/StealingWorker.cpp  src/dpll.cpp src/exceptions.cpp src/variable.cpp src/mpi_types.h src/Model.h src/Model.cpp)
+set(SOURCE_FILES src/stealing_parallel_main.cpp src/cnfparser.cpp src/CNF.cpp src/clause.cpp src/worker.h src/StealingWorker.h src/StealingWorker.cpp  src/dpll.cpp src/cdcl.cpp src/cdcl_dependency_graph.cpp src/exceptions.cpp src/variable.cpp src/mpi_types.h src/Model.h src/Model.cpp)
 add_executable(stealing_main ${SOURCE_FILES})
 target_link_libraries(stealing_main ${MPI_LIBRARIES})

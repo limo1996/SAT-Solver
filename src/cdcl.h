@@ -8,6 +8,9 @@
 #include <unordered_map>
 #include "dpll.h"
 #include "cdcl_dependency_graph.h"
+#include "solver.h"
+
+class DpllResult;
 
 class CDCL: public Solver {
 private:

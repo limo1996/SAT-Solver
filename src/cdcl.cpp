@@ -249,6 +249,7 @@ void CDCL::jump_back(LiteralSet relevant_literals) {
             parent_decision = nullptr;
         }
     }
+    dependency_graph->free_freeable_nodes();
 }
 
 void CDCL::remove_all_consequences(DecisionLiteral *literal) {

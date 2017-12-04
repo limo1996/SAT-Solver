@@ -98,12 +98,18 @@ void Graph::remove_node(Literal *l) {
                 c->parents.erase(i);
             }
             lookup_map.erase(i->hash());
-            delete i;
+            to_free.insert(i);
         }
         lookup_map.erase(dl->hash());
-        delete dl;
+        to_free.insert(l);
     }
+}
 
+void Graph::free_freeable_nodes() {
+    for (auto n : to_free) {
+        delete n;
+    }
+    to_free.clear();
 }
 
 void Graph::add_node(Literal *l) {
