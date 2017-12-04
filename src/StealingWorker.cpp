@@ -51,7 +51,7 @@ void StealingWorker::start(){
  * If finds unsat than takes another model from local queue. If it is empty than tries to steal from other workers.
  */
 void StealingWorker::run_dpll() {
-    Config *config = new Config(INT_MAX, INT_MAX, this, DPLL_);
+    Config *config = new Config(-1, -1, this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {
@@ -69,7 +69,7 @@ void StealingWorker::run_dpll() {
             }
             unsigned num_assigned = count_assigned(vars);
             cerr_model("sends sat model to worker 0", vars);
-            
+
             MPI_Request mpi_requests[2];
             mpi_requests[0] = send_meta(0, 3, num_assigned);
             mpi_requests[1] = send_model(0, encode_variables(vars));
@@ -111,7 +111,7 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
     } else if (meta.message_type == 1){
         // steal message, respond accordingly
         debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
-        
+
         if(this->stack.size() < this->min_stack_size) {
             MPI_Request mpi_requests[1];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, INT_MAX);
@@ -119,7 +119,7 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
             MPI_Request mpi_requests[2];
             mpi_requests[0] = send_meta(status.MPI_SOURCE, 0, this->stack.back().size());
             mpi_requests[1] = send_model(status.MPI_SOURCE, this->stack.back());
-            
+
             this->stack.pop_back();
         }
     } else if (meta.message_type == 2){
@@ -133,21 +133,21 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         debug_output("received sat-model of size " + std::to_string(meta.count) + " from worker " + std::to_string(status.MPI_SOURCE), true);
         unsigned encoded_model[meta.count];
         MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        
+
         // debug output of model
         debug_output("encoded model: ", false, 2);
         for (int i = 0; i < meta.count; i++) {
             debug_output(std::to_string(encoded_model[i]) + " ", false, 2);
         }
         debug_output("", true, 2);
-        
+
         // trick to convert received msg to cnf object
         parse_and_update_variables(encoded_model, meta.count);
         print_sat_stop_workers(this->cnf);
         return false;
     } else
         debug_output("received weird(" + std::to_string((int)meta.message_type) + ") message from worker" + std::to_string(status.MPI_SOURCE), true);
-    
+
     return true;
 }
 
@@ -176,7 +176,7 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinFo
             return true;
         }
     }
-    
+
     struct meta meta;
     MPI_Status status;
     MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
@@ -184,7 +184,7 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinFo
     bool res = respond_to(meta, status);
     if(spinForMessage != -1 && spinForMessage != meta.message_type && res)
         return check_and_process_message_from_worker(wait, spinForMessage);
-    
+
     return res;
 }
 
@@ -285,7 +285,7 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
     struct meta meta;
     meta.message_type = i;
     meta.count = assigned;
-    
+
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_data_type, to_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -312,7 +312,7 @@ void StealingWorker::print_sat_stop_workers(CNF *cnf) {
     if (this->stop)
         return;
     this->stop = true;
-    
+
     cerr_model("Found SAT model. Sends message type 2 to all workers.", cnf->get_model());
     stop_workers();
     output_sat_model(cnf);
@@ -326,7 +326,7 @@ void StealingWorker::stop_workers(){
     struct meta meta;
     meta.message_type = 2;
     meta.count = 0;
-    
+
     int size = static_cast<int>(this->workers_size - 1);
     MPI_Request mpi_requests[size];
     int count = 0;
@@ -355,10 +355,10 @@ void StealingWorker::output_sat_model(CNF *cnf){
             v->set_value(true);
         }
     }
-    
+
     unsigned num_assigned = count_assigned(vars);
     std::vector<unsigned> encoded_model = encode_variables(vars);
-    
+
     std::cout  << "sat" << std::endl;
     for (int i = 0; i < num_assigned; i++) {
         std::string name = std::to_string(encoded_model[i] >> 1);
@@ -437,7 +437,7 @@ unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variable
 void StealingWorker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
     if(CERR_LEVEL < 1)
         return;
-    
+
     std::unordered_set<Variable *>::iterator iterator;
     std::cerr << "StealingWorker " << my_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
