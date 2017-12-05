@@ -11,20 +11,26 @@ cd $(cat test_folder.txt)
 rm -rf *.time
 FILES=*.cnf
 
-for file in ${FILES}
+for nodes in ${num_nodes}
 do
-	for run in $(seq 1 $num_runs)
-    do
-    	timeout "$timeout"s mpirun -np "$num_nodes" ../parallel_main "$file" > "$file"_parallel.out
-    done
+	for file in ${FILES}
+	do
+		for run in $(seq 1 $num_runs)
+		do
+			timeout "$timeout"s mpirun -np "$nodes" ../parallel_main "$file" > "$file"_parallel.out
+		done
+	done
 done
 
-for file in ${FILES}
+for nodes in "${num_nodes}"
 do
-	for run in $(seq 1 $num_runs)
-    do
-    	timeout "$timeout"s mpirun -np "$num_nodes" ../stealing_main "$file" > "$file"_stealing.out
-    done
+	for file in ${FILES}
+	do
+		for run in $(seq 1 $num_runs)
+		do
+			timeout "$timeout"s mpirun -np "$nodes" ../stealing_main "$file" > "$file"_stealing.out
+		done
+	done
 done
 
 tar -cf time_measurements.tar *.time

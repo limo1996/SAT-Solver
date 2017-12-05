@@ -31,6 +31,9 @@ class StealVsMaster(AbstractExperiment):
         else:
             self.name = 'StealVsMasterEuler'
 
+        # number of cores
+        self.num_nodes = [4, 8, 16, 24, 32, 48]
+
     def run_experiment(self):
         if self.onEuler:
             self.run_euler_experiment(self.nethz_username)
@@ -60,11 +63,10 @@ class StealVsMaster(AbstractExperiment):
     def run_euler_experiment(self, nethz_username):
         if nethz_username == 'xxx':
             return
-        # number of cores
-        num_nodes = 4#[4, 8, 12]
+
         # overall runtime in minutes
-        overall_runtime_minutes = 80
-        tester = EulerTester(FOLDER, nethz_username, num_nodes, REPETITIONS,
+        overall_runtime_minutes = 4 * 59
+        tester = EulerTester(FOLDER, nethz_username, self.num_nodes, REPETITIONS,
                              TIMEOUT, overall_runtime_minutes)
         tester.run_test()
 

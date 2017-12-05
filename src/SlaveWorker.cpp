@@ -8,6 +8,23 @@ SlaveWorker::SlaveWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_ran
     meta_data_type = _meta_data_type;
     my_rank = _worker_rank;
     stop = false;
+    waitingTime = 0;
+    this->measurement_started = false;
+}
+
+void SlaveWorker::stop_measure(){
+    if(!this->measurement_started)
+        return;
+    
+    this->measurement_started = false;
+    high_resolution_clock::time_point endTime = high_resolution_clock::now();
+    long long duration = std::chrono::duration_cast<std::chrono::milliseconds>( endTime - startTime ).count();
+    this->waitingTime += duration;
+}
+
+void SlaveWorker::start_measure(){
+    this->startTime = high_resolution_clock::now();
+    this->measurement_started = true;
 }
 
 unsigned count_assigned(VariableSet *variables) {
@@ -184,6 +201,7 @@ void SlaveWorker::send_unsat() {
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": sends unsat to master" << std::endl;
         }
+        start_measure();
         MPI_Request request = send_meta(11, 0);
         bool stop_received = stop_received_before_message_completion(&request, 1);
         if (!stop_received) {
@@ -209,6 +227,7 @@ void SlaveWorker::wait_for_instructions_from_master() {
     struct meta meta;
     MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     if (meta.message_type == 0) {
+        stop_measure();
         unsigned encoded_model[meta.count];
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": received meta data (message type: 0, count: "

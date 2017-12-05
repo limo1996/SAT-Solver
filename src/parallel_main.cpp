@@ -23,8 +23,10 @@ int main(int argc, char *argv[]) {
     s = path;
     size_t lastindex = s.find_last_of(".");
     string rawname = s.substr(0,lastindex);
+    string waitname = rawname + "_parallel.wait";
     rawname = rawname + "_parallel.time";
     char *pathnew = &rawname[0u];
+    char *waitpath =&waitname[0u];
 
     CNFParser *parser;
     try {
@@ -63,19 +65,27 @@ int main(int argc, char *argv[]) {
      * Master sends tasks to free workers and collects tasks that needs to be done from them. If someone found solution master stops all workers and program ends.
      */
     if (rank == 0) {
-        ofstream file;
+        ofstream file, file2;
         file.open(pathnew, std::ios_base::app);
+        file2.open(waitpath, std::ios_base::app);
         file << std::endl;
+        file2 << std::endl;
         file.close();
+        file2.close();
 
         Master* master = new Master((size_t)size, 0, meta_data_type);
         master->start();
 
         while(!master->listen_to_workers());
-
+        
     } else {
         SlaveWorker *w = new SlaveWorker(*(*(cnfs.begin())), meta_data_type, rank);
         w->wait_for_instructions_from_master();
+        
+        ofstream waitfile;
+        waitfile.open(waitpath, std::ios_base::app);
+        waitfile << w->get_waiting_time() << ' ';
+        waitfile.close();
     }
 
     MPI_Finalize();                                                                 // mpi end

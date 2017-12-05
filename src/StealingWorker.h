@@ -21,7 +21,7 @@ private:
     std::list<std::vector<unsigned> > stack;                                            // local stack of models to process (can be stealed)
     int workers_size;                                                                   // number of workers (processes)
     int next_to_send;                                                                   // rank of next worker, where worker 0 will send next subproblem
-    bool stop;                                                                          // indicates whether this worker was stopped
+
     double stealing_ratio;                                                              // in %. Indicates how many % of workers should we try to steal from.
     int check_interval;                                                                 // interval of checking for other messages from other workers
     int check_counter;                                                                  // counts iterations
