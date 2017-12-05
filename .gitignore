@@ -96,3 +96,11 @@ cmake_install.cmake
 # the local timing results
 *.time
 
+# latex stuff
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.log
+*.ps
+

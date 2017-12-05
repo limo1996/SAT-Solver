@@ -8,6 +8,7 @@ class AbstractExperiment(object):
         self.data = {}
         self.re_init_data()
         self.name = 'AbstractExperiment'
+        self.figures_folder = '../../report/figures'
 
     def re_init_data(self):
         self.data = {'experiment_info': get_experiment_id()}
@@ -33,7 +34,3 @@ class AbstractExperiment(object):
     def plot(self):
         """Plots the data"""
         raise RuntimeError('Abstract!')
-
-
-
-

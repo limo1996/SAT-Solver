@@ -27,7 +27,11 @@ public:
     VariableSet* get_vars();
     VariableSet* get_model();
     ClauseSet* get_clauses();
+    int count_un_assigned();
     void print();
+    CNF *build_fresh_cnf_from();
+    VariableSet* get_partial_model();
+    void overwrite_assignments(VariableSet *partial_model);
 
     void add_clause(Clause *clause);
 };

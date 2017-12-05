@@ -193,29 +193,36 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
     if (CERR_LEVEL >= 2) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
     }
-    CNF *cnf_copy = nullptr;
-    if (config->num_callbacks > 0) {
-        config->num_callbacks--;
+    bool solve_locally = cnf->count_un_assigned() <= config->branching_limit || config->worker == nullptr;
+    bool use_cdcl = cnf->count_un_assigned() <= config->cdcl_limit;
+    if (solve_locally) {
+        if (use_cdcl) {
+            CNF *new_cnf = cnf->build_fresh_cnf_from();
+            auto *solver = new CDCL(new_cnf);
+            DpllResult *res = solver->CDCLAlgorithm(new_cnf);
+            if (res->sat) {
+                cnf->overwrite_assignments(res->model_cnf->get_partial_model());
+                res->model_cnf = cnf;
+            }
+            return res;
+        } else {
+            auto *cnf_copy = new CNF(*cnf);
+            set_variable_value(cnf, var, true);
+            DpllResult *res = DPLLalgorithm(cnf);
+            if (res->sat) {
+                return res;
+            } else {
+                delete cnf;
+                set_variable_value(cnf_copy, var, false);
+                return DPLLalgorithm(cnf_copy);
+            }
+        }
+    } else {
         set_variable_value(cnf, var, false);
         config->worker->dpll_callback(cnf->get_model());
         unset_variable_value(cnf, var);
-    } else {
-        cnf_copy = new CNF(*cnf);
-    }
-    set_variable_value(cnf, var, true);
-    DpllResult *res = DPLLalgorithm(cnf);
-    if (res->sat) {
-        return new DpllResult(true, res->model_cnf);
-    } else {
-        if (config->num_callbacks >= 0) {
-            return new DpllResult(false, nullptr);
-        } else {
-            if (CERR_LEVEL >= 2) {
-                std::cerr << "branch !" << var->get_name() << std::endl;
-            }
-            set_variable_value(cnf_copy, var, false);
-            return DPLLalgorithm(cnf_copy);
-        }
+        set_variable_value(cnf, var, true);
+        return DPLLalgorithm(cnf);
     }
 }
 
