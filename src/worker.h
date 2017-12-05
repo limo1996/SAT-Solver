@@ -15,6 +15,7 @@ protected:
     CNF *cnf;
     MPI_Datatype meta_data_type;
     int my_rank;
+    bool stop;                                                                          // indicates whether this worker was stopped
 
 public:
     virtual void dpll_callback(std::unordered_set<Variable *> *variables) = 0;

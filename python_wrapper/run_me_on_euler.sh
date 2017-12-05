@@ -18,7 +18,7 @@ done
 echo "choosing highest node count: $n"
 
 echo "submitting compilation and run job to the batch system..."
-bsub -W "$minutes" -n "$nodes" < bsub_script.sh
+bsub -W "$minutes" -n "$nodes" < "$1" #bsub_script.sh
 
 # note: the actual compilation is handled in bsub_script.sh
 

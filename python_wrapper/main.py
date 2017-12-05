@@ -29,7 +29,7 @@ def main(mode, nethz_username, cnf_folder):
         test_folder = 'parallel_tests' if cnf_folder == '' else cnf_folder
         tester = Tester(test_folder, parallel=False, stealing=True)
     else:
-        test_folder = 'parallel_tests'if cnf_folder == '' else cnf_folder
+        test_folder = 'parallel_tests' if cnf_folder == '' else cnf_folder
         if nethz_username == 'asdf':
             nethz_username = get_netz_username()
         # number of cores
