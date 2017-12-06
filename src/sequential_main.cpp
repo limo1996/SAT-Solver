@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     for(it_CNF = cnfs.begin() ; it_CNF != cnfs.end() ; it_CNF++){
-        auto *config = new Config(38, solver_type);
+        auto *config = new Config(solver_type);
         auto *controller = new SolverController(config, *it_CNF);
 
         bool result = controller->SATISFIABLE();

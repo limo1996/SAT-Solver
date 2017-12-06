@@ -13,7 +13,7 @@ class SolverError(Exception):
 
 
 class Tester(object):
-    def __init__(self, folder, parallel, stealing):
+    def __init__(self, folder, parallel, stealing, cdcl=False):
         folder = os.path.join(os.pardir, os.path.join('cnfs', folder))
         self.folder = folder
         self.files = []
@@ -29,6 +29,7 @@ class Tester(object):
         self.cnf_parser = CnfParser()
         self.parallel = parallel
         self.stealing = stealing
+        self.cdcl = cdcl
         self.solver = self.compile_and_create_solver()
         self.fail_count = 0
 
@@ -48,7 +49,7 @@ class Tester(object):
         elif self.stealing:
             return StealingSolver()
         else:
-            return SequentialSolver()
+            return SequentialSolver(self.cdcl)
 
     def print_file_list(self):
         for f in self.files:
@@ -77,7 +78,11 @@ class Tester(object):
 
     def handle_sat_case(self, input_file, cnf):
         output, runtime = self.solver.solve(input_file)
-        correct_num_vars = len(output) is cnf.num_vars + 1
+        correct_num_vars = len(output) == cnf.num_vars + 1
+        if not correct_num_vars:
+            correct_num_vars = len(output) == len(cnf.z3_vars) + 1
+            if correct_num_vars:
+                print('[warn]  {0} is inconsistent! #variables does not match cnf header!'.format(input_file))
         output_correct = correct_num_vars and output[0].startswith('sat')
         if not output_correct:
             print('[fail]   {0} (sat)'.format(input_file))
@@ -119,9 +124,10 @@ class Tester(object):
 
 
 class SequentialSolver(object):
-    def __init__(self):
+    def __init__(self, cdcl):
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'sequential_main')
+        self.cdcl = cdcl
         if not os.path.exists(self.executable):
             raise ValueError('The executable sequential_main does not exist!')
 
@@ -131,7 +137,10 @@ class SequentialSolver(object):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = '{0} {1} 1> out'.format(self.executable, input_file)
+        args = ''
+        if self.cdcl:
+            args = '-s CDCL'
+        command = '{0} {1} {2} 1> out'.format(self.executable, args, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
@@ -181,5 +190,5 @@ class StealingSolver(ParallelSolver):
         self.executable = os.path.join(cwd, 'stealing_main')
         if not os.path.exists(self.executable):
             raise ValueError('The executable stealing_main does not exist!')
-        
+
         print('running in parallel on {0} cores'.format(self.num_cores))

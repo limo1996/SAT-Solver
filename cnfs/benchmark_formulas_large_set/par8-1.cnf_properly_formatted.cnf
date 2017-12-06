@@ -1,0 +1,123 @@
+c FILE:  par8-1.cnf
+c
+c SOURCE: James Crawford (jc@research.att.com)
+c
+c DESCRIPTION: Instance arises from the problem of learning the parity
+c              function.  
+c
+c     parxx-y denotes a parity problem on xx bits.  y is simply the
+c     intance number.
+c
+c     parxx-y-c denotes an instance identical to parxx-y except that
+c     the instances have been simplified (to create an equivalent
+c     problem). 
+c
+c NOTE: Satisfiable (checked for 8 and 16 size instances. All
+c       instances are satisfiable by construction)
+c
+c NOTE: Number of clauses corrected August 3, 1993
+c
+c Converted from tableau format Tue Aug  3 09:55:22 EDT 1993
+p cnf 350 1149
+-1 0
+145 -1 2 0
+-145 1 2 0
+145 1 -2 0
+-145 -1 -2 0
+146 -2 3 0
+-146 2 3 0
+146 2 -3 0
+-146 -2 -3 0
+147 -3 4 0
+-147 3 4 0
+147 3 -4 0
+-147 -3 -4 0
+5 -4 0
+-5 4 0
+6 -5 0
+-6 5 0
+150 -6 7 0
+-150 6 7 0
+150 6 -7 0
+-150 -6 -7 0
+8 -7 0
+-8 7 0
+152 -8 9 0
+-152 8 9 0
+152 8 -9 0
+-152 -8 -9 0
+10 0
+145 -10 11 0
+-145 10 11 0
+145 10 -11 0
+-145 -10 -11 0
+146 -11 12 0
+-146 11 12 0
+146 11 -12 0
+-146 -11 -12 0
+147 -12 13 0
+-147 12 13 0
+147 12 -13 0
+-147 -12 -13 0
+148 -13 14 0
+-148 13 14 0
+148 13 -14 0
+-148 -13 -14 0
+15 -14 0
+-15 14 0
+16 -15 0
+-16 15 0
+17 -16 0
+-17 16 0
+18 -17 0
+-18 17 0
+19 0
+20 -19 0
+-20 19 0
+21 -20 0
+-21 20 0
+22 -21 0
+-22 21 0
+23 -22 0
+-23 22 0
+24 -23 0
+-24 23 0
+25 -24 0
+-25 24 0
+151 -25 26 0
+-151 25 26 0
+151 25 -26 0
+-151 -25 -26 0
+27 -26 0
+-27 26 0
+-28 0
+29 -28 0
+-29 28 0
+146 -29 30 0
+-146 29 30 0
+146 29 -30 0
+-146 -29 -30 0
+31 -30 0
+-31 30 0
+148 -31 32 0
+-148 31 32 0
+148 31 -32 0
+-148 -31 -32 0
+149 -32 33 0
+-149 32 33 0
+149 32 -33 0
+-149 -32 -33 0
+34 -33 0
+-34 33 0
+151 -34 35 0
+-151 34 35 0
+151 34 -35 0
+-151 -34 -35 0
+152 -35 36 0
+-152 35 36 0
+152 35 -36 0
+-152 -35 -36 0
+37 0
+38 -37 0
+-38 37 0
+146 -38 39 0

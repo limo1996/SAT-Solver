@@ -1,4 +1,5 @@
 from collections import namedtuple
+import re
 
 from z3 import *
 
@@ -12,9 +13,8 @@ class CnfParser(object):
             if line_str.startswith('c'):
                 continue
             elif line_str.startswith('p'):
-                size_info = line_str.split('p cnf ')[1]
-                sizes = size_info.split(' ')
-                cnf = CnfIntermediateRep(int(sizes[0]), int(sizes[1]))
+                reg = re.match(r'p cnf (\S+)(\s*)(\S+)', line_str)
+                cnf = CnfIntermediateRep(int(reg.group(1)), int(reg.group(3)))
             elif len(line_str) > 0:
                 self._parse_line(cnf, line)
         return cnf
