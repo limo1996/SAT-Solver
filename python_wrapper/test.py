@@ -13,7 +13,7 @@ class SolverError(Exception):
 
 
 class Tester(object):
-    def __init__(self, folder, parallel, stealing):
+    def __init__(self, folder, parallel, stealing, cdcl=False):
         folder = os.path.join(os.pardir, os.path.join('cnfs', folder))
         self.folder = folder
         self.files = []
@@ -29,6 +29,7 @@ class Tester(object):
         self.cnf_parser = CnfParser()
         self.parallel = parallel
         self.stealing = stealing
+        self.cdcl = cdcl
         self.solver = self.compile_and_create_solver()
         self.fail_count = 0
 
@@ -48,7 +49,7 @@ class Tester(object):
         elif self.stealing:
             return StealingSolver()
         else:
-            return SequentialSolver()
+            return SequentialSolver(self.cdcl)
 
     def print_file_list(self):
         for f in self.files:
@@ -123,9 +124,10 @@ class Tester(object):
 
 
 class SequentialSolver(object):
-    def __init__(self):
+    def __init__(self, cdcl):
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'sequential_main')
+        self.cdcl = cdcl
         if not os.path.exists(self.executable):
             raise ValueError('The executable sequential_main does not exist!')
 
@@ -135,7 +137,10 @@ class SequentialSolver(object):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = '{0} {1} 1> out'.format(self.executable, input_file)
+        args = ''
+        if self.cdcl:
+            args = '-s CDCL'
+        command = '{0} {1} {2} 1> out'.format(self.executable, args, input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
