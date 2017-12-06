@@ -77,7 +77,11 @@ class Tester(object):
 
     def handle_sat_case(self, input_file, cnf):
         output, runtime = self.solver.solve(input_file)
-        correct_num_vars = len(output) is cnf.num_vars + 1
+        correct_num_vars = len(output) == cnf.num_vars + 1
+        if not correct_num_vars:
+            correct_num_vars = len(output) == len(cnf.z3_vars) + 1
+            if correct_num_vars:
+                print('[warn]  {0} is inconsistent! #variables does not match cnf header!'.format(input_file))
         output_correct = correct_num_vars and output[0].startswith('sat')
         if not output_correct:
             print('[fail]   {0} (sat)'.format(input_file))
@@ -181,5 +185,5 @@ class StealingSolver(ParallelSolver):
         self.executable = os.path.join(cwd, 'stealing_main')
         if not os.path.exists(self.executable):
             raise ValueError('The executable stealing_main does not exist!')
-        
+
         print('running in parallel on {0} cores'.format(self.num_cores))
