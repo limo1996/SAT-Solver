@@ -11,35 +11,42 @@ class Worker;
 
 class Config {
 public:
-    int cdcl_limit; // if there are only this many variables left unassigned, we run CDCL on the formula
-    int branching_limit; // if there are only this many variables left unassigned, we do not branch further
+    int branching_limit; // any node only branches this number of times, then it will solve the remaining task locally
+    bool force_cdcl; // use cdcl when solving locally
     Worker *worker;
     SolverType solver_type;
 
     Config() {
-        cdcl_limit = -1;
-        branching_limit = -1;
+        force_cdcl = false;
+        branching_limit = INT_MAX;
         worker = nullptr;
         solver_type = DPLL_;
     }
 
     explicit Config(SolverType _solver_type) {
-        cdcl_limit = -1;
-        branching_limit = -1;
+        force_cdcl = false;
+        branching_limit = INT_MAX;
         worker = nullptr;
         solver_type = _solver_type;
     }
 
-    Config(int _cdcl_limit, SolverType _solver_type) {
-        cdcl_limit = _cdcl_limit;
-        branching_limit = _cdcl_limit;
-        worker = nullptr;
-        solver_type = _solver_type;
-    }
-
-    Config(int _cdcl_limit, int _branching_limit, Worker *_worker, SolverType _solver_type) {
-        cdcl_limit = _cdcl_limit;
+    Config(int _branching_limit, SolverType _solver_type) {
+        force_cdcl = false;
         branching_limit = _branching_limit;
+        worker = nullptr;
+        solver_type = _solver_type;
+    }
+
+    Config(bool _force_cdcl, int _branching_limit, Worker *_worker, SolverType _solver_type) {
+        force_cdcl = _force_cdcl;
+        branching_limit = _branching_limit;
+        worker = _worker;
+        solver_type = _solver_type;
+    }
+
+    Config(Worker *_worker, SolverType _solver_type) {
+        force_cdcl = false;
+        branching_limit = INT_MAX;
         worker = _worker;
         solver_type = _solver_type;
     }
