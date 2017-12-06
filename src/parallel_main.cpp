@@ -24,9 +24,11 @@ int main(int argc, char *argv[]) {
     size_t lastindex = s.find_last_of(".");
     string rawname = s.substr(0,lastindex);
     string waitname = rawname + "_parallel.wait";
+    string commname = rawname + "_parallel.comm";
     rawname = rawname + "_parallel.time";
     char *pathnew = &rawname[0u];
-    char *waitpath =&waitname[0u];
+    char *waitpath = &waitname[0u];
+    char *commpath = &commname[0u];
 
     CNFParser *parser;
     try {
@@ -56,7 +58,7 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);                                           // get rank and size of processes
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-
+    int communication;
     /**
      * Rank 0 is always master. Other n-1 ranks are workers. If program is run just on 1 process, the program will fail (Master will cause assertion failure).
      * Workers are listening to commands of master and are executing tasks. Worker can get to 3 states. It finds solution and let master know it,
@@ -77,6 +79,7 @@ int main(int argc, char *argv[]) {
         master->start();
 
         while(!master->listen_to_workers());
+        communication = master->get_all_messages();
         
     } else {
         SlaveWorker *w = new SlaveWorker(*(*(cnfs.begin())), meta_data_type, rank);
@@ -86,6 +89,7 @@ int main(int argc, char *argv[]) {
         waitfile.open(waitpath, std::ios_base::app);
         waitfile << w->get_waiting_time() << ' ';
         waitfile.close();
+        communication = w->get_all_messages();
     }
 
     MPI_Finalize();                                                                 // mpi end
@@ -98,6 +102,11 @@ int main(int argc, char *argv[]) {
     myfile << duration << ' ';
     myfile.close();
     //cout << "RunTime: " << duration << " ms " << std::endl;
+    
+    ofstream commfile;
+    commfile.open(commpath, std::ios_base::app);
+    commfile << communication << ' ';
+    commfile.close();
 
     return EXIT_SUCCESS;
 }

@@ -54,6 +54,7 @@ MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_
 
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_type, to_rank, 0, MPI_COMM_WORLD, &request);
+    inc_send_messages(sizeof(struct meta));
     return request;
 }
 
@@ -72,6 +73,7 @@ void Master::stop_workers(){
         if (i != my_rank) {
             struct meta meta_copy = meta;
             MPI_Isend(&meta_copy, 1, this->meta_type, i, 1, MPI_COMM_WORLD, mpi_requests + count);
+            inc_send_messages(sizeof(struct meta));
             count++;
         }
     }
@@ -102,9 +104,10 @@ void Master::send_task_to_worker(Model task, int worker_rank){
  * @param size of variables.
  * @param worker_rank rank of the targeted worker.
  */
-MPI_Request Master::send_model(unsigned int *variables, size_t size, int worker_rank){
+MPI_Request Master::send_model(unsigned *variables, size_t size, int worker_rank){
     MPI_Request request;
     MPI_Isend(variables, (int) size, MPI_UNSIGNED, worker_rank, 0, MPI_COMM_WORLD, &request);
+    inc_send_messages(size * sizeof(unsigned));
     return request;
 }
 
@@ -115,6 +118,7 @@ MPI_Request Master::send_model(unsigned int *variables, size_t size, int worker_
 void Master::add_new_task(int size, int rank){
     unsigned* encoded_model = new unsigned[size];
     MPI_Recv(encoded_model, size, MPI_UNSIGNED, rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    inc_recv_messages(size * sizeof(unsigned));
     this->states_to_process.push(Model(encoded_model, size));
 }
 
@@ -124,38 +128,13 @@ void Master::add_new_task(int size, int rank){
 void Master::receive_and_output_sat_model(int size, int rank) {
     unsigned* encoded_model = new unsigned[size];
     MPI_Recv(encoded_model, size, MPI_UNSIGNED, rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    inc_recv_messages(size * sizeof(unsigned));
     std::cout  << "sat" << std::endl;
     for (int i=0; i< size; i++) {
         std::string name = std::to_string(encoded_model[i] >> 1);
         bool encoded_val = encoded_model[i] % 2 == 1;
         std::cout <<name << " " << (encoded_val ? "t" : "f") << std::endl;
     }
-}
-
-/**
- * Prints final solution.
- */
-void Master::print_solution(bool *flags, std::string filename, int format){
-    /*
-    std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
-    std::ofstream out;
-
-    if(flags[2]){
-        out.open(filename);
-        std::cout.rdbuf(out.rdbuf()); //redirect std::cout to output file
-    }
-
-    if(this->result) {
-        format == 1 ? std::cout << " ->  satisfiable\n" : std::cout << "sat\n";
-        if(flags[0] || flags[1])
-            DPLL::print(this->final_result.get_clauses(), this->final_result.get_vars(), flags[1], format);
-    } else
-        format == 1 ? std::cout << " ->  not satisfiable\n" : std::cout << "unsat\n";
-
-    //if output path was specified than redirect output back to console
-    if(flags[2])
-        std::cout.rdbuf(coutbuf); //reset to standard output again
-        */
 }
 
 /**
@@ -174,10 +153,13 @@ void Master::start(){
  * @return returns true if solving is done, otherwise false.
  */
 bool Master::listen_to_workers(){
+    start_measure();
     struct meta meta;
     MPI_Status status;
     MPI_Recv(&meta, 1, this->meta_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-
+    stop_measure();
+    inc_recv_messages(sizeof(struct meta));
+    
     switch(meta.message_type){
         case 10:
             add_new_task(meta.count, status.MPI_SOURCE);

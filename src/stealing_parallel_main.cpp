@@ -25,8 +25,12 @@ int main(int argc, char *argv[]) {
     s = path;
     size_t lastindex = s.find_last_of(".");
     string rawname = s.substr(0,lastindex);
+    string waitname = rawname + "_stealing.wait";
+    string commname = rawname + "_stealing.comm";
     rawname = rawname + "_stealing.time";
     char *pathnew = &rawname[0u];
+    char *waitpath = &waitname[0u];
+    char *commpath = &commname[0u];
     
     CNFParser *parser;
     try {
@@ -57,6 +61,7 @@ int main(int argc, char *argv[]) {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
+    StealingWorker* worker;
     /**
      * All workers are equal except two cases: Worker 0 takes role of the master at the beginning. It takes charge of sending initial models to other workers (it always solve one of them).
      * When all workers have model to solve than worker 0 behaves as any other worker.
@@ -73,18 +78,18 @@ int main(int argc, char *argv[]) {
         file.close();
         
         // worker 0 aka "temp master"
-        StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
-        main_worker->start();
-        while (!main_worker->stopped()) {
-            main_worker->check_and_process_message_from_worker(false);
-            main_worker->get_model();
+        worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        worker->start();
+        while (!worker->stopped()) {
+            worker->check_and_process_message_from_worker(false);
+            worker->get_model();
         }
     } else {
-        StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
-        w->start();
-        while (!w->stopped()) {
-            w->check_and_process_message_from_worker(false);
-            w->get_model();
+        worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        worker->start();
+        while (!worker->stopped()) {
+            worker->check_and_process_message_from_worker(false);
+            worker->get_model();
         }
     }
     
@@ -93,11 +98,18 @@ int main(int argc, char *argv[]) {
     // time end
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
-    ofstream myfile;
+    ofstream myfile, commfile, waitfile;
     myfile.open (pathnew, std::ios_base::app);
     myfile << duration << ' ';
     myfile.close();
-    //cout << "RunTime: " << duration << " ms " << std::endl;
+    
+    waitfile.open(waitpath, std::ios_base::app);
+    waitfile << worker->get_waiting_time() << ' ';
+    waitfile.close();
+    
+    commfile.open(commpath, std::ios_base::app);
+    commfile << worker->get_all_messages() << ' ';
+    commfile.close();
     
     return EXIT_SUCCESS;
 }

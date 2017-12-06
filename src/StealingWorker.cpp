@@ -25,7 +25,6 @@ StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_r
     meta_data_type = _meta_data_type;
     my_rank = _my_rank;
     workers_size = _workers_size;
-    stop = false;
     next_to_send = 1;
     this->stealing_ratio = stealing_ratio;
     this->check_interval = check_interval;
@@ -95,6 +94,9 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         if (meta.count > 0) {
             unsigned encoded_model[meta.count];
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            
+            inc_recv_messages(meta.count * sizeof(unsigned));
+            
             debug_output("encoded model: ", false, 2);
             for (int i = 0; i < meta.count; i++) {
                 debug_output(std::to_string(encoded_model[i]) + " ", false, 2);
@@ -107,7 +109,6 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
             parse_and_update_variables(encoded, 0);
             debug_output("received model of size 0 and will start solving", true);
         }
-        //run_dpll();
     } else if (meta.message_type == 1){
         // steal message, respond accordingly
         debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
@@ -134,6 +135,8 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         unsigned encoded_model[meta.count];
         MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
+        inc_recv_messages(meta.count * sizeof(unsigned));
+        
         // debug output of model
         debug_output("encoded model: ", false, 2);
         for (int i = 0; i < meta.count; i++) {
@@ -158,7 +161,7 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
  * - either done message(2) -> stop
  * - steal msg(1) -> send model from the top of the stack or send INT_MAX if empty.
  * - model recv msg(0) -> model can be either starting model or response of the steal(stealed model)
- */
+ */ 
 bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinForMessage) {
     if(this->stop)
         return false;
@@ -180,6 +183,8 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinFo
     struct meta meta;
     MPI_Status status;
     MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    
+    inc_recv_messages(sizeof(struct meta));
 
     bool res = respond_to(meta, status);
     if(spinForMessage != -1 && spinForMessage != meta.message_type && res)
@@ -232,7 +237,10 @@ void StealingWorker::get_model() {
         int n = (int)(this->stealing_ratio * this->workers_size);
         if(n == this->workers_size)
             n--;
-        if(try_to_steal_from_n_workers(n)){
+        start_measure();
+        bool stealed = try_to_steal_from_n_workers(n);
+        stop_measure();
+        if(stealed){
             debug_output("Stealing successful. run_dpll()", true);
             run_dpll();
         } else
@@ -286,6 +294,8 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
     meta.message_type = i;
     meta.count = assigned;
     
+    inc_send_messages(sizeof(struct meta));
+    
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_data_type, to_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -299,6 +309,9 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
  */
 MPI_Request StealingWorker::send_model(int to_rank, std::vector<unsigned> assigned) {
     debug_output("sending model of size " + std::to_string(assigned.size()), true);
+    
+    inc_send_messages(assigned.size() * sizeof(unsigned));
+    
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, to_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -323,18 +336,9 @@ void StealingWorker::print_sat_stop_workers(CNF *cnf) {
  * Sends stop msg to all workers except myself.
  */
 void StealingWorker::stop_workers(){
-    struct meta meta;
-    meta.message_type = 2;
-    meta.count = 0;
-    
-    int size = static_cast<int>(this->workers_size - 1);
-    MPI_Request mpi_requests[size];
-    int count = 0;
     for (int i = 0; i < this->workers_size; i++) {
         if (i != this->my_rank) {
-            struct meta meta_copy = meta;
-            MPI_Isend(&meta_copy, 1, this->meta_data_type, i, 0, MPI_COMM_WORLD, mpi_requests + count);
-            count++;
+            send_meta(i, 2, 0);
         }
     }
     debug_output("broadcast initiated", true);

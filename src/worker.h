@@ -9,16 +9,20 @@
 #include "dpll.h"
 #include "mpi_types.h"
 #include "internal_types.h"
-
-class Worker {
+#include "Meter.h"
+class Worker : public Meter{
 protected:
-    CNF *cnf;
-    MPI_Datatype meta_data_type;
-    int my_rank;
-    bool stop;                                                                          // indicates whether this worker was stopped
+    CNF *cnf;                                                                               // parsed cnf
+    MPI_Datatype meta_data_type;                                                            // MPi datatype used for communication
+    int my_rank;                                                                            // rank of process working is running on
+    bool stop;                                                                              // indicates whether worker was stopped
 
 public:
-    virtual void dpll_callback(std::unordered_set<Variable *> *variables) = 0;
+    virtual void dpll_callback(VariableSet *variables) = 0;              // callback that is called when dpll branches
+    
+    Worker() {
+        stop = false;
+    }
 };
 
 

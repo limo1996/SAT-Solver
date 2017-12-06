@@ -19,12 +19,13 @@
 #include "CNF.h"
 #include "dpll.h"
 #include "Model.h"
+#include "Meter.h"
 
 /*
  Master in parallel sat-solver. Responsible for managing worker threads e.g. collecting tasks that needs to be done,
  sending tasks to free workers, stoping all workers in case solution was found.
  */
-class Master{
+class Master : public Meter{
 private:
     std::queue<Model> states_to_process;                                        // Tasks that needs to be done
     std::queue<int> available_ranks;                                            // Free processes(threads)
@@ -45,7 +46,6 @@ private:
     MPI_Request send_model(unsigned int *variables, size_t size, int worker_rank);         // Sends model to worker.
 public:
     Master(size_t ranks, int my_rank, MPI_Datatype meta_type);                  // Creates new instance of master class.
-    void print_solution(bool* flags, std::string filename, int format);         // Prints final solution.
     bool listen_to_workers();                                                   // Listens and reacts to messages of workers.
     void start();                                                               // Starts solving.
 };

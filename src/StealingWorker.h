@@ -16,7 +16,7 @@
 #include <random>
 #include <functional>
 
-class StealingWorker : Worker{
+class StealingWorker : public Worker{
 private:
     std::list<std::vector<unsigned> > stack;                                            // local stack of models to process (can be stealed)
     int workers_size;                                                                   // number of workers (processes)
