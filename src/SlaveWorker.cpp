@@ -62,7 +62,7 @@ void SlaveWorker::cerr_model(std::string info, VariableSet *variables) {
  * runs dpll on the cnf store in this::cnf
  */
 void SlaveWorker::run_dpll() {
-    auto *config = new Config(-1, -1, this, DPLL_);
+    auto *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {

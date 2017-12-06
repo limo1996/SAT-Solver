@@ -193,10 +193,9 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
     if (CERR_LEVEL >= 2) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
     }
-    bool solve_locally = cnf->count_un_assigned() <= config->branching_limit || config->worker == nullptr;
-    bool use_cdcl = cnf->count_un_assigned() <= config->cdcl_limit;
+    bool solve_locally = config->branching_limit <= 0 || config->worker == nullptr;
     if (solve_locally) {
-        if (use_cdcl) {
+        if (config->force_cdcl) {
             CNF *new_cnf = cnf->build_fresh_cnf_from();
             auto *solver = new CDCL(new_cnf);
             DpllResult *res = solver->CDCLAlgorithm(new_cnf);
@@ -218,6 +217,7 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
             }
         }
     } else {
+        config->branching_limit--;
         set_variable_value(cnf, var, false);
         config->worker->dpll_callback(cnf->get_model());
         unset_variable_value(cnf, var);

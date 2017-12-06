@@ -51,7 +51,7 @@ void StealingWorker::start(){
  * If finds unsat than takes another model from local queue. If it is empty than tries to steal from other workers.
  */
 void StealingWorker::run_dpll() {
-    Config *config = new Config(-1, -1, this, DPLL_);
+    Config *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {
