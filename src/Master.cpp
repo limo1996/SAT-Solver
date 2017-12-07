@@ -10,6 +10,14 @@
 
 extern int CERR_LEVEL;
 
+void debug_output(std::string msg, bool newLine, int level = 1) {
+    if(CERR_LEVEL >= level){
+        std::cerr << "Master: " << msg;
+        if(newLine)
+            std::cerr << std::endl;
+    }
+}
+
 /**
  * Creates new instance of master class.
  * @param ranks number of ranks(processes)
@@ -30,10 +38,8 @@ Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
         }
     }
 
-    if(CERR_LEVEL >= 1){
-        std::cerr << "Master: created with rank: " << my_rank << ", number of processes: " << ranks << "(" << ranks - 1 << " workers)" << std::endl;
-        std::cerr << "Master: Number of free processes: " << available_ranks.size() << std::endl;
-    }
+    debug_output("created with rank: " + std::to_string(my_rank) + ", number of processes: " + std::to_string(ranks) + "(" + std::to_string(ranks - 1) + " workers)", true);
+    debug_output("number of free processes: " + std::to_string(available_ranks.size()), true);
 }
 
 /**
@@ -44,9 +50,7 @@ Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_count){
-    if(CERR_LEVEL >= 1){
-        std::cerr << "Master: sending metadata... to rank: " << to_rank << " msg type: " << (int)message_type << " count: " << assigned_count << std::endl;
-    }
+    debug_output("Master: sending metadata... to rank: " + std::to_string(to_rank) + " msg type: " + std::to_string((int)message_type) + " count: " + std::to_string(assigned_count), true);
 
     struct meta meta;
     meta.message_type = message_type;
@@ -77,13 +81,9 @@ void Master::stop_workers(){
             count++;
         }
     }
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "Master: broadcast initiated" << std::endl;
-    }
+    debug_output("broadcast initiated", true);
     MPI_Waitall(size, mpi_requests, MPI_STATUS_IGNORE);
-    if (CERR_LEVEL >= 1) {
-        std::cerr << "Master: broadcast done" << std::endl;
-    }
+    debug_output("broadcast done", true);
 }
 
 /**
@@ -141,9 +141,7 @@ void Master::receive_and_output_sat_model(int size, int rank) {
  * Starts solving.
  */
 void Master::start(){
-    if(CERR_LEVEL >= 1){
-        std::cerr << "Master: starts solving" << std::endl;
-    }
+    debug_output("starts solving", true);
     send_meta(this->available_ranks.front(), 0, 0);
     this->available_ranks.pop();
 }
@@ -163,30 +161,22 @@ bool Master::listen_to_workers(){
     switch(meta.message_type){
         case 10:
             add_new_task(meta.count, status.MPI_SOURCE);
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "Master: adding new task from worker: " << status.MPI_SOURCE
-                          << " of lenght: " << meta.count << std::endl;
-            }
+            debug_output("adding new task from worker: " + std::to_string(status.MPI_SOURCE) + " of lenght: " + std::to_string(meta.count), true);
             break;
         case 11:
             this->available_ranks.push(status.MPI_SOURCE);
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "Master: rank " << status.MPI_SOURCE << " is now free" << std::endl;
-            }
+            debug_output("rank " + std::to_string(status.MPI_SOURCE) + " is now free", true);
             break;
         case 12:
             receive_and_output_sat_model(meta.count, status.MPI_SOURCE);
-            if (CERR_LEVEL >= 1) {
-                std::cerr << "Master: sending bcast to stop" << std::endl;
-            }
+            debug_output("sending bcast to stop", true);
             stop_workers();
             return true;
     }
 
     if(this->states_to_process.empty() && this->available_ranks.size() == this->all_ranks - 1){
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "done" << std::endl;
-        }
+        debug_output("done", true);
+        
         // no one seems to have found a model, so lets output unsat...
         std::cout << "unsat" << std::endl;
         stop_workers();
@@ -194,10 +184,8 @@ bool Master::listen_to_workers(){
     }
 
     if(!this->available_ranks.empty()  && !this->states_to_process.empty()){
-        if (CERR_LEVEL >= 1) {
-            std::cerr << "Master: sending next task to worker: " << available_ranks.front()
-                      << " task left: " << states_to_process.size() << std::endl;
-        }
+        debug_output("sending next task to worker: " + std::to_string(available_ranks.front()) + " task left: " + std::to_string(states_to_process.size()), true);
+        
         send_task_to_worker(states_to_process.front(), available_ranks.front());
         states_to_process.pop();
         available_ranks.pop();

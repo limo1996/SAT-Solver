@@ -34,6 +34,9 @@ do
 done
 
 tar -cf time_measurements.tar *.time
+tar -cf wait_measurements.tar *.wait
+tar -cf comm_measurements.tar *.comm
 echo "tar file (time_measurements.tar) with measurements created"
-
+echo "tar file (wait_measurements.tar) with measurements created"
+echo "tar file (comm_measurements.tar) with measurements created"
 cd ../
