@@ -95,6 +95,7 @@ cmake_install.cmake
 
 # the local timing results
 *.time
+*.wait
 
 # latex stuff
 *.aux
