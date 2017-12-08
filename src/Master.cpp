@@ -113,7 +113,8 @@ MPI_Request Master::send_model(unsigned *variables, size_t size, int worker_rank
 
 /**
  * Listens to workers and if someone send a task than master adds it to the queue. Message value: 10
- * @param size size of the incoming task
+ * @param size of the model to receive
+ * @param rank from which to receive
  */
 void Master::add_new_task(int size, int rank){
     unsigned* encoded_model = new unsigned[size];
@@ -124,6 +125,8 @@ void Master::add_new_task(int size, int rank){
 
 /**
  * Receives a sat model and outputs it
+ * @param size of the model to receive
+ * @param rank from which to receive
  */
 void Master::receive_and_output_sat_model(int size, int rank) {
     unsigned* encoded_model = new unsigned[size];

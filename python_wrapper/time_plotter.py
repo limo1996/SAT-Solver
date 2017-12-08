@@ -8,7 +8,7 @@ import matplotlib.patches as mpatches
 """
 Draws plots from files located in folder that is passed in constructor
 """
-class Plotter(object):
+class TimePlotter(object):
     def __init__(self, folder):
         folder = os.path.join(os.pardir, folder)
         self.folder = folder
