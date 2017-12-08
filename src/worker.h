@@ -19,9 +19,18 @@ protected:
 
 public:
     virtual void dpll_callback(VariableSet *variables) = 0;              // callback that is called when dpll branches
-    
+
     Worker() {
         stop = false;
+    }
+
+    void send_measurements() {
+        stop_runtime();
+        unsigned data[3];
+        data[0] = get_runtime();
+        data[1] = get_waiting_time();
+        data[2] = get_all_messages();
+        MPI_Send(data, 3, MPI_UNSIGNED, 0, 2, MPI_COMM_WORLD);
     }
 };
 

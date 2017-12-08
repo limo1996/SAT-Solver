@@ -24,13 +24,14 @@ void debug_output(std::string msg, bool newLine, int level = 1) {
  * @my_rank rank of the master
  * @meta_type our custom mpi datatype used for inter process communication
  */
-Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type){
+Master::Master(size_t ranks, int my_rank, MPI_Datatype meta_type, std::string cnf_path){
 
     assert(ranks > 1);
 
     this->my_rank = my_rank;
     this->all_ranks = ranks;
     this->meta_type = meta_type;
+    this->measurement = new Measurement(cnf_path, "parallel");
 
     for(int i = 0; i < ranks; i++){
         if(i != my_rank){
@@ -63,7 +64,7 @@ MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_
 }
 
 /**
- * Prevens all workes from further work. Result found. Message type: 1
+ * Prevents all workers from doing further work. Result found. Message type: 1
  */
 void Master::stop_workers(){
     struct meta meta;
@@ -84,6 +85,24 @@ void Master::stop_workers(){
     debug_output("broadcast initiated", true);
     MPI_Waitall(size, mpi_requests, MPI_STATUS_IGNORE);
     debug_output("broadcast done", true);
+}
+
+/**
+ * Receive and log measurements from all workers
+ */
+void Master::receive_and_log_measurements() {
+    // add the measurement of the master:
+    stop_runtime();
+    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_all_messages()};
+    measurement->add_measurement(master);
+    for (int i=0; i<all_ranks; i++) {
+        if (i != my_rank) {
+            unsigned data[NUM_MEASUREMENTS];
+            MPI_Recv(&data, NUM_MEASUREMENTS, MPI_UNSIGNED, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            measurement->add_measurement(std::vector<unsigned>(data, data + NUM_MEASUREMENTS));
+        }
+    }
+    measurement->write_to_files();
 }
 
 /**
@@ -151,13 +170,13 @@ void Master::start(){
  * @return returns true if solving is done, otherwise false.
  */
 bool Master::listen_to_workers(){
-    start_measure();
+    start_waiting();
     struct meta meta;
     MPI_Status status;
     MPI_Recv(&meta, 1, this->meta_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    stop_measure();
+    stop_waiting();
     inc_recv_messages(sizeof(struct meta));
-    
+
     switch(meta.message_type){
         case 10:
             add_new_task(meta.count, status.MPI_SOURCE);
@@ -171,21 +190,23 @@ bool Master::listen_to_workers(){
             receive_and_output_sat_model(meta.count, status.MPI_SOURCE);
             debug_output("sending bcast to stop", true);
             stop_workers();
+            receive_and_log_measurements();
             return true;
     }
 
     if(this->states_to_process.empty() && this->available_ranks.size() == this->all_ranks - 1){
         debug_output("done", true);
-        
+
         // no one seems to have found a model, so lets output unsat...
         std::cout << "unsat" << std::endl;
         stop_workers();
+        receive_and_log_measurements();
         return true;
     }
 
     if(!this->available_ranks.empty()  && !this->states_to_process.empty()){
         debug_output("sending next task to worker: " + std::to_string(available_ranks.front()) + " task left: " + std::to_string(states_to_process.size()), true);
-        
+
         send_task_to_worker(states_to_process.front(), available_ranks.front());
         states_to_process.pop();
         available_ranks.pop();

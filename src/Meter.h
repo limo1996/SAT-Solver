@@ -8,45 +8,59 @@ using namespace std::chrono;
 
 class Meter {
 private:
-    long long waitingTime;                                                                  // indicates whether this worker was stopped
-    high_resolution_clock::time_point startTime;                                            // time when measurement started
-    bool measurement_started;                                                               // indicates whether measurement started
-    int send_messages;                                                                      // number of send messages
-    int received_messages;                                                                  // number of received messages
-    
+    high_resolution_clock::time_point run_time_start;
+    unsigned runtime;
+
+    high_resolution_clock::time_point waiting_start;                                            // time when measurement started
+    unsigned waiting_time;
+
+    bool waiting_started;                                                               // indicates whether measurement started
+    unsigned send_messages;                                                                      // number of send messages
+    unsigned received_messages;                                                                  // number of received messages
+
 public:
-    int get_waiting_time() { return waitingTime; }                                          // gets waiting time of worker (for models from master)
-    
+    unsigned get_waiting_time() { return waiting_time; }                                          // gets waiting time of worker (for models from master)
+
     Meter() {
-        waitingTime = 0;
+        run_time_start = high_resolution_clock::now();
+        waiting_time = 0;
         send_messages = 0;
         received_messages = 0;
-        measurement_started = false;
+        waiting_started = false;
     }
-    
-    // stops current measurement if was not stopped and adds time to this->waitingTime
-    void stop_measure(){
-        if(!this->measurement_started)
-            return;
-        
-        this->measurement_started = false;
-        high_resolution_clock::time_point endTime = high_resolution_clock::now();
-        long long duration = std::chrono::duration_cast<std::chrono::milliseconds>( endTime - startTime ).count();
-        this->waitingTime += duration;
-    }
-    
+
     // starts measurement
-    void start_measure(){
-        this->startTime = high_resolution_clock::now();
-        this->measurement_started = true;
+    void start_waiting(){
+        this->waiting_start = high_resolution_clock::now();
+        this->waiting_started = true;
     }
-    
-    int get_all_messages() { return send_messages + received_messages; }
+
+    // stops current measurement if was not stopped and adds time to this->waiting_time
+    void stop_waiting(){
+        if (this->waiting_started) {
+            this->waiting_started = false;
+            high_resolution_clock::time_point endTime = high_resolution_clock::now();
+            long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - waiting_start).count();
+            this->waiting_time += (unsigned) duration;
+        }
+    }
+
+    void stop_runtime() {
+        high_resolution_clock::time_point now = high_resolution_clock::now();
+        long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - run_time_start).count();
+        runtime = (unsigned) duration;
+    }
+
+    unsigned get_all_messages() { return send_messages + received_messages; }
     int get_send_messages() { return send_messages; }
     int get_recv_messages() { return received_messages; }
-    
-    void inc_send_messages(int bytes_sent) { send_messages += bytes_sent; }
-    void inc_recv_messages(int bytes_recv) { received_messages += bytes_recv; }
+
+    void inc_send_messages(unsigned bytes_sent) { send_messages += bytes_sent; }
+    void inc_recv_messages(unsigned bytes_recv) { received_messages += bytes_recv; }
+
+    unsigned get_runtime() {
+        return runtime;
+    }
 };
 
 
