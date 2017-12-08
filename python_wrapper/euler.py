@@ -110,7 +110,7 @@ class EulerTester(object):
             'echo "unpacking tar archive..."',
             'tar -xvf to_euler.tar > /dev/null',
             'echo "calling run_me_on_euler.sh..."',
-            './run_me_on_euler.sh bsub_script.h',
+            './run_me_on_euler.sh bsub_script.sh',
             'echo "END"'
         ]
         for c in commands:

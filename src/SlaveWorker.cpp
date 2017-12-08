@@ -90,6 +90,7 @@ bool SlaveWorker::stop_received_before_message_completion(MPI_Request *mpi_reque
                 MPI_Cancel(mpi_requests + i);
             }
         }
+        send_measurements();
     }
     return flag != 0;
 }
@@ -128,7 +129,7 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
     meta.count = assigned;
 
     inc_send_messages(sizeof(struct meta));
-    
+
     MPI_Request request;
     MPI_Isend(&meta, 1, meta_data_type, 0, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -141,7 +142,7 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
  */
 MPI_Request SlaveWorker::send_model(std::vector<unsigned> assigned) {
     inc_send_messages(assigned.size() * sizeof(unsigned));
-    
+
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -188,7 +189,7 @@ void SlaveWorker::send_unsat() {
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": sends unsat to master" << std::endl;
         }
-        start_measure();
+        start_waiting();
         MPI_Request request = send_meta(11, 0);
         bool stop_received = stop_received_before_message_completion(&request, 1);
         if (!stop_received) {
@@ -213,11 +214,11 @@ void SlaveWorker::wait_for_instructions_from_master() {
     }
     struct meta meta;
     MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    
+
     inc_recv_messages(sizeof(struct meta));
-    
+
     if (meta.message_type == 0) {
-        stop_measure();
+        stop_waiting();
         unsigned encoded_model[meta.count];
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": received meta data (message type: 0, count: "
@@ -247,6 +248,7 @@ void SlaveWorker::wait_for_instructions_from_master() {
         }
         run_dpll();
     } else {
+        send_measurements();
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": received done message from master" << std::endl;
             std::cerr << "SlaveWorker " << my_rank << ": gracefully stopping..." << std::endl;

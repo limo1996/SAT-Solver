@@ -5,6 +5,7 @@
 
 #include "cnfparser.h"
 #include "StealingWorker.h"
+#include "measurement.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -18,19 +19,7 @@ int MIN_STACK_SIZE = 3;
  * Main entry point to parallel stealing version.
  */
 int main(int argc, char *argv[]) {
-    // for time measurment
-    const char *path = argv[1];
-    
-    std::string s;
-    s = path;
-    size_t lastindex = s.find_last_of(".");
-    string rawname = s.substr(0,lastindex);
-    string waitname = rawname + "_stealing.wait";
-    string commname = rawname + "_stealing.comm";
-    rawname = rawname + "_stealing.time";
-    char *pathnew = &rawname[0u];
-    char *waitpath = &waitname[0u];
-    char *commpath = &commname[0u];
+    char *path = argv[1];
     
     CNFParser *parser;
     try {
@@ -48,10 +37,7 @@ int main(int argc, char *argv[]) {
     }
     
     CNF cnf = *(*(cnfs.begin()));                                                   // take first one
-    
-    // time start
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    
+
     MPI_Init(&argc, &argv);                                                         // mpi initialization
     
     MPI_Datatype meta_data_type = setup_meta_type();                                // create data type that is used in inter process communication.
@@ -72,18 +58,25 @@ int main(int argc, char *argv[]) {
      * Worker 0 takes role of master at the end as well. When some worker (can be worker 0) finds SAT model, than it sends it to worker 0, which prints it and stops other workers.
      */
     if (rank == 0) {
-        ofstream file;
-        file.open(pathnew, std::ios_base::app);
-        file << std::endl;
-        file.close();
-        
         // worker 0 aka "temp master"
+        Measurement *measurement = new Measurement(path, "stealing");
         worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
         worker->start();
         while (!worker->stopped()) {
             worker->check_and_process_message_from_worker(false);
             worker->get_model();
         }
+        worker->stop_runtime();
+        auto measurements = std::vector<unsigned>({worker->get_runtime(),
+                                                   worker->get_waiting_time(),
+                                                   worker->get_all_messages()});
+        measurement->add_measurement(measurements);
+        for (int i = 1; i < size; i++) {
+            unsigned data[NUM_MEASUREMENTS];
+            MPI_Recv(&data, NUM_MEASUREMENTS, MPI_UNSIGNED, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            measurement->add_measurement(std::vector<unsigned>(data, data + NUM_MEASUREMENTS));
+        }
+        measurement->write_to_files();
     } else {
         worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
         worker->start();
@@ -94,22 +87,6 @@ int main(int argc, char *argv[]) {
     }
     
     MPI_Finalize();                                                                 // mpi end
-    
-    // time end
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
-    ofstream myfile, commfile, waitfile;
-    myfile.open (pathnew, std::ios_base::app);
-    myfile << duration << ' ';
-    myfile.close();
-    
-    waitfile.open(waitpath, std::ios_base::app);
-    waitfile << worker->get_waiting_time() << ' ';
-    waitfile.close();
-    
-    commfile.open(commpath, std::ios_base::app);
-    commfile << worker->get_all_messages() << ' ';
-    commfile.close();
-    
+
     return EXIT_SUCCESS;
 }
