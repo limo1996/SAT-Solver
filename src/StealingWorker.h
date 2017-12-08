@@ -26,7 +26,7 @@ private:
     int check_interval;                                                                 // interval of checking for other messages from other workers
     int check_counter;                                                                  // counts iterations
     int min_stack_size;                                                                 // size of the stack when is worker allowed to send model
-    
+
     void run_dpll();                                                                    // runs dpll on this->cnf. Every branch is resolved by dpll_callback
     void stop_workers();                                                                // sends stop message to all workers
     void output_sat_model(CNF *cnf);                                                    // outputs model passed as parameter
@@ -34,17 +34,17 @@ private:
     void parse_and_update_variables(unsigned[], int size);                              // updates this->cnf with new values passed as paramters
     void debug_output(std::string line, bool newLine, int level = 1);                   // outputs string according to set debug_level
     void cerr_model(std::string info, std::unordered_set<Variable *> *variables);       // outputs model according to set debug_level
-    
+
     MPI_Request send_meta(int to_rank, char i, unsigned assigned);                      // sends meta data to given rank with given values
     MPI_Request send_model(int to_rank, std::vector<unsigned int> assigned);            // sends model to given rank
-    
+
     unsigned count_assigned(std::unordered_set<Variable *> *variables);                 // returns number of assigned variables
     std::vector<unsigned> encode_variables(std::unordered_set<Variable *> *variables);  // encode variables to sendable format
     std::set<int> generate_rand_workers(int max, int n);                                // generates n unique random numbers in range (0, max)
-    
+
     bool respond_to(struct meta meta, MPI_Status status);                               // performs action according to received meta message
     bool try_to_steal_from_n_workers(int n);                                            // tries to steal model from n workers. Returns true if succeeded.
-    
+
 public:
     explicit StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size,
                             double stealing_ratio = 0.5, int check_interval = 1, int min_stack_size = 1);
