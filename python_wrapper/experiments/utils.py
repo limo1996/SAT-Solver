@@ -1,5 +1,6 @@
 import os
 import re
+import tarfile
 import socket
 import subprocess
 import time
@@ -28,6 +29,70 @@ def get_info(filename):
     sat = str(match.group("sat")) == 'sat'
     case = int(match.group("ccc"))
     return Info(variables=variables, clauses=clauses, is_sat=sat, case=case)
+
+
+def parse_into_dict(tar_name):
+    tar = tarfile.open(tar_name)
+    folder_name = tar_name.split('.tar')[0]
+    tar.extractall(path=folder_name)
+    tar.close()
+    files = ['measurements/{}'.format(f)
+             for f in os.listdir('measurements')]
+    ret = {}
+    sequentials = []
+    parallels = {'stealing': [], 'parallel': []}
+    for f in files:
+        if 'parallel' in f:
+            parallels['parallel'].append(f)
+        elif 'stealing' in f:
+            parallels['stealing'].append(f)
+        else:
+            sequentials.append(f)
+    for seq in sequentials:
+        name = _get_seq_cnf_name(seq)
+        if name not in ret:
+            ret[name] = {}
+            ret[name]['seq'] = {'time': []}
+        for l in _get_lines(seq):
+            ret[name]['seq']['time'].append(_parse_line(l))
+    # k is either 'stealing' or 'parallel' and v the array of files
+    for k, v in parallels.items():
+        for par in v:
+            name, measure = _parse_cnf_filename(par, k)
+            if name not in ret:
+                ret[name] = {}
+            if k not in ret[name]:
+                ret[name][k] = {}
+            for l in _get_lines(par):
+                line = _parse_line(l)
+                if len(line) not in ret[name][k]:
+                    ret[name][k][len(line)] = {}
+                if measure not in ret[name][k][len(line)]:
+                    ret[name][k][len(line)][measure] = []
+                ret[name][k][len(line)][measure].append(_parse_line(l))
+    return ret
+
+
+def _get_seq_cnf_name(filename):
+    filename = filename.split('/')[-1]
+    return re.match("(\S+).time", filename).group(1)
+
+
+def _parse_cnf_filename(filename, suffix):
+    filename = filename.split('/')[-1]
+    matches = re.match("(\S+)_{}.(\S+)".format(suffix), filename)
+    return matches.group(1), matches.group(2)
+
+
+def _get_lines(filename):
+    f = open(filename, 'r')
+    return [line.replace('\n', '') for line in f if not line == '\n']
+
+
+def _parse_line(line):
+    line = line.rstrip()
+    tokens = line.split(' ')
+    return [int(token) for token in tokens]
 
 
 def run_n_times(command, n):
@@ -63,3 +128,8 @@ def conf_95_mean(measurements):
                             len(measurements) - 1,
                             loc=np.mean(measurements),
                             scale=stats.sem(measurements))
+
+
+def get_netz_username():
+    nethz_username = raw_input('please enter your nethz_account name : ')
+    return nethz_username
