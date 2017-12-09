@@ -45,9 +45,9 @@ class Tester(object):
             raise RuntimeError("make failed!")
         print('compilation done!')
         if self.parallel:
-            return ParallelSolver()
+            return ParallelSolver(self.cdcl)
         elif self.stealing:
-            return StealingSolver()
+            return StealingSolver(self.cdcl)
         else:
             return SequentialSolver(self.cdcl)
 
@@ -155,8 +155,9 @@ class SequentialSolver(object):
 
 
 class ParallelSolver(SequentialSolver):
-    def __init__(self):
+    def __init__(self, cdcl):
         self.num_cores = max(4, multiprocessing.cpu_count())
+        self.cdcl = cdcl
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'parallel_main')
         if not os.path.exists(self.executable):
@@ -170,7 +171,13 @@ class ParallelSolver(SequentialSolver):
         :param input_file: the path to the input file
         :return: a list of lines that the solver did output to std_out
         """
-        command = 'mpirun -np {0} {1} {2} 1> out'.format(self.num_cores, self.executable, input_file)
+        args = ''
+        if self.cdcl:
+            args = '-local-cdcl 2'
+        command = 'mpirun -np {0} {1} {2} {3} 1> out'.format(self.num_cores,
+                                                             self.executable,
+                                                             args,
+                                                             input_file)
         start = datetime.now()
         ret = subprocess.call(command, shell=True,
                               stdout=subprocess.PIPE,
@@ -183,9 +190,11 @@ class ParallelSolver(SequentialSolver):
         f = open('out', 'r')
         return [line for line in f], runtime
 
+
 class StealingSolver(ParallelSolver):
-    def __init__(self):
+    def __init__(self, cdcl):
         self.num_cores = max(4, multiprocessing.cpu_count())
+        self.cdcl = cdcl
         cwd = os.path.join(os.getcwd(), os.path.pardir)
         self.executable = os.path.join(cwd, 'stealing_main')
         if not os.path.exists(self.executable):

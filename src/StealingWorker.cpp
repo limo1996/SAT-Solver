@@ -32,6 +32,10 @@ StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_r
     this->min_stack_size = min_stack_size > 0 ? min_stack_size : 1;
 }
 
+void StealingWorker::set_config(Config *conf) {
+    config = conf;
+}
+
 /**
  * Worker starts solving cnf and sends one subproblem to each other worker.
  */
@@ -50,7 +54,6 @@ void StealingWorker::start(){
  * If finds unsat than takes another model from local queue. If it is empty than tries to steal from other workers.
  */
 void StealingWorker::run_dpll() {
-    Config *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {

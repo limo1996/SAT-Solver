@@ -9,6 +9,10 @@ SlaveWorker::SlaveWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_ran
     my_rank = _worker_rank;
 }
 
+void SlaveWorker::set_config(Config *conf) {
+    config = conf;
+}
+
 unsigned count_assigned(VariableSet *variables) {
     unsigned num_assigned = 0;
     VariableSet::iterator iterator;
@@ -44,7 +48,6 @@ void SlaveWorker::cerr_model(std::string info, VariableSet *variables) {
  * runs dpll on the cnf store in this::cnf
  */
 void SlaveWorker::run_dpll() {
-    auto *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {

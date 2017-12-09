@@ -5,17 +5,26 @@
 #include "cnfparser.h"
 #include "SlaveWorker.h"
 #include "Master.h"
+#include "arg_parsing.h"
 
 using namespace std;
 using namespace std::chrono;
 
 int CERR_LEVEL = 0;
 
+void default_args(map<string, string> *arg_map) {
+    arg_map->insert({"-local-cdcl", "-1"});
+}
+
 /**
- * Main entry point to sequential version.
+ * Main entry point to parallel version.
  */
 int main(int argc, char *argv[]) {
-    char *path = argv[1];
+    char *path = argv[argc - 1];
+
+    map<std::string, std::string> arg_map;
+    default_args(&arg_map);
+    parse_args(&arg_map, argc, argv);
 
     CNFParser *parser;
     try {
@@ -53,9 +62,19 @@ int main(int argc, char *argv[]) {
         Master* master = new Master((size_t)size, 0, meta_data_type, path);
         master->start();
         while(!master->listen_to_workers());
+        delete master;
     } else {
         SlaveWorker *w = new SlaveWorker(*(*(cnfs.begin())), meta_data_type, rank);
+        Config *c;
+        if (arg_map["-local-cdcl"] == "-1") {
+            c = new Config(w, DPLL_);
+        } else {
+            c = new Config(true, std::stoi(arg_map["-local-cdcl"]), w, DPLL_);
+        }
+        w->set_config(c);
         w->wait_for_instructions_from_master();
+        delete c;
+        delete w;
     }
 
     MPI_Finalize();                                                                 // mpi end
