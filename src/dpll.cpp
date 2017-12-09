@@ -196,6 +196,9 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
     bool solve_locally = config->branching_limit <= 0 || config->worker == nullptr;
     if (solve_locally) {
         if (config->force_cdcl) {
+            if (CERR_LEVEL >= 2) {
+                std::cerr << "switching to local cdcl" << std::endl;
+            }
             CNF *new_cnf = cnf->build_fresh_cnf_from();
             auto *solver = new CDCL(new_cnf);
             DpllResult *res = solver->CDCLAlgorithm(new_cnf);

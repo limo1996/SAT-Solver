@@ -71,11 +71,11 @@ int CNFParser::parsing(){
                             name = std::stoi(VAR);                      /* and take its name */
                         }
                         v = new Variable(sign, true, name);             /* create a new variable */
-                        _var.insert(v);                                 /* insert into clause's variables set */
+                        _var.push_back(v);                                 /* insert into clause's variables set */
                     }
                     clause = new Clause(_var);                          /* create new clause */
                     _var.clear();
-                    Clauses.insert(clause);                             /* insert to cnf's clauses */
+                    Clauses.push_back(clause);                             /* insert to cnf's clauses */
                     clause = NULL;
                     *input >> std::ws;
                     line.clear();

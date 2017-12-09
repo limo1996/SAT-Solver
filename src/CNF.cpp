@@ -14,7 +14,7 @@ CNF::CNF() = default;
 //creates new instance of CNF
 CNF::CNF(ClauseSet _clauses) {
     for(auto c : _clauses) {
-        clauses.insert(c);
+        clauses.push_back(c);
     }
 }
 
@@ -23,7 +23,7 @@ CNF::CNF(CNF &_cnf){
     ClauseSet::iterator it_c;
 
     for (auto c : *(_cnf.get_clauses())) {
-        this->clauses.insert(new Clause(*(c->get_vars())));
+        this->clauses.push_back(new Clause(*(c->get_vars())));
     }
 }
 
@@ -32,7 +32,7 @@ VariableSet* CNF::get_vars() {
     auto *vars = new VariableSet();
     for (auto c : clauses) {
         for (auto v: *c->get_vars()) {
-            vars->insert(v);
+            vars->push_back(v);
         }
     }
     return vars;
@@ -50,7 +50,7 @@ VariableSet* CNF::get_model() {
                 }
             }
             if (!already_contained) {
-                model->insert(v);
+                model->push_back(v);
             }
         }
     }
@@ -72,7 +72,7 @@ void CNF::add_clause(Clause *clause) {
             }
         }
     }
-    clauses.insert(new Clause(*clause->get_vars()));
+    clauses.push_back(new Clause(*clause->get_vars()));
 }
 
 void CNF::print() {
@@ -108,7 +108,7 @@ VariableSet* CNF::get_partial_model() {
                 }
             }
             if (!already_contained) {
-                model->insert(v);
+                model->push_back(v);
             }
         }
     }
@@ -126,10 +126,10 @@ CNF *CNF::build_fresh_cnf_from() {
             VariableSet new_clause;
             for (auto v : *clause->get_vars()) {
                 if (!v->get_assigned()) {
-                    new_clause.insert(new Variable(v->get_sign(), v->get_value(), v->get_name()));
+                    new_clause.push_back(new Variable(v->get_sign(), v->get_value(), v->get_name()));
                 }
             }
-            new_clauses.insert(new Clause(new_clause));
+            new_clauses.push_back(new Clause(new_clause));
         }
     }
     return new CNF(new_clauses);
