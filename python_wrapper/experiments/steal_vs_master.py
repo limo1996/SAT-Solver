@@ -12,12 +12,12 @@ from utils import run_n_times, get_results, delete_files_in_folder, get_info, \
     Info, conf_95_mean
 
 
-FOLDER = 'steal_vs_master'
+FOLDER = 'benchmark_formulas'
 parent_parent = os.path.join(os.pardir, os.pardir)
 CNF_FOLDER = os.path.join(parent_parent, os.path.join('cnfs', FOLDER))
 EXECUTABLES = ['stealing', 'parallel']
 REPETITIONS = 10
-TIMEOUT = 20
+TIMEOUT = 80
 
 
 class StealVsMaster(AbstractExperiment):
@@ -65,7 +65,7 @@ class StealVsMaster(AbstractExperiment):
             return
 
         # overall runtime in minutes
-        overall_runtime_minutes = 4 * 59
+        overall_runtime_minutes = 8 * 59
         tester = EulerTester(FOLDER, nethz_username, self.num_nodes, REPETITIONS,
                              TIMEOUT, overall_runtime_minutes)
         tester.run_test()

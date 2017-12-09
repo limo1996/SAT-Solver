@@ -65,10 +65,17 @@ class CommPlotter(object):
     def plot_case(self, case, ylabel):
         colors = {};
         for key, value in case['parallel'].iteritems():
-            plt.plot(value['x'], value['y'], 'r')
+            #plt.plot(value['x'], value['y'], 'r')
+            print key 
+            print value['x']
+            print value['y']
 
         for key, value in case['stealing'].iteritems():
-            plt.plot(value['x'], value['y'], 'b')
+            #plt.plot(value['x'], value['y'], 'b')
+
+            print key 
+            print value['x']
+            print value['y']
 
         plt.xlabel('threads')
         plt.ylabel(ylabel);
