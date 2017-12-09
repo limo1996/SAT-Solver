@@ -1,11 +1,11 @@
 #include <iostream>
 #include <chrono>
-#include <unistd.h>
 #include <fstream>
 
 #include "cnfparser.h"
 #include "StealingWorker.h"
 #include "measurement.h"
+#include "arg_parsing.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -15,15 +15,23 @@ double STEALING_RATIO = 0.5;
 int CHECK_PERIOD = 2;
 int MIN_STACK_SIZE = 3;
 
+void default_args(map<string, string> *arg_map) {
+    arg_map->insert({"-local-cdcl", "-1"});
+}
+
 /**
  * Main entry point to parallel stealing version.
  */
 int main(int argc, char *argv[]) {
-    char *path = argv[1];
-    
+    char *path = argv[argc - 1];
+
+    map<std::string, std::string> arg_map;
+    default_args(&arg_map);
+    parse_args(&arg_map, argc, argv);
+
     CNFParser *parser;
     try {
-        parser = new CNFParser(argv[1]);                                            // create parser
+        parser = new CNFParser(path);                                            // create parser
     } catch (exception &e) {
         cerr << "exception: " << e.what() << endl;                                  // in case of some error(file not found etc..) print it and abort.
         return EXIT_FAILURE;
@@ -61,6 +69,13 @@ int main(int argc, char *argv[]) {
         // worker 0 aka "temp master"
         Measurement *measurement = new Measurement(path, "stealing");
         worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        Config *c;
+        if (arg_map["-local-cdcl"] == "-1") {
+            c = new Config(worker, DPLL_);
+        } else {
+            c = new Config(true, std::stoi(arg_map["-local-cdcl"]), worker, DPLL_);
+        }
+        worker->set_config(c);
         worker->start();
         while (!worker->stopped()) {
             worker->check_and_process_message_from_worker(false);
@@ -79,6 +94,13 @@ int main(int argc, char *argv[]) {
         measurement->write_to_files();
     } else {
         worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        Config *c;
+        if (arg_map["-local-cdcl"] == "-1") {
+            c = new Config(worker, DPLL_);
+        } else {
+            c = new Config(true, std::stoi(arg_map["-local-cdcl"]), worker, DPLL_);
+        }
+        worker->set_config(c);
         worker->start();
         while (!worker->stopped()) {
             worker->check_and_process_message_from_worker(false);

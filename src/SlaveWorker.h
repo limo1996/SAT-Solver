@@ -29,10 +29,14 @@ private:
     bool stop_received_before_message_completion(MPI_Request *mpi_requests, int size);
     
     void cerr_model(std::string info, VariableSet *variables);
+
+    Config *config;
     
 public:
     explicit SlaveWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_rank);
-    
+
+    void set_config(Config *conf);
+
     virtual void dpll_callback(VariableSet *variables);
     
     void wait_for_instructions_from_master();

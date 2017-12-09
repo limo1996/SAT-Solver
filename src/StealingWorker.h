@@ -26,6 +26,7 @@ private:
     int check_interval;                                                                 // interval of checking for other messages from other workers
     int check_counter;                                                                  // counts iterations
     int min_stack_size;                                                                 // size of the stack when is worker allowed to send model
+    Config *config;
 
     void run_dpll();                                                                    // runs dpll on this->cnf. Every branch is resolved by dpll_callback
     void stop_workers();                                                                // sends stop message to all workers
@@ -33,13 +34,13 @@ private:
     void print_sat_stop_workers(CNF *cnf);                                              // prints sat, model and stops workers
     void parse_and_update_variables(unsigned[], int size);                              // updates this->cnf with new values passed as paramters
     void debug_output(std::string line, bool newLine, int level = 1);                   // outputs string according to set debug_level
-    void cerr_model(std::string info, std::unordered_set<Variable *> *variables);       // outputs model according to set debug_level
+    void cerr_model(std::string info, VariableSet *variables);       // outputs model according to set debug_level
 
     MPI_Request send_meta(int to_rank, char i, unsigned assigned);                      // sends meta data to given rank with given values
     MPI_Request send_model(int to_rank, std::vector<unsigned int> assigned);            // sends model to given rank
 
-    unsigned count_assigned(std::unordered_set<Variable *> *variables);                 // returns number of assigned variables
-    std::vector<unsigned> encode_variables(std::unordered_set<Variable *> *variables);  // encode variables to sendable format
+    unsigned count_assigned(VariableSet *variables);                 // returns number of assigned variables
+    std::vector<unsigned> encode_variables(VariableSet *variables);  // encode variables to sendable format
     std::set<int> generate_rand_workers(int max, int n);                                // generates n unique random numbers in range (0, max)
 
     bool respond_to(struct meta meta, MPI_Status status);                               // performs action according to received meta message
@@ -48,7 +49,8 @@ private:
 public:
     explicit StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_rank, int _workers_size,
                             double stealing_ratio = 0.5, int check_interval = 1, int min_stack_size = 1);
-    virtual void dpll_callback(std::unordered_set<Variable *> *variables);              // function that is called whenever dpll makes branching.
+    void set_config(Config *conf);
+    virtual void dpll_callback(VariableSet *variables);              // function that is called whenever dpll makes branching.
     bool check_and_process_message_from_worker(bool wait, int spinForMessage = -1);     // listens and responds for messages from other workers. When spinForMessage != 1 than receives and responds
                                                                                         // while received msg != spinForMesage
     void start();                                                                       // Worker starts to solve cnf and sends one subproblem to each other worker.

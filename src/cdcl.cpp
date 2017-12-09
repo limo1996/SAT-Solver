@@ -213,7 +213,7 @@ Clause *CDCL::learn_clause(StandardLiteral *positive_literal, StandardLiteral *n
     }
 
     for (auto parent : decisionParents) {
-        new_clause_variables.insert(new Variable(!parent->sign, false, parent->name));
+        new_clause_variables.push_back(new Variable(!parent->sign, false, parent->name));
     }
     Clause *result = new Clause(new_clause_variables);
     if (CERR_LEVEL >= 3) {

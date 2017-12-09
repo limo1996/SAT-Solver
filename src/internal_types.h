@@ -5,14 +5,14 @@
 #ifndef SAT_SOLVER_INTERNAL_TYPES_H
 #define SAT_SOLVER_INTERNAL_TYPES_H
 
-#include <unordered_set>
+#include <vector>
 #include "clause.h"
 #include "variable.h"
 
 class Clause;
 class Variable;
 
-typedef std::unordered_set<Variable *> VariableSet;
-typedef std::unordered_set<Clause *> ClauseSet;
+typedef std::vector<Variable *> VariableSet;
+typedef std::vector<Clause *> ClauseSet;
 
 #endif //SAT_SOLVER_INTERNAL_TYPES_H

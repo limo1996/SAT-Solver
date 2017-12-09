@@ -7,7 +7,7 @@
 #include "CNF.h"
 #include "cnfparser.h"
 #include "dpll.h"
-#include "cdcl.h"
+#include "arg_parsing.h"
 #include "solver_controller.h"
 
 using namespace std;
@@ -16,8 +16,10 @@ using namespace std::chrono;
 int CERR_LEVEL = 0;
 
 void printHelp();
-void parse_args(map<string, string> *arg_map, int argc, char *argv[]);
-void default_args(map<string, string> *arg_map);
+
+void default_args(map<string, string> *arg_map) {
+    arg_map->insert({"-s", "DPLL"});
+};
 
 int main(int argc, char *argv[]) {
     if (argc % 2 != 0 || argc < 2 || (argc == 2 && string(argv[1]) == "--help")) {
@@ -33,7 +35,7 @@ int main(int argc, char *argv[]) {
 
     std::string s;
     s = path;
-    size_t lastindex = s.find_last_of(".");
+    size_t lastindex = s.find_last_of('.');
     string rawname = s.substr(0,lastindex);
     rawname = rawname + ".time";
     char *pathnew = &rawname[0u];
@@ -73,28 +75,6 @@ int main(int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
-
-void parse_args(map<std::string, std::string> *arg_map, int argc, char *argv[]) {
-    int count = 1;
-    string key;
-    string val;
-    while (count < argc-1) {
-        if (count % 2 == 1) {
-            key = string(argv[count]);
-        } else {
-            val = string(argv[count]);
-            if (arg_map->find(key) != arg_map->end()) {
-                arg_map->erase(key);
-            }
-            arg_map->insert({key, val});
-        }
-        count++;
-    }
-}
-
-void default_args(map<string, string> *arg_map) {
-    arg_map->insert({"-s", "DPLL"});
-};
 
 /*
  Prints standard help for the program.

@@ -14,7 +14,7 @@
  */
 Clause::Clause(VariableSet _var) {	/* constructor */
     for(auto v: _var){
-        var.insert(new Variable(*v));
+        var.push_back(new Variable(*v));
     }
 }
 
@@ -55,7 +55,7 @@ std::string Clause::to_string() {
     VariableSet unassignedVars;
     for(auto v : var){
         if (!v->get_assigned()) {
-            unassignedVars.insert(v);
+            unassignedVars.push_back(v);
         }
     }
 

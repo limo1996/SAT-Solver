@@ -32,6 +32,10 @@ StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_r
     this->min_stack_size = min_stack_size > 0 ? min_stack_size : 1;
 }
 
+void StealingWorker::set_config(Config *conf) {
+    config = conf;
+}
+
 /**
  * Worker starts solving cnf and sends one subproblem to each other worker.
  */
@@ -50,7 +54,6 @@ void StealingWorker::start(){
  * If finds unsat than takes another model from local queue. If it is empty than tries to steal from other workers.
  */
 void StealingWorker::run_dpll() {
-    Config *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {
@@ -58,7 +61,7 @@ void StealingWorker::run_dpll() {
             print_sat_stop_workers(dpll->get_cnf());
         }
         else {
-            std::unordered_set<Variable *> *vars = dpll->get_cnf()->get_model();
+            VariableSet *vars = dpll->get_cnf()->get_model();
             // go through the variables and assign true to all the unassigned ones
             for (auto v : *vars) {
                 if(!v->get_assigned()) {
@@ -201,7 +204,7 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinFo
  * callback that is used on a dpll branch
  * @param variables contains the variable assignments that some other worker should try
  */
-void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
+void StealingWorker::dpll_callback(VariableSet *variables) {
     if(this->stop)
         return;
     if(this->my_rank == 0 && this->next_to_send < this->workers_size){
@@ -355,7 +358,7 @@ void StealingWorker::stop_workers(){
  */
 void StealingWorker::output_sat_model(CNF *cnf){
     debug_output("prints sat model", true);
-    std::unordered_set<Variable *> *vars = cnf->get_model();
+    VariableSet *vars = cnf->get_model();
     // go through the variables and assign true to all the unassigned ones
     for (auto v : *vars) {
         if(!v->get_assigned()) {
@@ -407,11 +410,11 @@ void StealingWorker::parse_and_update_variables(unsigned int encoded[], int size
  * @param variables the set of variables to encode (only assigned ones are considered)
  * @return encoded vector
  */
-std::vector<unsigned> StealingWorker::encode_variables(std::unordered_set<Variable *> *variables) {
+std::vector<unsigned> StealingWorker::encode_variables(VariableSet *variables) {
     unsigned num_assigned = count_assigned(variables);
     std::vector<unsigned> encoded;
     encoded.reserve(num_assigned);
-    std::unordered_set<Variable *>::iterator iterator;
+    std::vector<Variable *>::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             unsigned encoded_var = (unsigned) (*iterator)->get_name() << 1;
@@ -428,11 +431,10 @@ std::vector<unsigned> StealingWorker::encode_variables(std::unordered_set<Variab
  * counts number of assigned variables passed as parameter.
  * @return number of assigned variables
  */
-unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variables) {
+unsigned StealingWorker::count_assigned(VariableSet *variables) {
     unsigned num_assigned = 0;
-    std::unordered_set<Variable *>::iterator iterator;
-    for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
-        if ((*iterator)->get_assigned()) {
+    for (auto var : *variables) {
+        if (var->get_assigned()) {
             num_assigned++;
         }
     }
@@ -442,11 +444,11 @@ unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variable
 /**
  * outputs given variable assignments to stderr
  */
-void StealingWorker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
+void StealingWorker::cerr_model(std::string info, VariableSet *variables) {
     if(CERR_LEVEL < 1)
         return;
 
-    std::unordered_set<Variable *>::iterator iterator;
+    std::vector<Variable *>::iterator iterator;
     std::cerr << "StealingWorker " << my_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
