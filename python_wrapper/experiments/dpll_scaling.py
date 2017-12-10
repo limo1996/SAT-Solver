@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from abstract_experiment import AbstractExperiment
-from utils import get_netz_username, parse_into_dict
+from utils import get_netz_username, parse_into_dict, conf_95_mean
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from euler import EulerTester
@@ -39,17 +39,31 @@ class DpllScaling(AbstractExperiment):
         for f, v in self.data.items():
             xs = []
             ys = []
-            xs.append(1)
-            ys.append(np.mean(np.array(v['seq']['time']).flatten()))
+            lowers = []
+            uppers = []
+            if 'seq' in v:
+                xs.append(1)
+                mean = np.mean(np.array(v['seq']['time']).flatten())
+                ys.append(mean)
+                lower, upper = conf_95_mean(np.array(v['seq']['time']).flatten())
+                lowers.append(mean - lower)
+                uppers.append(upper - mean)
             for cores, v_ in v['parallel'].items():
-                xs.append(cores)
-                ys.append(np.mean(np.array(v_['time']).flatten()))
-            plt.plot(xs, ys, 'o')
+                xs.append(int(cores))
+                mean = np.mean(np.array(v_['time']).flatten())
+                ys.append(mean)
+                lower, upper = conf_95_mean(np.array(v_['time']).flatten())
+                lowers.append(mean - lower)
+                uppers.append(upper - mean)
+            ys = [y for _, y in sorted(zip(xs, ys))]
+            xs = sorted(xs)
+            plt.figure()
+            plt.errorbar(xs, ys, yerr=[lowers, uppers], fmt='o')
             plt.title(f)
             plt.ylim(0, max(ys) + 500)
             plt.xlabel('# cores')
             plt.ylabel('avg runtime [ms]')
-            plt.show()
+            plt.savefig('{}.png'.format(f))
 
 
 @click.command()
@@ -64,8 +78,9 @@ def main(rerun, process):
     if process:
         e.process_euler_experiment()
         e.results_to_json()
-    e.results_from_json()
-    e.plot()
+    else:
+        e.results_from_json()
+        e.plot()
 
 
 if __name__ == '__main__':
