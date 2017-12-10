@@ -1,8 +1,13 @@
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+
+sys.path.append('experiments')
+
+from utils import conf_95_mean
 
 # creates table for communication
 class CommPlotter(object):
@@ -38,7 +43,6 @@ class CommPlotter(object):
             print f
             file = open(f, 'r')
             res = {}
-            counts = {}
             sums = {}
             for line in file:
                 line = line.strip()
@@ -48,17 +52,19 @@ class CommPlotter(object):
                 if not line or line == "":
                     continue
                 numbers = map(int, line.split(' '))
-                if len(numbers) in counts:
-                    counts[len(numbers)] += 1
-                    sums[len(numbers)] += sum(numbers)#np.mean(numbers)
+                if len(numbers) in sums:
+                    sums[len(numbers)].append(sum(numbers))
                 else:
-                    counts[len(numbers)] = 1
-                    sums[len(numbers)] = sum(numbers)#np.mean(numbers)
+                    sums[len(numbers)] = []
+                    sums[len(numbers)].append(sum(numbers))
             x = []
             y = []
-            for i in counts:
-                x.append(i)
-                y.append(sums[i] / counts[i])
+            for k, v in sums.iteritems():
+                x.append(k)
+                if 'wait' in case:
+                    y.append(v)
+                else:
+                    y.append(sum(v) / k)
             res['x'] = x
             res['y'] = y
             result[f] = res
@@ -66,21 +72,20 @@ class CommPlotter(object):
 
     def plot(self):
         for test in self.selected_tests:
-            self.plot_case(self.data['wait'], test, 'waiting time [ms]')
+            self.plot_wait(self.data['wait'], test)
             self.plot_case(self.data['comm'], test, 'bytes transfered')
         
     def plot_case(self, case, test, ylabel):
-        colors = {};
         for key, value in case['parallel'].iteritems():
             if test in key:
-                plt.plot(value['x'], value['y'], 'ro')
+                plt.plot(value['x'], value['y'], 'ro', label='Parallel')
                 print key 
                 print value['x']
                 print value['y']
 
         for key, value in case['stealing'].iteritems():
             if test in key:
-                plt.plot(value['x'], value['y'], 'bo')
+                plt.plot(value['x'], value['y'], 'bo', label='Stealing')
                 print key 
                 print value['x']
                 print value['y']
@@ -88,6 +93,52 @@ class CommPlotter(object):
         plt.title(test)
         plt.xlabel('threads')
         plt.ylabel(ylabel);
-        plt.legend(handle=[mpatches.Patch(color='r', label='Parallel version'),
-                           mpatches.Patch(color='b', label='Stealing version')])
+        plt.legend(loc=1)
         plt.show()
+    
+    def plot_wait(self, case, test):
+        for key, value in case['parallel'].iteritems():
+            if test in key:
+                lower_error = []
+                upper_error = []
+                ys = []
+                for data in value['y']:
+                    mean = np.mean(data)
+                    ys.append(mean)
+                    lower, upper = conf_95_mean(data)
+                    lower_error.append(mean-lower)
+                    upper_error.append(upper-mean)
+                plt.errorbar(value['x'], ys,
+                    yerr=[lower_error, upper_error],
+                    label='Parallel',
+                    fmt='o',
+                    color='r',
+                    markerfacecolor='none')
+
+        for key, value in case['stealing'].iteritems():
+            if test in key:
+                lower_error = []
+                upper_error = []
+                ys = []
+                for data in value['y']:
+                    mean = np.mean(data)
+                    ys.append(mean)
+                    lower, upper = conf_95_mean(data)
+                    lower_error.append(mean-lower)
+                    upper_error.append(upper-mean)
+                plt.errorbar(value['x'], ys,
+                    yerr=[lower_error, upper_error],
+                    label='Stealing',
+                    fmt='D',
+                    color='b',
+                    markerfacecolor='none')
+        plt.title(test)
+        plt.legend(loc=1)
+        plt.xlabel('threads')
+        plt.ylabel('average waiting time [ms]');
+        plt.show()
+        '''plt.title(test)
+        plt.xlabel('threads')
+        plt.ylabel('average waiting time [ms]');
+
+        plt.show()'''
