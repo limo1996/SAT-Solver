@@ -52,8 +52,8 @@ public:
     }
 
     unsigned get_all_messages() { return send_messages + received_messages; }
-    int get_send_messages() { return send_messages; }
-    int get_recv_messages() { return received_messages; }
+    unsigned get_send_messages() { return send_messages; }
+    unsigned get_recv_messages() { return received_messages; }
 
     void inc_send_messages(unsigned bytes_sent) { send_messages += bytes_sent; }
     void inc_recv_messages(unsigned bytes_recv) { received_messages += bytes_recv; }

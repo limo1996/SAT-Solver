@@ -2,14 +2,18 @@ import os
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import numpy as np
 
 # creates table for communication
 class CommPlotter(object):
     def __init__(self, folder):
         self.folder = folder
+        self.selected_tests = (
+            'flat75-4',
+            'par8-1-c'
+        )
         self.process()
         self.plot()
-
 
     def getfiles(self, extension):
         return [os.path.join(self.folder, f)
@@ -29,6 +33,8 @@ class CommPlotter(object):
     def process_case(self, case):
         result = {}
         for f in self.getfiles(case):
+            if not any(str in f for str in self.selected_tests):
+                continue
             print f
             file = open(f, 'r')
             res = {}
@@ -44,10 +50,10 @@ class CommPlotter(object):
                 numbers = map(int, line.split(' '))
                 if len(numbers) in counts:
                     counts[len(numbers)] += 1
-                    sums[len(numbers)] += sum(numbers)
+                    sums[len(numbers)] += sum(numbers)#np.mean(numbers)
                 else:
                     counts[len(numbers)] = 1
-                    sums[len(numbers)] = sum(numbers)
+                    sums[len(numbers)] = sum(numbers)#np.mean(numbers)
             x = []
             y = []
             for i in counts:
@@ -59,24 +65,27 @@ class CommPlotter(object):
         return result
 
     def plot(self):
-        self.plot_case(self.data['wait'], 'waiting time')
-        self.plot_case(self.data['comm'], '# communication')
+        for test in self.selected_tests:
+            self.plot_case(self.data['wait'], test, 'waiting time [ms]')
+            self.plot_case(self.data['comm'], test, 'bytes transfered')
         
-    def plot_case(self, case, ylabel):
+    def plot_case(self, case, test, ylabel):
         colors = {};
         for key, value in case['parallel'].iteritems():
-            #plt.plot(value['x'], value['y'], 'r')
-            print key 
-            print value['x']
-            print value['y']
+            if test in key:
+                plt.plot(value['x'], value['y'], 'ro')
+                print key 
+                print value['x']
+                print value['y']
 
         for key, value in case['stealing'].iteritems():
-            #plt.plot(value['x'], value['y'], 'b')
+            if test in key:
+                plt.plot(value['x'], value['y'], 'bo')
+                print key 
+                print value['x']
+                print value['y']
 
-            print key 
-            print value['x']
-            print value['y']
-
+        plt.title(test)
         plt.xlabel('threads')
         plt.ylabel(ylabel);
         plt.legend(handle=[mpatches.Patch(color='r', label='Parallel version'),

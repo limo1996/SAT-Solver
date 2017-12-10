@@ -93,7 +93,7 @@ void Master::stop_workers(){
 void Master::receive_and_log_measurements() {
     // add the measurement of the master:
     stop_runtime();
-    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_all_messages()};
+    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_send_messages()};
     measurement->add_measurement(master);
     for (int i=0; i<all_ranks; i++) {
         if (i != my_rank) {
