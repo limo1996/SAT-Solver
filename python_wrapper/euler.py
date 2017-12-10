@@ -26,25 +26,25 @@ class EulerTester(object):
               .format(self.overall_runtime_minutes))
         print('         test_folder: {}'.format(self.folder))
 
-    def package_tar(self):
-        tar = tarfile.open('to_euler.tar', 'w')
-        tar.add('run_me_on_euler.sh')
-        tar.add('bsub_script.sh')
-        tar.add(os.path.join(os.pardir, 'CMakeLists.txt'),
+    def package_tar(self, basepath):
+        tar = tarfile.open('{}/to_euler.tar'.format(basepath), 'w')
+        tar.add('{}/run_me_on_euler.sh'.format(basepath))
+        tar.add('{}/bsub_script.sh'.format(basepath))
+        tar.add('{}/../CMakeLists.txt'.format(basepath),
                 arcname='CMakeLists.txt')
-        tar.add(os.path.join(os.pardir, 'src'), arcname='src')
-        tar.add(os.path.join(os.path.join(os.pardir, 'cnfs'), self.folder),
+        tar.add('{}/../src'.format(basepath), arcname='src')
+        tar.add('{}/../cnfs/{}'.format(basepath, self.folder),
                 arcname=self.folder)
-        tar.add('num_nodes.txt')
-        tar.add('test_folder.txt')
-        tar.add('num_runs.txt')
-        tar.add('timeout.txt')
-        tar.add('overall_runtime_minutes.txt')
+        tar.add('{}/num_nodes.txt'.format(basepath))
+        tar.add('{}/test_folder.txt'.format(basepath))
+        tar.add('{}/num_runs.txt'.format(basepath))
+        tar.add('{}/timeout.txt'.format(basepath))
+        tar.add('{}/overall_runtime_minutes.txt'.format(basepath))
         tar.close()
         return tar
 
-    def run_test(self):
-        test_folder_file = open('test_folder.txt', 'w')
+    def run_test(self, basepath='.'):
+        test_folder_file = open('{}/test_folder.txt'.format(basepath), 'w')
         test_folder_file.truncate()
         test_folder_file.write(str(self.folder))
         test_folder_file.close()
@@ -52,38 +52,39 @@ class EulerTester(object):
         if not len(self.num_nodes) is 0:
             num_nodes_string = list(map(lambda n: str(n), self.num_nodes))
             num_nodes_string = " ".join(num_nodes_string)
-        num_nodes_file = open('num_nodes.txt', 'w')
+        num_nodes_file = open('{}/num_nodes.txt'.format(basepath), 'w')
         num_nodes_file.truncate()
         num_nodes_file.write(num_nodes_string)
         num_nodes_file.close()
 
-        num_runs_file = open('num_runs.txt', 'w')
+        num_runs_file = open('{}/num_runs.txt'.format(basepath), 'w')
         num_runs_file.truncate()
         num_runs_file.write(str(self.num_runs))
         num_runs_file.close()
 
-        num_runs_file = open('timeout.txt', 'w')
+        num_runs_file = open('{}/timeout.txt'.format(basepath), 'w')
         num_runs_file.truncate()
         num_runs_file.write(str(self.timeout))
         num_runs_file.close()
 
-        runtime_file = open('overall_runtime_minutes.txt', 'w')
+        runtime_file = open('{}/overall_runtime_minutes.txt'.format(basepath),
+                            'w')
         runtime_file.truncate()
         runtime_file.write(str(self.overall_runtime_minutes))
         runtime_file.close()
 
-        self.run_test_for_num_nodes()
+        self.run_test_for_num_nodes(basepath)
 
-        os.remove('test_folder.txt')
-        os.remove('num_nodes.txt')
-        os.remove('num_runs.txt')
-        os.remove('timeout.txt')
-        os.remove('overall_runtime_minutes.txt')
+        os.remove('{}/test_folder.txt'.format(basepath))
+        os.remove('{}/num_nodes.txt'.format(basepath))
+        os.remove('{}/num_runs.txt'.format(basepath))
+        os.remove('{}/timeout.txt'.format(basepath))
+        os.remove('{}/overall_runtime_minutes.txt'.format(basepath))
         print('once the job is finished, run the following command to download the results file:')
-        print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/time_measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
+        print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
 
-    def run_test_for_num_nodes(self):
-        tar = self.package_tar()
+    def run_test_for_num_nodes(self, basepath):
+        tar = self.package_tar(basepath)
 
         scp_process = subprocess.Popen(['scp',
                                         '-o PreferredAuthentications=password',
@@ -110,7 +111,7 @@ class EulerTester(object):
             'echo "unpacking tar archive..."',
             'tar -xvf to_euler.tar > /dev/null',
             'echo "calling run_me_on_euler.sh..."',
-            './run_me_on_euler.sh bsub_script.h',
+            './run_me_on_euler.sh bsub_script.sh',
             'echo "END"'
         ]
         for c in commands:

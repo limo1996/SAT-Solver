@@ -30,13 +30,6 @@ public:
         solver_type = _solver_type;
     }
 
-    Config(int _branching_limit, SolverType _solver_type) {
-        force_cdcl = false;
-        branching_limit = _branching_limit;
-        worker = nullptr;
-        solver_type = _solver_type;
-    }
-
     Config(bool _force_cdcl, int _branching_limit, Worker *_worker, SolverType _solver_type) {
         force_cdcl = _force_cdcl;
         branching_limit = _branching_limit;

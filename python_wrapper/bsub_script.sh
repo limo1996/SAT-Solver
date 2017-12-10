@@ -8,7 +8,7 @@ timeout=$(cat timeout.txt)
 
 # yes, this is a nasty as it looks...
 cd $(cat test_folder.txt)
-rm -rf *.time
+rm -rf *.time *.wait *.comm
 FILES=*.cnf
 
 for file in ${FILES}
@@ -25,11 +25,11 @@ do
     do
         for run in $(seq 1 $num_runs)
         do
-            timeout "$timeout"s mpirun -np "$nodes" ../parallel_main "$file" -p 2 > "$file".out
+            timeout "$timeout"s mpirun -np "$nodes" ../parallel_main "$file" > "$file".out
         done
     done
 done
-tar -cf time_measurements.tar *.time
-echo "tar file (time_measurements.tar) with measurements created"
+tar -cf measurements.tar *.time *.wait *.comm
+echo "tar file (measurements.tar) with measurements created"
 
 cd ../

@@ -7,24 +7,10 @@ SlaveWorker::SlaveWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _worker_ran
     cnf = new CNF(_cnf);
     meta_data_type = _meta_data_type;
     my_rank = _worker_rank;
-    stop = false;
-    waitingTime = 0;
-    this->measurement_started = false;
 }
 
-void SlaveWorker::stop_measure(){
-    if(!this->measurement_started)
-        return;
-    
-    this->measurement_started = false;
-    high_resolution_clock::time_point endTime = high_resolution_clock::now();
-    long long duration = std::chrono::duration_cast<std::chrono::milliseconds>( endTime - startTime ).count();
-    this->waitingTime += duration;
-}
-
-void SlaveWorker::start_measure(){
-    this->startTime = high_resolution_clock::now();
-    this->measurement_started = true;
+void SlaveWorker::set_config(Config *conf) {
+    config = conf;
 }
 
 unsigned count_assigned(VariableSet *variables) {
@@ -62,7 +48,6 @@ void SlaveWorker::cerr_model(std::string info, VariableSet *variables) {
  * runs dpll on the cnf store in this::cnf
  */
 void SlaveWorker::run_dpll() {
-    auto *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {
@@ -89,6 +74,7 @@ bool SlaveWorker::stop_received_before_message_completion(MPI_Request *mpi_reque
     if (flag != MPI_SUCCESS && !this->stop) {
         struct meta meta;
         MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        inc_recv_messages(sizeof(struct meta));
         if (meta.message_type != 1) {
             if(CERR_LEVEL >= 1){
                 std::cerr << "SlaveWorker " << my_rank << ": weird message: " << (int)meta.message_type << " flag: " << flag << " done all: " << all_done << std::endl;
@@ -107,6 +93,7 @@ bool SlaveWorker::stop_received_before_message_completion(MPI_Request *mpi_reque
                 MPI_Cancel(mpi_requests + i);
             }
         }
+        send_measurements();
     }
     return flag != 0;
 }
@@ -144,6 +131,8 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
     meta.message_type = i;
     meta.count = assigned;
 
+    inc_send_messages(sizeof(struct meta));
+
     MPI_Request request;
     MPI_Isend(&meta, 1, meta_data_type, 0, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -155,6 +144,8 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
  * @return the MPI Request on that we can wait for completion of the non-blocking send
  */
 MPI_Request SlaveWorker::send_model(std::vector<unsigned> assigned) {
+    inc_send_messages(assigned.size() * sizeof(unsigned));
+
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -201,7 +192,7 @@ void SlaveWorker::send_unsat() {
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": sends unsat to master" << std::endl;
         }
-        start_measure();
+        start_waiting();
         MPI_Request request = send_meta(11, 0);
         bool stop_received = stop_received_before_message_completion(&request, 1);
         if (!stop_received) {
@@ -226,8 +217,11 @@ void SlaveWorker::wait_for_instructions_from_master() {
     }
     struct meta meta;
     MPI_Recv(&meta, 1, meta_data_type, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    inc_recv_messages(sizeof(struct meta));
+
     if (meta.message_type == 0) {
-        stop_measure();
+        stop_waiting();
         unsigned encoded_model[meta.count];
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": received meta data (message type: 0, count: "
@@ -235,6 +229,7 @@ void SlaveWorker::wait_for_instructions_from_master() {
         }
         if (meta.count > 0) {
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            inc_recv_messages(meta.count * sizeof(unsigned));
             if (CERR_LEVEL >= 2) {
                 std::cerr << "SlaveWorker " << my_rank << ": encoded_model: ";
                 for (int i = 0; i < meta.count; i++) {
@@ -256,6 +251,7 @@ void SlaveWorker::wait_for_instructions_from_master() {
         }
         run_dpll();
     } else {
+        send_measurements();
         if (CERR_LEVEL >= 1) {
             std::cerr << "SlaveWorker " << my_rank << ": received done message from master" << std::endl;
             std::cerr << "SlaveWorker " << my_rank << ": gracefully stopping..." << std::endl;

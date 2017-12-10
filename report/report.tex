@@ -65,6 +65,17 @@ should write the abstract last.
 
 \section{Introduction}\label{sec:intro}
 
+\mypar{Motivation}
+
+:why it is important? - because it is used it model checking(formal verification), automated planning and scheduling, Combinatorial design and many more. Many problems are transformed into boolean formulas which are than solved with SAT solvers.
+
+:why you are doing? - Current trends in computer hardware design decrease performance per processing unit and pack more units on a single processor. It happened because thermal wall stopped further increase of clock speed. However, algorithms for SAT solving like DPLL and CDCL were invented before wide use of parallelism and therefore were designed for sequential execution. Since SAT is NP-complete problem, it is the right candidate for running it in parallel.
+
+:what are you doing? - In our approach, we are trying to exploit more cores(bring parallelism to SAT solving). This should lead to significant increase of speed and scalability. 
+
+
+-----------------------------------------------\\
+
 Do not start the introduction with the abstract or a slightly modified
 version. It follows a possible structure of the introduction. 
 Note that the structure can be modified, but the

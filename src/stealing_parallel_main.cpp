@@ -1,10 +1,11 @@
 #include <iostream>
 #include <chrono>
-#include <unistd.h>
 #include <fstream>
 
 #include "cnfparser.h"
 #include "StealingWorker.h"
+#include "measurement.h"
+#include "arg_parsing.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -14,23 +15,23 @@ double STEALING_RATIO = 0.5;
 int CHECK_PERIOD = 2;
 int MIN_STACK_SIZE = 3;
 
+void default_args(map<string, string> *arg_map) {
+    arg_map->insert({"-local-cdcl", "-1"});
+}
+
 /**
  * Main entry point to parallel stealing version.
  */
 int main(int argc, char *argv[]) {
-    // for time measurment
-    const char *path = argv[1];
-    
-    std::string s;
-    s = path;
-    size_t lastindex = s.find_last_of(".");
-    string rawname = s.substr(0,lastindex);
-    rawname = rawname + "_stealing.time";
-    char *pathnew = &rawname[0u];
-    
+    char *path = argv[argc - 1];
+
+    map<std::string, std::string> arg_map;
+    default_args(&arg_map);
+    parse_args(&arg_map, argc, argv);
+
     CNFParser *parser;
     try {
-        parser = new CNFParser(argv[1]);                                            // create parser
+        parser = new CNFParser(path);                                            // create parser
     } catch (exception &e) {
         cerr << "exception: " << e.what() << endl;                                  // in case of some error(file not found etc..) print it and abort.
         return EXIT_FAILURE;
@@ -44,10 +45,7 @@ int main(int argc, char *argv[]) {
     }
     
     CNF cnf = *(*(cnfs.begin()));                                                   // take first one
-    
-    // time start
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    
+
     MPI_Init(&argc, &argv);                                                         // mpi initialization
     
     MPI_Datatype meta_data_type = setup_meta_type();                                // create data type that is used in inter process communication.
@@ -57,6 +55,7 @@ int main(int argc, char *argv[]) {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
+    StealingWorker* worker;
     /**
      * All workers are equal except two cases: Worker 0 takes role of the master at the beginning. It takes charge of sending initial models to other workers (it always solve one of them).
      * When all workers have model to solve than worker 0 behaves as any other worker.
@@ -67,37 +66,49 @@ int main(int argc, char *argv[]) {
      * Worker 0 takes role of master at the end as well. When some worker (can be worker 0) finds SAT model, than it sends it to worker 0, which prints it and stops other workers.
      */
     if (rank == 0) {
-        ofstream file;
-        file.open(pathnew, std::ios_base::app);
-        file << std::endl;
-        file.close();
-        
         // worker 0 aka "temp master"
-        StealingWorker* main_worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
-        main_worker->start();
-        while (!main_worker->stopped()) {
-            main_worker->check_and_process_message_from_worker(false);
-            main_worker->get_model();
+        Measurement *measurement = new Measurement(path, "stealing");
+        worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        Config *c;
+        if (arg_map["-local-cdcl"] == "-1") {
+            c = new Config(worker, DPLL_);
+        } else {
+            c = new Config(true, std::stoi(arg_map["-local-cdcl"]), worker, DPLL_);
         }
+        worker->set_config(c);
+        worker->start();
+        while (!worker->stopped()) {
+            worker->check_and_process_message_from_worker(false);
+            worker->get_model();
+        }
+        worker->stop_runtime();
+        auto measurements = std::vector<unsigned>({worker->get_runtime(),
+                                                   worker->get_waiting_time(),
+                                                   worker->get_all_messages()});
+        measurement->add_measurement(measurements);
+        for (int i = 1; i < size; i++) {
+            unsigned data[NUM_MEASUREMENTS];
+            MPI_Recv(&data, NUM_MEASUREMENTS, MPI_UNSIGNED, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            measurement->add_measurement(std::vector<unsigned>(data, data + NUM_MEASUREMENTS));
+        }
+        measurement->write_to_files();
     } else {
-        StealingWorker *w = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
-        w->start();
-        while (!w->stopped()) {
-            w->check_and_process_message_from_worker(false);
-            w->get_model();
+        worker = new StealingWorker(*(*(cnfs.begin())), meta_data_type, rank, size, STEALING_RATIO, CHECK_PERIOD, MIN_STACK_SIZE);
+        Config *c;
+        if (arg_map["-local-cdcl"] == "-1") {
+            c = new Config(worker, DPLL_);
+        } else {
+            c = new Config(true, std::stoi(arg_map["-local-cdcl"]), worker, DPLL_);
+        }
+        worker->set_config(c);
+        worker->start();
+        while (!worker->stopped()) {
+            worker->check_and_process_message_from_worker(false);
+            worker->get_model();
         }
     }
     
     MPI_Finalize();                                                                 // mpi end
-    
-    // time end
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
-    ofstream myfile;
-    myfile.open (pathnew, std::ios_base::app);
-    myfile << duration << ' ';
-    myfile.close();
-    //cout << "RunTime: " << duration << " ms " << std::endl;
-    
+
     return EXIT_SUCCESS;
 }

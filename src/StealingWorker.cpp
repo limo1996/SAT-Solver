@@ -25,12 +25,15 @@ StealingWorker::StealingWorker(CNF _cnf, MPI_Datatype _meta_data_type, int _my_r
     meta_data_type = _meta_data_type;
     my_rank = _my_rank;
     workers_size = _workers_size;
-    stop = false;
     next_to_send = 1;
     this->stealing_ratio = stealing_ratio;
     this->check_interval = check_interval;
     this->check_counter = 0;
     this->min_stack_size = min_stack_size > 0 ? min_stack_size : 1;
+}
+
+void StealingWorker::set_config(Config *conf) {
+    config = conf;
 }
 
 /**
@@ -51,7 +54,6 @@ void StealingWorker::start(){
  * If finds unsat than takes another model from local queue. If it is empty than tries to steal from other workers.
  */
 void StealingWorker::run_dpll() {
-    Config *config = new Config(this, DPLL_);
     DPLL *dpll = new DPLL(*cnf, config);
     bool sat = dpll->SATISFIABLE();
     if (sat) {
@@ -59,7 +61,7 @@ void StealingWorker::run_dpll() {
             print_sat_stop_workers(dpll->get_cnf());
         }
         else {
-            std::unordered_set<Variable *> *vars = dpll->get_cnf()->get_model();
+            VariableSet *vars = dpll->get_cnf()->get_model();
             // go through the variables and assign true to all the unassigned ones
             for (auto v : *vars) {
                 if(!v->get_assigned()) {
@@ -95,6 +97,9 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         if (meta.count > 0) {
             unsigned encoded_model[meta.count];
             MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            inc_recv_messages(meta.count * sizeof(unsigned));
+
             debug_output("encoded model: ", false, 2);
             for (int i = 0; i < meta.count; i++) {
                 debug_output(std::to_string(encoded_model[i]) + " ", false, 2);
@@ -107,7 +112,6 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
             parse_and_update_variables(encoded, 0);
             debug_output("received model of size 0 and will start solving", true);
         }
-        //run_dpll();
     } else if (meta.message_type == 1){
         // steal message, respond accordingly
         debug_output("received steal message from worker " + std::to_string(status.MPI_SOURCE) + ". Size of the local queue: " + std::to_string(this->stack.size()), true);
@@ -126,6 +130,10 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         // interrupt message. End silently...
         debug_output("received broadcast message to stop.", true);
         debug_output("gracefully stopping...", true);
+        if (this->my_rank != 0) {
+            stop_runtime();
+            send_measurements();
+        }
         this->stop = true;
         return false;
     } else if (meta.message_type == 3){
@@ -133,7 +141,9 @@ bool StealingWorker::respond_to(struct meta meta, MPI_Status status){
         debug_output("received sat-model of size " + std::to_string(meta.count) + " from worker " + std::to_string(status.MPI_SOURCE), true);
         unsigned encoded_model[meta.count];
         MPI_Recv(encoded_model, meta.count, MPI_UNSIGNED, status.MPI_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+        
+        inc_recv_messages(meta.count * sizeof(unsigned));
+       
         // debug output of model
         debug_output("encoded model: ", false, 2);
         for (int i = 0; i < meta.count; i++) {
@@ -180,6 +190,8 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinFo
     struct meta meta;
     MPI_Status status;
     MPI_Recv(&meta, 1, meta_data_type, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    
+    inc_recv_messages(sizeof(struct meta));
 
     bool res = respond_to(meta, status);
     if(spinForMessage != -1 && spinForMessage != meta.message_type && res)
@@ -192,7 +204,7 @@ bool StealingWorker::check_and_process_message_from_worker(bool wait, int spinFo
  * callback that is used on a dpll branch
  * @param variables contains the variable assignments that some other worker should try
  */
-void StealingWorker::dpll_callback(std::unordered_set<Variable *> *variables) {
+void StealingWorker::dpll_callback(VariableSet *variables) {
     if(this->stop)
         return;
     if(this->my_rank == 0 && this->next_to_send < this->workers_size){
@@ -232,7 +244,10 @@ void StealingWorker::get_model() {
         int n = (int)(this->stealing_ratio * this->workers_size);
         if(n == this->workers_size)
             n--;
-        if(try_to_steal_from_n_workers(n)){
+        start_waiting();
+        bool stealed = try_to_steal_from_n_workers(n);
+        stop_waiting();
+        if(stealed){
             debug_output("Stealing successful. run_dpll()", true);
             run_dpll();
         } else
@@ -286,6 +301,8 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
     meta.message_type = i;
     meta.count = assigned;
 
+    inc_send_messages(sizeof(struct meta));
+
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_data_type, to_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -299,6 +316,9 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
  */
 MPI_Request StealingWorker::send_model(int to_rank, std::vector<unsigned> assigned) {
     debug_output("sending model of size " + std::to_string(assigned.size()), true);
+
+    inc_send_messages(assigned.size() * sizeof(unsigned));
+
     MPI_Request request;
     MPI_Isend(&assigned.front(), (int) assigned.size(), MPI_UNSIGNED, to_rank, 0, MPI_COMM_WORLD, &request);
     return request;
@@ -323,18 +343,9 @@ void StealingWorker::print_sat_stop_workers(CNF *cnf) {
  * Sends stop msg to all workers except myself.
  */
 void StealingWorker::stop_workers(){
-    struct meta meta;
-    meta.message_type = 2;
-    meta.count = 0;
-
-    int size = static_cast<int>(this->workers_size - 1);
-    MPI_Request mpi_requests[size];
-    int count = 0;
     for (int i = 0; i < this->workers_size; i++) {
         if (i != this->my_rank) {
-            struct meta meta_copy = meta;
-            MPI_Isend(&meta_copy, 1, this->meta_data_type, i, 0, MPI_COMM_WORLD, mpi_requests + count);
-            count++;
+            send_meta(i, 2, 0);
         }
     }
     debug_output("broadcast initiated", true);
@@ -347,7 +358,7 @@ void StealingWorker::stop_workers(){
  */
 void StealingWorker::output_sat_model(CNF *cnf){
     debug_output("prints sat model", true);
-    std::unordered_set<Variable *> *vars = cnf->get_model();
+    VariableSet *vars = cnf->get_model();
     // go through the variables and assign true to all the unassigned ones
     for (auto v : *vars) {
         if(!v->get_assigned()) {
@@ -399,11 +410,11 @@ void StealingWorker::parse_and_update_variables(unsigned int encoded[], int size
  * @param variables the set of variables to encode (only assigned ones are considered)
  * @return encoded vector
  */
-std::vector<unsigned> StealingWorker::encode_variables(std::unordered_set<Variable *> *variables) {
+std::vector<unsigned> StealingWorker::encode_variables(VariableSet *variables) {
     unsigned num_assigned = count_assigned(variables);
     std::vector<unsigned> encoded;
     encoded.reserve(num_assigned);
-    std::unordered_set<Variable *>::iterator iterator;
+    std::vector<Variable *>::iterator iterator;
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
             unsigned encoded_var = (unsigned) (*iterator)->get_name() << 1;
@@ -420,11 +431,10 @@ std::vector<unsigned> StealingWorker::encode_variables(std::unordered_set<Variab
  * counts number of assigned variables passed as parameter.
  * @return number of assigned variables
  */
-unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variables) {
+unsigned StealingWorker::count_assigned(VariableSet *variables) {
     unsigned num_assigned = 0;
-    std::unordered_set<Variable *>::iterator iterator;
-    for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
-        if ((*iterator)->get_assigned()) {
+    for (auto var : *variables) {
+        if (var->get_assigned()) {
             num_assigned++;
         }
     }
@@ -434,11 +444,11 @@ unsigned StealingWorker::count_assigned(std::unordered_set<Variable *> *variable
 /**
  * outputs given variable assignments to stderr
  */
-void StealingWorker::cerr_model(std::string info, std::unordered_set<Variable *> *variables) {
+void StealingWorker::cerr_model(std::string info, VariableSet *variables) {
     if(CERR_LEVEL < 1)
         return;
 
-    std::unordered_set<Variable *>::iterator iterator;
+    std::vector<Variable *>::iterator iterator;
     std::cerr << "StealingWorker " << my_rank << ": " << info << " model: (";
     for (iterator = variables->begin(); iterator != variables->end(); iterator++) {
         if ((*iterator)->get_assigned()) {
