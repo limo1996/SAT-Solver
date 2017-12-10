@@ -1,7 +1,8 @@
 import os
 import sys
 
-from experimentEuler import EulerTester
+sys.path.append('../')
+from euler import EulerTester
 
 import click
 import matplotlib.pyplot as plt
@@ -69,7 +70,7 @@ class StealVsMaster(AbstractExperiment):
         overall_runtime_minutes = 14 * 59
         tester = EulerTester(FOLDER, nethz_username, self.num_nodes, REPETITIONS,
                              TIMEOUT, overall_runtime_minutes)
-        tester.run_test()
+        tester.run_test('..', 'bsub_script2.sh')
 
     def processs_euler_experiment(self):
         self.re_init_data()
