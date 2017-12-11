@@ -15,7 +15,15 @@ class CommPlotter(object):
         self.folder = folder
         self.selected_tests = (
             'flat75-4',
-            'par8-1-c'
+            'par8-1-c',
+            'ais6',
+            'ais8',
+            'anomaly',
+            'flat50-1',
+            'ii8a1',
+            'ii8a2',
+            'medium',
+            'par8-5'
         )
         self.process()
         self.plot()
