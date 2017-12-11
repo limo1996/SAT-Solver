@@ -26,10 +26,10 @@ class EulerTester(object):
               .format(self.overall_runtime_minutes))
         print('         test_folder: {}'.format(self.folder))
 
-    def package_tar(self, basepath):
+    def package_tar(self, basepath, script):
         tar = tarfile.open('{}/to_euler.tar'.format(basepath), 'w')
         tar.add('{}/run_me_on_euler.sh'.format(basepath))
-        tar.add('{}/bsub_script.sh'.format(basepath))
+        tar.add('{}/{}'.format(basepath, script))
         tar.add('{}/../CMakeLists.txt'.format(basepath),
                 arcname='CMakeLists.txt')
         tar.add('{}/../src'.format(basepath), arcname='src')
@@ -84,7 +84,7 @@ class EulerTester(object):
         print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
 
     def run_test_for_num_nodes(self, basepath, script='bsub_script.sh'):
-        tar = self.package_tar(basepath)
+        tar = self.package_tar(basepath, script)
 
         scp_process = subprocess.Popen(['scp',
                                         '-o PreferredAuthentications=password',

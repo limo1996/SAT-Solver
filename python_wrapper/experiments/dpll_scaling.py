@@ -20,17 +20,17 @@ class DpllScaling(AbstractExperiment):
     def run_experiment(self):
         test_folder = 'benchmark_formulas'
         # number of cores
-        num_nodes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 20, 24, 32, 48]
+        num_nodes = [2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 20, 24, 32, 40, 48]
         # number of runs per formula
-        num_runs = 1
+        num_runs = 10
         # timeout per formula in seconds
         timeout = 120
         # overall runtime in minutes
-        overall_runtime_minutes = 20
+        overall_runtime_minutes = 1400
         nethz_username = get_netz_username()
         tester = EulerTester(test_folder, nethz_username, num_nodes, num_runs,
                              timeout, overall_runtime_minutes)
-        tester.run_test(basepath='..')
+        tester.run_test(basepath='..', script='bsub_script_scaling.sh')
 
     def process_euler_experiment(self):
         self.data = parse_into_dict('measurements.tar')
