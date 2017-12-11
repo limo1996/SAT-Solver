@@ -22,11 +22,11 @@ class DpllScaling(AbstractExperiment):
         # number of cores
         num_nodes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 20, 24, 32, 48]
         # number of runs per formula
-        num_runs = 10
+        num_runs = 1
         # timeout per formula in seconds
-        timeout = 10
+        timeout = 120
         # overall runtime in minutes
-        overall_runtime_minutes = 500
+        overall_runtime_minutes = 20
         nethz_username = get_netz_username()
         tester = EulerTester(test_folder, nethz_username, num_nodes, num_runs,
                              timeout, overall_runtime_minutes)
@@ -36,6 +36,10 @@ class DpllScaling(AbstractExperiment):
         self.data = parse_into_dict('measurements.tar')
 
     def plot(self):
+        self._runtime_plot()
+        self._speedup_plot()
+
+    def _runtime_plot(self):
         for f, v in self.data.items():
             xs = []
             ys = []
@@ -58,12 +62,43 @@ class DpllScaling(AbstractExperiment):
             ys = [y for _, y in sorted(zip(xs, ys))]
             xs = sorted(xs)
             plt.figure()
-            plt.errorbar(xs, ys, yerr=[lowers, uppers], fmt='o')
-            plt.title(f)
+            plt.errorbar(xs, ys, yerr=[lowers, uppers], fmt='o',
+                         markerfacecolor='none')
+            plt.title('{}.cnf'.format(f))
             plt.ylim(0, max(ys) + 500)
             plt.xlabel('# cores')
             plt.ylabel('avg runtime [ms]')
-            plt.savefig('{}.png'.format(f))
+            plt.savefig('figures/{}.png'.format(f))
+
+    def _speedup_plot(self):
+        for f, v in self.data.items():
+            xs = []
+            ys = []
+            lowers = []
+            uppers = []
+            if 'seq' in v:
+                sequential = np.array(v['seq']['time']).flatten()
+                for cores, v_ in v['parallel'].items():
+                    xs.append(int(cores))
+                    parallel = []
+                    for times in v_['time']:
+                        parallel.append(np.mean(times))
+                    speedup = sequential / parallel
+                    mean_speedup = np.mean(speedup)
+                    ys.append(mean_speedup)
+                    lower, upper = conf_95_mean(speedup)
+                    lowers.append(mean_speedup - lower)
+                    uppers.append(upper - mean_speedup)
+                ys = [y for _, y in sorted(zip(xs, ys))]
+                xs = sorted(xs)
+                plt.figure()
+                plt.errorbar(xs, ys, yerr=[lowers, uppers], fmt='o',
+                             markerfacecolor='none')
+                plt.plot([0, max(xs)], [0, max(xs)], '--')
+                plt.title('{}.cnf'.format(f))
+                plt.xlabel('# cores')
+                plt.ylabel('speedup')
+                plt.savefig('figures/{}_speedup.png'.format(f))
 
 
 @click.command()

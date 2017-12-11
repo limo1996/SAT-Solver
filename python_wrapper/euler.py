@@ -43,7 +43,7 @@ class EulerTester(object):
         tar.close()
         return tar
 
-    def run_test(self, basepath='.'):
+    def run_test(self, basepath='.', script='bsub_script.sh'):
         test_folder_file = open('{}/test_folder.txt'.format(basepath), 'w')
         test_folder_file.truncate()
         test_folder_file.write(str(self.folder))
@@ -73,7 +73,7 @@ class EulerTester(object):
         runtime_file.write(str(self.overall_runtime_minutes))
         runtime_file.close()
 
-        self.run_test_for_num_nodes(basepath)
+        self.run_test_for_num_nodes(basepath, script=script)
 
         os.remove('{}/test_folder.txt'.format(basepath))
         os.remove('{}/num_nodes.txt'.format(basepath))
@@ -83,7 +83,7 @@ class EulerTester(object):
         print('once the job is finished, run the following command to download the results file:')
         print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
 
-    def run_test_for_num_nodes(self, basepath):
+    def run_test_for_num_nodes(self, basepath, script='bsub_script.sh'):
         tar = self.package_tar(basepath)
 
         scp_process = subprocess.Popen(['scp',
@@ -111,7 +111,7 @@ class EulerTester(object):
             'echo "unpacking tar archive..."',
             'tar -xvf to_euler.tar > /dev/null',
             'echo "calling run_me_on_euler.sh..."',
-            './run_me_on_euler.sh bsub_script.sh',
+            './run_me_on_euler.sh {}'.format(script),
             'echo "END"'
         ]
         for c in commands:

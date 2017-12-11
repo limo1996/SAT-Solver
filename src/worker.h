@@ -32,6 +32,10 @@ public:
         data[2] = get_all_messages();
         MPI_Send(data, 3, MPI_UNSIGNED, 0, 2, MPI_COMM_WORLD);
     }
+
+    bool get_stop() {
+        return stop;
+    }
 };
 
 
