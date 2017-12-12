@@ -33,6 +33,10 @@ public:
         data[3] = get_send_meta();
         MPI_Send(data, 4, MPI_UNSIGNED, 0, 2, MPI_COMM_WORLD);
     }
+
+    bool get_stop() {
+        return stop;
+    }
 };
 
 

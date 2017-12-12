@@ -4,6 +4,7 @@ import tarfile
 import socket
 import subprocess
 import time
+import shutil
 from collections import namedtuple
 
 import numpy as np
@@ -34,6 +35,7 @@ def get_info(filename):
 def parse_into_dict(tar_name):
     tar = tarfile.open(tar_name)
     folder_name = tar_name.split('.tar')[0]
+    shutil.rmtree(folder_name)
     tar.extractall(path=folder_name)
     tar.close()
     files = ['measurements/{}'.format(f)

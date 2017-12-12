@@ -26,10 +26,10 @@ class EulerTester(object):
               .format(self.overall_runtime_minutes))
         print('         test_folder: {}'.format(self.folder))
 
-    def package_tar(self, basepath, exe_script):
+    def package_tar(self, basepath, script):
         tar = tarfile.open('{}/to_euler.tar'.format(basepath), 'w')
         tar.add('{}/run_me_on_euler.sh'.format(basepath))
-        tar.add('{}/{}'.format(basepath, exe_script))
+        tar.add('{}/{}'.format(basepath, script))
         tar.add('{}/../CMakeLists.txt'.format(basepath),
                 arcname='CMakeLists.txt')
         tar.add('{}/../src'.format(basepath), arcname='src')
@@ -43,7 +43,7 @@ class EulerTester(object):
         tar.close()
         return tar
 
-    def run_test(self, basepath='.', exe_script='bsub_script.sh'):
+    def run_test(self, basepath='.', script='bsub_script.sh'):
         test_folder_file = open('{}/test_folder.txt'.format(basepath), 'w')
         test_folder_file.truncate()
         test_folder_file.write(str(self.folder))
@@ -73,7 +73,7 @@ class EulerTester(object):
         runtime_file.write(str(self.overall_runtime_minutes))
         runtime_file.close()
 
-        self.run_test_for_num_nodes(basepath, exe_script)
+        self.run_test_for_num_nodes(basepath, script=script)
 
         os.remove('{}/test_folder.txt'.format(basepath))
         os.remove('{}/num_nodes.txt'.format(basepath))
@@ -85,8 +85,8 @@ class EulerTester(object):
         print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/wait_measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
         print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/comm_measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
 
-    def run_test_for_num_nodes(self, basepath, exe_script):
-        tar = self.package_tar(basepath, exe_script)
+    def run_test_for_num_nodes(self, basepath, script='bsub_script.sh'):
+        tar = self.package_tar(basepath, script)
 
         scp_process = subprocess.Popen(['scp',
                                         '-o PreferredAuthentications=password',
@@ -113,7 +113,7 @@ class EulerTester(object):
             'echo "unpacking tar archive..."',
             'tar -xvf to_euler.tar > /dev/null',
             'echo "calling run_me_on_euler.sh..."',
-            './run_me_on_euler.sh {}'.format(exe_script),
+            './run_me_on_euler.sh {}'.format(script),
             'echo "END"'
         ]
         for c in commands:

@@ -223,9 +223,13 @@ DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
         config->branching_limit--;
         set_variable_value(cnf, var, false);
         config->worker->dpll_callback(cnf->get_model());
-        unset_variable_value(cnf, var);
-        set_variable_value(cnf, var, true);
-        return DPLLalgorithm(cnf);
+        if (config->worker->get_stop()) {
+            return new DpllResult(false, nullptr);
+        } else {
+            unset_variable_value(cnf, var);
+            set_variable_value(cnf, var, true);
+            return DPLLalgorithm(cnf);
+        }
     }
 }
 
