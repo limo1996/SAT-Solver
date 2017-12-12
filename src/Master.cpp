@@ -60,6 +60,7 @@ MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_type, to_rank, 0, MPI_COMM_WORLD, &request);
     inc_send_messages(sizeof(struct meta));
+    inc_send_meta_cout();
     return request;
 }
 
@@ -79,6 +80,7 @@ void Master::stop_workers(){
             struct meta meta_copy = meta;
             MPI_Isend(&meta_copy, 1, this->meta_type, i, 1, MPI_COMM_WORLD, mpi_requests + count);
             inc_send_messages(sizeof(struct meta));
+            inc_send_meta_cout();
             count++;
         }
     }
@@ -93,7 +95,7 @@ void Master::stop_workers(){
 void Master::receive_and_log_measurements() {
     // add the measurement of the master:
     stop_runtime();
-    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_send_messages()};
+    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_send_messages(), get_send_meta()};
     measurement->add_measurement(master);
     for (int i=0; i<all_ranks; i++) {
         if (i != my_rank) {

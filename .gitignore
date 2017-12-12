@@ -99,6 +99,7 @@ cmake_install.cmake
 *.time
 *.wait
 *.comm
+*.comm2
 
 # latex stuff
 *.aux

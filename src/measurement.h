@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 
-const int NUM_MEASUREMENTS = 3;
+const int NUM_MEASUREMENTS = 4;
 
 class Measurement {
 private:
@@ -40,6 +40,7 @@ public:
         files.push_back(raw_name + "_" + prefix + ".time");
         files.push_back(raw_name + "_" + prefix + ".wait");
         files.push_back(raw_name + "_" + prefix + ".comm");
+        files.push_back(raw_name + "_" + prefix + ".comm2");
     }
 };
 

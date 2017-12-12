@@ -11,12 +11,13 @@ private:
     high_resolution_clock::time_point run_time_start;
     unsigned runtime;
 
-    high_resolution_clock::time_point waiting_start;                                            // time when measurement started
+    high_resolution_clock::time_point waiting_start;                                             // time when measurement started
     unsigned waiting_time;
 
-    bool waiting_started;                                                               // indicates whether measurement started
+    bool waiting_started;                                                                        // indicates whether measurement started
     unsigned send_messages;                                                                      // number of send messages
     unsigned received_messages;                                                                  // number of received messages
+    unsigned send_meta;                                                                          // number of meta data send
 
 public:
     unsigned get_waiting_time() { return waiting_time; }                                          // gets waiting time of worker (for models from master)
@@ -26,6 +27,7 @@ public:
         waiting_time = 0;
         send_messages = 0;
         received_messages = 0;
+        send_meta = 0;
         waiting_started = false;
     }
 
@@ -54,9 +56,11 @@ public:
     unsigned get_all_messages() { return send_messages + received_messages; }
     unsigned get_send_messages() { return send_messages; }
     unsigned get_recv_messages() { return received_messages; }
+    unsigned get_send_meta() { return send_meta; }
 
     void inc_send_messages(unsigned bytes_sent) { send_messages += bytes_sent; }
     void inc_recv_messages(unsigned bytes_recv) { received_messages += bytes_recv; }
+    void inc_send_meta_cout() { send_meta++; }
 
     unsigned get_runtime() {
         return runtime;

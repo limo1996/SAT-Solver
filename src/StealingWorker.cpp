@@ -302,6 +302,7 @@ MPI_Request StealingWorker::send_meta(int to_rank, char i, unsigned assigned) {
     meta.count = assigned;
 
     inc_send_messages(sizeof(struct meta));
+    inc_send_meta_cout();
 
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_data_type, to_rank, 0, MPI_COMM_WORLD, &request);

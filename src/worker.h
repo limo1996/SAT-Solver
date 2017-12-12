@@ -26,11 +26,12 @@ public:
 
     void send_measurements() {
         stop_runtime();
-        unsigned data[3];
+        unsigned data[4];
         data[0] = get_runtime();
         data[1] = get_waiting_time();
         data[2] = get_send_messages();
-        MPI_Send(data, 3, MPI_UNSIGNED, 0, 2, MPI_COMM_WORLD);
+        data[3] = get_send_meta();
+        MPI_Send(data, 4, MPI_UNSIGNED, 0, 2, MPI_COMM_WORLD);
     }
 };
 

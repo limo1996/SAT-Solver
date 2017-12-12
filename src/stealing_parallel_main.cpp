@@ -84,7 +84,8 @@ int main(int argc, char *argv[]) {
         worker->stop_runtime();
         auto measurements = std::vector<unsigned>({worker->get_runtime(),
                                                    worker->get_waiting_time(),
-                                                   worker->get_all_messages()});
+                                                   worker->get_all_messages(),
+                                                   worker->get_send_meta()});
         measurement->add_measurement(measurements);
         for (int i = 1; i < size; i++) {
             unsigned data[NUM_MEASUREMENTS];
