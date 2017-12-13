@@ -190,7 +190,7 @@ DpllResult *DPLL::DPLLalgorithm(CNF *cnf) {
  * The second option is used in the parallel setting
  */
 DpllResult *DPLL::branch_on_variable(Variable *var, CNF *cnf) {
-    if (CERR_LEVEL >= 2) {
+    if (CERR_LEVEL >= 1) {
         std::cerr << "dppl branch on " << var->get_name() << std::endl;
     }
     bool solve_locally = config->branching_limit <= 0 || config->worker == nullptr;
