@@ -12,6 +12,10 @@ rm -rf *.time
 find . -name "*.comm" -type f -delete
 find . -name "*.wait" -type f -delete
 find . -name "*.time" -type f -delete
+
+rm uuf50-01.cnf
+rm uuf50-02.cnf
+
 FILES=*.cnf
 
 for nodes in ${num_nodes}

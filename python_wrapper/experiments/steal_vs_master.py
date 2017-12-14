@@ -18,7 +18,7 @@ parent_parent = os.path.join(os.pardir, os.pardir)
 CNF_FOLDER = os.path.join(parent_parent, os.path.join('cnfs', FOLDER))
 EXECUTABLES = ['stealing', 'parallel']
 REPETITIONS = 10
-TIMEOUT = 80
+TIMEOUT = 120
 
 
 class StealVsMaster(AbstractExperiment):
@@ -33,7 +33,7 @@ class StealVsMaster(AbstractExperiment):
             self.name = 'StealVsMasterEuler'
 
         # number of cores
-        self.num_nodes = [4, 8, 16, 24, 32, 48]
+        self.num_nodes = [2, 3, 4, 6, 9, 16, 20, 24, 28, 32, 38, 43, 48]
 
     def run_experiment(self):
         if self.onEuler:
@@ -67,7 +67,7 @@ class StealVsMaster(AbstractExperiment):
             return
 
         # overall runtime in minutes
-        overall_runtime_minutes = 14 * 59
+        overall_runtime_minutes = 18 * 59
         tester = EulerTester(FOLDER, nethz_username, self.num_nodes, REPETITIONS,
                              TIMEOUT, overall_runtime_minutes)
         tester.run_test('..', 'bsub_script2.sh')

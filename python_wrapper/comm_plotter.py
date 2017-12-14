@@ -5,26 +5,14 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 
+from scipy.interpolate import spline
+
 sys.path.append('experiments')
-
 from utils import conf_95_mean
-
-# creates table for communication
+# plots communication and waiting time comparisons between stealing and parallel
 class CommPlotter(object):
     def __init__(self, folder):
         self.folder = folder
-        self.selected_tests = (
-            'flat75-4', #perfect
-            #'par8-1-c', #comm not good
-            'ais6', #good
-            #'ais8', #quite weird but ok
-            #'anomaly',
-            #'flat50-1',#good
-            #'ii8a1',#weird comm for 32 and 48
-            #'ii8a2', parallel failed
-            #'medium',#perfect
-            #'par8-5'#perfect
-        )
         self.process()
         self.plot()
 
@@ -37,18 +25,19 @@ class CommPlotter(object):
         self.data = {}
         self.data['wait'] = {}
         self.data['comm'] = {}
+        self.data['comm2'] = {}
 
         self.data['wait']['stealing'] = self.process_case('stealing.wait')
         self.data['wait']['parallel'] = self.process_case('parallel.wait')
         self.data['comm']['stealing'] = self.process_case('stealing.comm')
         self.data['comm']['parallel'] = self.process_case('parallel.comm')
+        self.data['comm2']['stealing'] = self.process_case('stealing.comm2')
+        self.data['comm2']['parallel'] = self.process_case('parallel.comm2')
 
     def process_case(self, case):
         result = {}
+        tmpData = {}
         for f in self.getfiles(case):
-            if not any(str in f for str in self.selected_tests):
-                continue
-            print f
             file = open(f, 'r')
             res = {}
             sums = {}
@@ -60,8 +49,6 @@ class CommPlotter(object):
                 if not line or line == "":
                     continue
                 numbers = map(int, line.split(' '))
-                print sum(numbers)
-                print len(numbers)
                 if len(numbers) not in sums:
                     sums[len(numbers)] = []
                 if 'parallel.wait' in case:
@@ -70,101 +57,59 @@ class CommPlotter(object):
                     sums[len(numbers)].append(np.mean(numbers))
                 else:
                     sums[len(numbers)].append(sum(numbers))
-            x = []
-            y = []
             for k, v in sums.iteritems():
-                x.append(k)
-                if 'wait' in case:
-                    y.append(v)
-                else:
-                    y.append(sum(v) / len(v))
-            res['x'] = x
-            res['y'] = y
-            print x
-            print y
-            result[f] = res
+                if k not in tmpData:
+                    tmpData[k] = []
+                tmpData[k].append(sum(v) / len(v))
+        x = []
+        y = []
+        for k, v in sorted(tmpData.iteritems()):
+            x.append(k)
+            y.append(v)
+        result['x'] = x
+        result['y'] = y
         return result
 
     def plot(self):
-        #for test in self.selected_tests:
-        self.plot_wait(self.data['wait'], self.selected_tests)
-        self.plot_comm(self.data['comm'], self.selected_tests, 'bytes transfered')
+        self.plot_case(self.data['wait'], 'overall waiting time [ms]', 'Waiting')
+        self.plot_case(self.data['comm'], 'bytes transfered [B]', 'Communication')
+        self.plot_case(self.data['comm2'], '# of meta data sent', 'Requests')
         
-    def plot_comm(self, case, tests, ylabel):
+    def plot_case(self, case, ylabel, title):
         i = 0
-        colors = ['ro', 'go', 'bo', 'mo']
-        for key, value in case['parallel'].iteritems():
-            for test in tests:
-                if test in key:
-                    plt.plot(value['x'], value['y'], colors[i], label='Parallel {}'.format(test))
-                    print key 
-                    print value['x']
-                    print value['y']
-                    i+=1
+        colors = {}
+        colors['stealing'] = ['firebricks', 'firebrick']
+        colors['parallel'] = ['teal', 'teal']
+        offset = {}
+        offset['parallel'] = -0.6
+        offset['stealing'] = 0
 
-        for key, value in case['stealing'].iteritems():
-            for test in tests:
-                if test in key:
-                    plt.plot(value['x'], value['y'], colors[i], label='Stealing {}'.format(test))
-                    print key 
-                    print value['x']
-                    print value['y']
-                    i+=1
+        for type in ['parallel', 'stealing']:
+            lower_error = []
+            upper_error = []
+            ys = []
+            xs = []
+            for data in case[type]['x']:
+                xs.append(data + offset[type])
+            for data in case[type]['y']:
+                mean = np.mean(data)
+                ys.append(mean)
+                lower, upper = conf_95_mean(data)
+                lower_error.append(mean-lower)
+                upper_error.append(upper-mean)
+            plt.errorbar(xs, ys,
+                    yerr=[lower_error, upper_error],
+                    #label='{} version'.format(type),
+                    fmt='D',
+                    color=colors[type][1],
+                    linewidth=1,
+                    markerfacecolor='none')
+            
+            plt.plot(xs, ys, '--', color=colors[type][1], label='{} version'.format(type), linewidth=1)
 
-        plt.title(test)
-        plt.xlabel('threads')
+        plt.title(title)
+        plt.xlabel('# cores')
         plt.ylabel(ylabel);
         plt.legend(loc=1)
-        plt.gcf().savefig('../results/communication/{}.pdf'.format(test),
-                    format='pdf')
-        plt.show()
-    
-    def plot_wait(self, case, tests):
-        i = -1
-        colors = ['r', 'b', 'g', 'm']
-        for key, value in case['parallel'].iteritems():
-            for test in tests:
-                if test in key:
-                    lower_error = []
-                    upper_error = []
-                    ys = []
-                    for data in value['y']:
-                        mean = np.mean(data)
-                        ys.append(mean)
-                        lower, upper = conf_95_mean(data)
-                        lower_error.append(mean-lower)
-                        upper_error.append(upper-mean)
-                    i+=1
-                    plt.errorbar(value['x'], ys,
-                        yerr=[lower_error, upper_error],
-                        label='Parallel {}'.format(test),
-                        fmt='o',
-                        color=colors[i],
-                        markerfacecolor='none')
-
-        for key, value in case['stealing'].iteritems():
-            for test in tests:
-                if test in key:
-                    lower_error = []
-                    upper_error = []
-                    ys = []
-                    for data in value['y']:
-                        mean = np.mean(data)
-                        ys.append(mean)
-                        lower, upper = conf_95_mean(data)
-                        lower_error.append(mean-lower)
-                        upper_error.append(upper-mean)
-                    i+=1
-                    plt.errorbar(value['x'], ys,
-                        yerr=[lower_error, upper_error],
-                        label='Stealing {}'.format(test),
-                        fmt='D',
-                        color=colors[i],
-                        markerfacecolor='none')
-        plt.title(test)
-        plt.legend(loc=1)
-        plt.xlabel('threads')
-        plt.ylabel('average waiting time [ms]');
-        plt.gcf().savefig('../results/waiting/{}.pdf'.format(test),
-                    format='pdf')
+        plt.gcf().savefig('../results/communication/overall.pdf', format='pdf')
         plt.show()
