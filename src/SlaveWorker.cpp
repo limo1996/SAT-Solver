@@ -132,6 +132,7 @@ MPI_Request SlaveWorker::send_meta(char i, unsigned assigned) {
     meta.count = assigned;
 
     inc_send_messages(sizeof(struct meta));
+    inc_send_meta_cout();
 
     MPI_Request request;
     MPI_Isend(&meta, 1, meta_data_type, 0, 0, MPI_COMM_WORLD, &request);

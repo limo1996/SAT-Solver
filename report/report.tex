@@ -67,12 +67,12 @@ should write the abstract last.
 
 \mypar{Motivation}
 
+
 :why it is important? - because it is used it model checking(formal verification), automated planning and scheduling, Combinatorial design and many more. Many problems are transformed into boolean formulas which are than solved with SAT solvers.
 
 :why you are doing? - Current trends in computer hardware design decrease performance per processing unit and pack more units on a single processor. It happened because thermal wall stopped further increase of clock speed. However, algorithms for SAT solving like DPLL and CDCL were invented before wide use of parallelism and therefore were designed for sequential execution. Since SAT is NP-complete problem, it is the right candidate for running it in parallel.
 
 :what are you doing? - In our approach, we are trying to exploit more cores(bring parallelism to SAT solving). This should lead to significant increase of speed and scalability. 
-
 
 -----------------------------------------------\\
 
@@ -102,6 +102,13 @@ references. Briefly explain what they do. In the end contrast to what
 you do to make now precisely clear what your contribution is.
 
 \section{Background: Whatever the Background is}\label{sec:background}
+
+In this section we are going to have a look at history of SAT solving algorithms as well as new challenges that parallel computing brings to world of SAT solvers. 
+
+SAT solver is program that is able to decide whether given formula is satisfiable i.e. there exists assignment of variables that makes whole formula true-satisfiable or not-unsatisfiable. 
+First algorithm was develop in 1960 by Martin Davis and Hilary Putnam for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic.
+%[src: https://en.wikipedia.org/wiki/Davis%E2%80%93Putnam_algorithm]. 
+Since Davis-Putnam algorithm was able to handle just valid formulas, more general procedure for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL after Davis–Putnam–Logemann–Loveland. Its  backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention there were many algorithms proposed, which improve runtime of SAT solving significantly. 
 
 Give a short, self-contained summary of necessary
 background information. For example, assume you present an

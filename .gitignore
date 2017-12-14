@@ -19,6 +19,8 @@
 *.*#
 core
 !core/
+src/.vscode
+python_wrapper/.vscode
 tags
 .DS_Store
 .directory
@@ -97,6 +99,7 @@ cmake_install.cmake
 *.time
 *.wait
 *.comm
+*.comm2
 
 # latex stuff
 *.aux

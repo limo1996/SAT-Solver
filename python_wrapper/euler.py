@@ -81,7 +81,9 @@ class EulerTester(object):
         os.remove('{}/timeout.txt'.format(basepath))
         os.remove('{}/overall_runtime_minutes.txt'.format(basepath))
         print('once the job is finished, run the following command to download the results file:')
-        print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
+        print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/time_measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
+        print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/wait_measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
+        print('scp -o PreferredAuthentications=password -o PubkeyAuthentication=no {0}@euler.ethz.ch:{1}/{2}/comm_measurements.tar .'.format(self.nethz_username, self.euler_folder_name, self.folder))
 
     def run_test_for_num_nodes(self, basepath, script='bsub_script.sh'):
         tar = self.package_tar(basepath, script)

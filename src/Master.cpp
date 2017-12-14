@@ -60,6 +60,7 @@ MPI_Request Master::send_meta(int to_rank, char message_type, unsigned assigned_
     MPI_Request request;
     MPI_Isend(&meta, 1, this->meta_type, to_rank, 0, MPI_COMM_WORLD, &request);
     inc_send_messages(sizeof(struct meta));
+    inc_send_meta_cout();
     return request;
 }
 
@@ -79,6 +80,7 @@ void Master::stop_workers(){
             struct meta meta_copy = meta;
             MPI_Isend(&meta_copy, 1, this->meta_type, i, 1, MPI_COMM_WORLD, mpi_requests + count);
             inc_send_messages(sizeof(struct meta));
+            inc_send_meta_cout();
             count++;
         }
     }
@@ -93,7 +95,7 @@ void Master::stop_workers(){
 void Master::receive_and_log_measurements() {
     // add the measurement of the master:
     stop_runtime();
-    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_all_messages()};
+    std::vector<unsigned> master = {get_runtime(), get_waiting_time(), get_send_messages(), get_send_meta()};
     measurement->add_measurement(master);
     for (int i=0; i<all_ranks; i++) {
         if (i != my_rank) {
@@ -132,7 +134,8 @@ MPI_Request Master::send_model(unsigned *variables, size_t size, int worker_rank
 
 /**
  * Listens to workers and if someone send a task than master adds it to the queue. Message value: 10
- * @param size size of the incoming task
+ * @param size of the model to receive
+ * @param rank from which to receive
  */
 void Master::add_new_task(int size, int rank){
     unsigned* encoded_model = new unsigned[size];
@@ -143,6 +146,8 @@ void Master::add_new_task(int size, int rank){
 
 /**
  * Receives a sat model and outputs it
+ * @param size of the model to receive
+ * @param rank from which to receive
  */
 void Master::receive_and_output_sat_model(int size, int rank) {
     unsigned* encoded_model = new unsigned[size];

@@ -1,7 +1,8 @@
 import os
 import sys
 
-from experimentEuler import EulerTester
+sys.path.append('../')
+from euler import EulerTester
 
 import click
 import matplotlib.pyplot as plt
@@ -12,12 +13,12 @@ from utils import run_n_times, get_results, delete_files_in_folder, get_info, \
     Info, conf_95_mean
 
 
-FOLDER = 'steal_vs_master'
+FOLDER = 'benchmark_formulas'
 parent_parent = os.path.join(os.pardir, os.pardir)
 CNF_FOLDER = os.path.join(parent_parent, os.path.join('cnfs', FOLDER))
 EXECUTABLES = ['stealing', 'parallel']
 REPETITIONS = 10
-TIMEOUT = 20
+TIMEOUT = 120
 
 
 class StealVsMaster(AbstractExperiment):
@@ -32,12 +33,13 @@ class StealVsMaster(AbstractExperiment):
             self.name = 'StealVsMasterEuler'
 
         # number of cores
-        self.num_nodes = [4, 8, 16, 24, 32, 48]
+        self.num_nodes = [2, 3, 4, 6, 9, 16, 20, 24, 28, 32, 38, 43, 48]
 
     def run_experiment(self):
         if self.onEuler:
             self.run_euler_experiment(self.nethz_username)
-            self.processs_euler_experiment()
+            if self.nethz_username == 'xxx':
+                self.processs_euler_experiment()
             return
 
         self.re_init_data()
@@ -65,10 +67,10 @@ class StealVsMaster(AbstractExperiment):
             return
 
         # overall runtime in minutes
-        overall_runtime_minutes = 4 * 59
+        overall_runtime_minutes = 18 * 59
         tester = EulerTester(FOLDER, nethz_username, self.num_nodes, REPETITIONS,
                              TIMEOUT, overall_runtime_minutes)
-        tester.run_test()
+        tester.run_test('..', 'bsub_script2.sh')
 
     def processs_euler_experiment(self):
         self.re_init_data()
