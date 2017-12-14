@@ -24,7 +24,7 @@
 %
 % Single address.
 % ---------------
-\name{Jan Eberhardt, Jakub Lichman, Ziwei Huang}
+\name{Jan Eberhardt, Jakub Lichman}
 \address{Department of Computer Science\\ ETH Zurich\\Zurich, Switzerland}
 
 % For example:
@@ -103,34 +103,48 @@ you do to make now precisely clear what your contribution is.
 
 \section{Background: Whatever the Background is}\label{sec:background}
 
-In this section we are going to have a look at history of SAT solving algorithms as well as new challenges that parallel computing brings to world of SAT solvers. 
-
-SAT solver is program that is able to decide whether given formula is satisfiable i.e. there exists assignment of variables that makes whole formula true-satisfiable or not-unsatisfiable. 
+//Jakubs version
+SAT solver is program that is able to decide whether given formula is satisfiable i.e. there exists assignment of variables that makes whole formula true-satisfiable or not-unsatisfiable.
 First algorithm was develop in 1960 by Martin Davis and Hilary Putnam for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic.
-%[src: https://en.wikipedia.org/wiki/Davis%E2%80%93Putnam_algorithm]. 
-Since Davis-Putnam algorithm was able to handle just valid formulas, more general procedure for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL after Davis–Putnam–Logemann–Loveland. Its  backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention there were many algorithms proposed, which improve runtime of SAT solving significantly. 
+%[src: https://en.wikipedia.org/wiki/Davis%E2%80%93Putnam_algorithm].
+Since Davis-Putnam algorithm was able to handle just valid formulas, more general procedure for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL after Davisï¿½Putnamï¿½Logemannï¿½Loveland. Its  backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention there were many algorithms proposed, which improve runtime of SAT solving significantly.
 
-Give a short, self-contained summary of necessary
-background information. For example, assume you present an
-implementation of sorting algorithms. You could organize into sorting
-definition, algorithms considered, and asymptotic runtime statements. The goal of the
-background section is to make the paper self-contained for an audience
-as large as possible. As in every section
-you start with a very brief overview of the section. Here it could be as follows: In this section 
-we formally define the sorting problem we consider and introduce the algorithms we use
-including a cost analysis.
+\mypar{SAT}
+The SAT problem is the following:
+Given a propositional logic formula $F$ we try to find a valid assignmen of variables $v_i$ of $F$.
+A valid assignment is one that makes the formula $F$ true.
+More formally:
 
-\mypar{Sorting}
-Precisely define sorting problem you consider.
+The question that a SAT solver needs to answer is the following:
+Given a formula $F$, is it satisfiable?
+And if so what would be a valid variable assignment?
 
-\mypar{Sorting algorithms}
-Explain the algorithm you use including their costs.
+//TODO Nice small figure here
 
-As an aside, don't talk about "the complexity of the algorithm.'' It's incorrect,
-problems have a complexity, not algorithms.
+\mypar{DPLL}
+The Dasdf Pasdf Lasdf Lasdf algorithm or DPLL was introduced by D P and L in 19XX. \ref{dpll}
+It is an extension of the DP algorithm. \ref{dp}
+DPLL solve a SAT problem by modelling it as a decision tree, variables can either be assigned \texttt{true} or \texttt{false}.
+In every step DPLL tries to find variables that are "automatically" assigned because of a previous decision,
+if there are none it will pick a variable $v_i$ and assume a value for it.
+If it later turns out that this decision was wrong it backtracks to that point and picks the negated assignment for variable $v_i$.
 
+\section{Parallelizing DPLL}\label{sec:parallel_dpll}
 
-\section{Your Proposed Method}\label{sec:yourmethod}
+We decided to parallelize DPLL because it is a relatively simple backtracking algorithm and therefore it does not require any advanced communication.
+Subtasks can be solved individually and therefore also on different nodes.
+
+\mypar{DPLL Branches}
+As introduced in Section \ref{sec:background} the DPLL algorithm at some point needs to make a decision.
+If there are no more variables that can be assigned trivially, we need to pick one variable and just assume that it is either \texttt{true} or \texttt{false}.
+That is exactly the point where we can let some other node solve the other branch.
+There looked at two different ways on how to split the work between multiple nodes.
+Firstly a master slave communication pattern, where one node is in charge of storing partial models and eventually passing them on to a slave or worker that will solve it.
+And secondly a work stealing scheduling communication model where each node runs on its own and if it runs out of work and the model is not solved yet,
+it picks a random other node and requests a partial model to work on from that node.
+
+\mypar{Worker Slave Model}
+//TODO introduce the model and
 
 Now comes the ``beef'' of the report, where you explain what you
 did. Again, organize it in paragraphs with titles. As in every section
