@@ -19,6 +19,7 @@ void printHelp();
 
 void default_args(map<string, string> *arg_map) {
     arg_map->insert({"-s", "DPLL"});
+    arg_map->insert({"-cerr-level", "0"});
 };
 
 int main(int argc, char *argv[]) {
@@ -29,6 +30,7 @@ int main(int argc, char *argv[]) {
     map<std::string, std::string> arg_map;
     default_args(&arg_map);
     parse_args(&arg_map, argc, argv);
+    CERR_LEVEL = std::stoi(arg_map["-cerr-level"]);
 
     // for timestamp
     const char *path = argv[argc - 1];

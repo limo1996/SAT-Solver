@@ -30,13 +30,17 @@ do
     done
 done
 
+# remove the two unsat formulas
+rm uuf50-01.cnf
+rm uuf50-02.cnf
+
 for nodes in ${num_nodes}
 do
     for file in ${FILES}
     do
         for run in $(seq 1 $num_runs)
         do
-            timeout "$timeout"s mpirun -np "$nodes" ../stealing_parallel_main "$file" > "$file".out
+            timeout "$timeout"s mpirun -np "$nodes" ../stealing_main "$file" > "$file".out
         done
     done
 done
