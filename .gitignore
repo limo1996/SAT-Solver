@@ -19,6 +19,7 @@
 *.*#
 core
 !core/
+.vscode/
 src/.vscode
 python_wrapper/.vscode
 tags
