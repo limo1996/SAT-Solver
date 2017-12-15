@@ -24,7 +24,7 @@
 %
 % Single address.
 % ---------------
-\name{Jan Eberhardt, Jakub Lichman, Ziwei Huang}
+\name{Jan Eberhardt, Jakub Lichman}
 \address{Department of Computer Science\\ ETH Zurich\\Zurich, Switzerland}
 
 % For example:
@@ -103,87 +103,155 @@ you do to make now precisely clear what your contribution is.
 
 \section{Background: Whatever the Background is}\label{sec:background}
 
-In this section we are going to have a look at history of SAT solving algorithms as well as new challenges that parallel computing brings to world of SAT solvers. 
-
-SAT solver is program that is able to decide whether given formula is satisfiable i.e. there exists assignment of variables that makes whole formula true-satisfiable or not-unsatisfiable. 
+//Jakubs version
+SAT solver is program that is able to decide whether given formula is satisfiable i.e. there exists assignment of variables that makes whole formula true-satisfiable or not-unsatisfiable.
 First algorithm was develop in 1960 by Martin Davis and Hilary Putnam for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic.
-%[src: https://en.wikipedia.org/wiki/Davis%E2%80%93Putnam_algorithm]. 
-Since Davis-Putnam algorithm was able to handle just valid formulas, more general procedure for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL after Davis–Putnam–Logemann–Loveland. Its  backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention there were many algorithms proposed, which improve runtime of SAT solving significantly. 
+%[src: https://en.wikipedia.org/wiki/Davis%E2%80%93Putnam_algorithm].
+Since Davis-Putnam algorithm was able to handle just valid formulas, more general procedure for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL after Davisï¿½Putnamï¿½Logemannï¿½Loveland. Its  backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention there were many algorithms proposed, which improve runtime of SAT solving significantly.
 
-Give a short, self-contained summary of necessary
-background information. For example, assume you present an
-implementation of sorting algorithms. You could organize into sorting
-definition, algorithms considered, and asymptotic runtime statements. The goal of the
-background section is to make the paper self-contained for an audience
-as large as possible. As in every section
-you start with a very brief overview of the section. Here it could be as follows: In this section 
-we formally define the sorting problem we consider and introduce the algorithms we use
-including a cost analysis.
+\mypar{SAT}
+The SAT problem is the following:
+Given a propositional logic formula $F$ we try to find a valid assignment of variables $v_i$ of $F$.
+A valid assignment is one that makes the formula $F$ true.
+More formally: //TODO
 
-\mypar{Sorting}
-Precisely define sorting problem you consider.
+The question that a SAT solver needs to answer is the following:
+Given a formula $F$, is it satisfiable?
+And if so what would be a valid variable assignment?
 
-\mypar{Sorting algorithms}
-Explain the algorithm you use including their costs.
+//TODO Nice small figure here
 
-As an aside, don't talk about "the complexity of the algorithm.'' It's incorrect,
-problems have a complexity, not algorithms.
+\mypar{DPLL}
+The Davis Putnam Logemann Loveland algorithm, or short DPLL, was introduced by M. Davis, G. Logemann and D. Loveland in 1962. \cite{dpll}
+It is an extension of the Davis and Putnam, or short DP, algorithm. \cite{dp}
+DPLL solves a SAT problem by modelling it as a decision tree, variables can either be assigned \texttt{true} or \texttt{false}.
+In every step DPLL tries to find variables that are "automatically" assigned because of a previous decision,
+if there are none it will pick a variable $v_i$ and assume a value for it.
+If it later turns out that this decision was wrong it backtracks to that point and picks the negated assignment for variable $v_i$.
+\mypar{CDCL}
+//TODO \cite{cdcl}
 
+\section{Parallelizing DPLL}\label{sec:parallel_dpll}
 
-\section{Your Proposed Method}\label{sec:yourmethod}
+We decided to parallelize DPLL because it is a relatively simple backtracking algorithm and therefore it does not require any advanced communication.
+Subtasks can be solved individually and therefore also on different nodes.
 
-Now comes the ``beef'' of the report, where you explain what you
-did. Again, organize it in paragraphs with titles. As in every section
-you start with a very brief overview of the section.
+\mypar{DPLL Branches}
+As introduced in Section \ref{sec:background} the DPLL algorithm at some point needs to make a decision.
+If there are no more variables that can be assigned trivially, we need to pick one variable and just assume that it is either \texttt{true} or \texttt{false}.
+That is exactly the point where we can let some other node solve the other branch.
+We looked at two different ways on how to split the work between multiple nodes.
+Firstly a master slave communication pattern, where one node is in charge of storing partial models and eventually passing them on to a slave or worker that will solve it.
+And secondly a work stealing scheduling communication model where each node runs on its own and if it runs out of work and the formula is not solved yet,
+it picks a random other node and requests a partial model to work on from that node.
 
-In this section, structure is very important so one can follow the technical content.
+\mypar{Master Slave Model}
+//TODO introduce the model and put a nice and compact figure here.
 
-Mention and cite any external resources that you used including libraries or other code.
+\mypar{Work Stealing Scheduler}
+//TODO introduce the model and put a nice and compact figure here.
+Our current work stealing implementation can only handle satisfiable cases.
+The stopping criteria in the unsatisfiable case was very trivial in the master slave model, however in the work stealing scheduler it is not trivial:
+How does one detect if all workers are asking other workers for work, but no worker has work left?
+Currently we just ignore this case.
+
+\mypar{Implementation}
+We implemented both communication models in C++ with MPI \cite{mpi}.
+Our DPLL solver is also implemented in C++ and therefore we can directly interact with MPI from within the solver.
+Our DPLL implementation is straight forward and simple, we use \texttt{vector}s from the C++ standard library to represent sets of clauses and sets of literals.
+We use \texttt{unsigned int}s as variable names, and boolean values for sign and value of the literal and variable.
+To implement the backtracking algorithm we use recursion, but allocate all necessary data structures on the heap.
+We didn't experience any stack overflow issues.
+
+\mypar{Correctness}
+We tested our sequential DPLL solver on hundreds of formulas that we either randomly generated ourselves or took over from a DIMACS formula collection. \cite{cnf_website}
+We ran each formula through z3 \cite{z3} and compared the result of z3 with our result.
+The following cases have to be considered for each test case:
+\begin{itemize}
+    \item If both solvers return unsat, we pass the test case.
+    \item If one solver returns sat and the other one unsat, we fail the test case.
+    \item If both solvers return sat, we still need to check if the model our solver has returned is correct.
+        To do that we can conjoin the model to the original formula and again run it through z3.
+\end{itemize}
+
+We ran the both parallel implementations through the same set of formulas and checked also for each of them that they are correctly solved.
+Assuming that our sequential implementation is correct, it is straight forward that our parallel implementation is also correct, since we essentially just solve subproblems with the sequential version.
+All steps of the algorithm stay unchanged, we just store the "other" branch (reformulate this) in a different data structure and resume it potentially at a different point in time.
+
 
 \section{Experimental Results}\label{sec:exp}
 
-Here you evaluate your work using experiments. You start again with a
-very short summary of the section. The typical structure follows.
+We ran both communication models on the Euler super compute cluster. \cite{euler}.
 
-\mypar{Experimental setup} Specify the platform (processor, frequency, maybe OS, maybe cache sizes)
-as well as the compiler, version, and flags used. If your work is about performance, 
-I strongly recommend that you play with optimization flags and consider also icc for additional potential speedup.
+\mypar{Experimental Setup}
+We ran our implementation on up to 48 cores, which was the maximum accessible to us on Euler, and requested 1 Gigabyte of memory per core.
+//TODO talk about processors, clock frequencies, OS etc necessary?
 
-Then explain what kind of benchmarks you ran. The idea is to give enough information so the experiments are reproducible by somebody else on his or her code.
-For sorting you would talk about the input sizes. For a tool that performs NUMA optimization, you would specify the programs you ran.
+During our correctness testing and debugging phase of the core algorithm, we realized that random formulas are not a particular good fit to test performance.
+At least not the kind of random formulas that we generated with our own random formula generator.
+Even though they used the same amount of variables, clauses and literals per clause the runtimes varied quite a bit because the problems had a completely randoms structure.
+We used a set of XX formulas in the DIMACS CNF format as a benchmark set.
+The set contains different real world problems from various domains such as //TODO.
 
-\mypar{Results}
-Next divide the experiments into classes, one paragraph for each. In each class of experiments you typically pursue one questions that then is answered by a suitable plot or plots. For example, first you may want to investigate the performance behavior with changing input size, then how your code compares to external benchmarks.
-
-For some tips on benchmarking including how to create a decent viewgraph see pages 22--27 in \cite{Pueschel:10}.
-
-{\bf Comments:}
-\begin{itemize}
-\item Create very readable, attractive plots (do 1 column, not 2 column plots
-for this report) with readable font size. However, the font size should also not be too large; typically it is smaller than the text font size.
-An example is in Fig.~\ref{fftperf} (of course you can have a different style).
-\item Every plot answers a question. You state this question and extract the
-answer from the plot in its discussion.
-\item Every plot should be referenced and discussed.
-\end{itemize}
-
+\mypar{Master Slave}
+We compared the runtimes of the master slave communication pattern with sequential DPLL.
+//Question to answer: How well do we scale?
+The speedup that we achieve is shown in Figure \ref{fig:dpll_parallel_speedup} on a representable subset of the benchmark set.
 \begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl_scatter}
-  \caption{TODO.\label{dpll_vs_cdcl_speedup}}
+    \centering
+    \includegraphics[width=\columnwidth]{figures/dpll_scaling_parallel}
+    \caption{Speedup of master slave parallel DPLL implementation compared to sequential DPLL.
+    \label{fig:dpll_parallel_speedup}}
+\end{figure}
+The speedup factor that we achieved heavily depends on the formula.
+But it is not just the "size" of the problem or time required to solve a formula that influences the speedup factor.
+As shown in Table \ref{tab:cnfs_parallel} the formulas where we reached the highest speedup are not necessarily the ones with the largest number of variables or longest time to solve sequentially.
+Note that the best speedup in this subset is actually achieved for the formula that is randomly generated.
+
+\begin{table}
+    \centering
+    \begin{tabular}{|l|c|c|c|}
+        \hline
+        formula & avg. runtime & \# vars/clauses & \# decisions \\
+        \hline
+        \hline
+        uf50-01 & todo & 50/218 & 286\\
+        \hline
+        par8-1-c & todo & 64/254 & 32 \\
+        \hline
+        ais6 & todo & 61/581 & 30 \\
+        \hline
+        flat75-4 & todo & 225/840 & 31\\
+        \hline
+        par8-4- & todo & 67/266 & 19 \\
+        \hline
+        anomaly & todo & 48/261 & 5 \\
+        \hline
+    \end{tabular}
+    \caption{Overview of benchmark subset formulas.}
+    \label{tab:cnfs_parallel}
+\end{table}
+
+//TODO
+
+//Question to answer: when does master become a bottleneck
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{figures/dpll_waiting_parallel}
+    \caption{Overall waiting time of workers per cnf in parallel Version.
+    All waiting times per worker are summed up.
+    \label{fig:dpll_parallel_waiting}}
 \end{figure}
 
+\mypar{Stealing Scheduling}
+Similar to the previous comparison, we compared the parallel work stealing algorithm to sequential DPLL.
 \begin{figure}
   \centering
-  \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl_speedup}
-  \caption{Speedup of CDCL compared to DPLL. Both algorithms were run sequentially.\label{dpll_vs_cdcl_speedup}}
+  \includegraphics[width=\columnwidth]{figures/dpll_scaling_stealing}
+  \caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
+  \label{fig:dpll_stealing_speedup}}
 \end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl_histo}
-  \caption{TODO.\label{dpll_vs_cdcl_speedup}}
-\end{figure}
+//Question to answer: How well do we scale?
 
 \section{Conclusions}
 

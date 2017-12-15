@@ -12,7 +12,7 @@ private:
     unsigned runtime;
 
     high_resolution_clock::time_point waiting_start;                                             // time when measurement started
-    unsigned waiting_time;
+    unsigned long waiting_time;
 
     bool waiting_started;                                                                        // indicates whether measurement started
     unsigned send_messages;                                                                      // number of send messages
@@ -20,7 +20,7 @@ private:
     unsigned send_meta;                                                                          // number of meta data send
 
 public:
-    unsigned get_waiting_time() { return waiting_time; }                                          // gets waiting time of worker (for models from master)
+    unsigned get_waiting_time() { return (unsigned) (waiting_time / 1000000); }                // gets waiting time of worker (for models from master)
 
     Meter() {
         run_time_start = high_resolution_clock::now();
@@ -42,8 +42,8 @@ public:
         if (this->waiting_started) {
             this->waiting_started = false;
             high_resolution_clock::time_point endTime = high_resolution_clock::now();
-            long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - waiting_start).count();
-            this->waiting_time += (unsigned) duration;
+            long long duration = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - waiting_start).count();
+            this->waiting_time += (unsigned long) duration;
         }
     }
 
