@@ -126,10 +126,15 @@ def delete_files_in_folder(folder, file_extension):
 
 
 def conf_95_mean(measurements):
-    return stats.t.interval(0.95,
+    lower, upper = stats.t.interval(0.95,
                             len(measurements) - 1,
                             loc=np.mean(measurements),
                             scale=stats.sem(measurements))
+    if lower != lower:  # check if nan
+        lower = np.mean(measurements)
+    if upper != upper:  # check if nan
+        upper = np.mean(measurements)
+    return lower, upper
 
 
 def get_netz_username():
