@@ -65,41 +65,17 @@ should write the abstract last.
 
 \section{Introduction}\label{sec:intro}
 
-\mypar{Motivation}
+\mypar{Motivation} Boolean satisfiability problem (SAT) belongs to the most important problems in program analysis, verification and other disciplines of theoretical computer science. It is particularly used in background of many applications, especially ones in the field of automated planning and scheduling, model checking(formal verification) and theorem proving. 
 
+Last decade brought many improvements to SAT world in form of advanced heuristics, preprocessing and inprocessing techniques and data structures that allow efficient implementation of search space pruning. 
 
-:why it is important? - because it is used it model checking(formal verification), automated planning and scheduling, Combinatorial design and many more. Many problems are transformed into boolean formulas which are than solved with SAT solvers.
+However, past 10 years were also rich on improvements in parallelism. Current trends in computer hardware design decreased performance per processing unit and pack more units on a single processor. It is caused by thermal wall which stopped further increase of clock speed. However, algorithms for SAT solving like DPLL and CDCL were invented before wide use of parallelism and therefore were designed for sequential execution. Since SAT is a NP-complete problem, we consider it the right candidate for running in parallel.
 
-:why you are doing? - Current trends in computer hardware design decrease performance per processing unit and pack more units on a single processor. It happened because thermal wall stopped further increase of clock speed. However, algorithms for SAT solving like DPLL and CDCL were invented before wide use of parallelism and therefore were designed for sequential execution. Since SAT is NP-complete problem, it is the right candidate for running it in parallel.
+In our approach, we are trying to speed up SAT solving by running it on multiple cores with different techniques of search space partitioning. Final comparison is done between different parallel versions and sequential one. Parallel versions are mainly based on DPLL algorithm except the one which uses also CDCL, but locally. All algorithms are unlimited in number of cores they can run on. However, some scale better than the others. 
 
-:what are you doing? - In our approach, we are trying to exploit more cores(bring parallelism to SAT solving). This should lead to significant increase of speed and scalability. 
+Experiments were run on cluster where we were allowed to use at most 48 cores. Tests were taken from SATLIB - The Satisfiability Library \cite{cnf_website} and they were also created by our own random generator of formulas. Results show nice speedups in parallel versions against sequential one. However, parallel DPLL algorithm is still not able to outperform sequential CDCL. It shows how good CDCL actually is in comparison with DPLL. 
 
------------------------------------------------\\
-
-Do not start the introduction with the abstract or a slightly modified
-version. It follows a possible structure of the introduction. 
-Note that the structure can be modified, but the
-content should be the same. Introduction and abstract should fill at most the first page, better less.
-
-\mypar{Motivation} The first task is to motivate what you do.  You can
-start general and zoom in one the specific problem you consider.  In
-the process you should have explained to the reader: what you are doing,
-why you are doing, why it is important (order is usually reversed).
-
-For example, if my result is the fastest sorting implementation ever, one
-could roughly go as follows. First explain why sorting is important
-(used everywhere with a few examples) and why performance matters (large datasets,
-realtime). Then explain that fast implementations are very hard and
-expensive to get (memory hierarchy, vector, parallel). 
-
-Now you state what you do in this paper. In our example: 
-presenting a sorting implementation that is
-faster for some sizes as all the other ones.
-
-\mypar{Related work} Next, you have to give a brief overview of
-related work. For a report like this, anywhere between 2 and 8
-references. Briefly explain what they do. In the end contrast to what
-you do to make now precisely clear what your contribution is.
+\mypar{Related work} Tomas Balyo et al. in their paper \cite{hordesat} propose HordeSat solver which can run up to 1024 cores and is based on CDCL algorithm. Their parallel approach is different from ours because it is portfolio based but with sign of search space partitioning. Most of the previous SAT solvers designed for computer clusters or grids use explicit search space partitioning. Examples of such solvers are GridSAT \cite{gridsat}, PMSAT \cite{pmsat} and many more. Paper that is probably closest to ours \cite{stealing} firstly introduced work stealing for dynamic load-balancing. 
 
 \section{Background: Whatever the Background is}\label{sec:background}
 
