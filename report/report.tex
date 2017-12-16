@@ -73,39 +73,24 @@ However, past 10 years were also rich on improvements in parallelism. Current tr
 
 In our approach, we are trying to speed up SAT solving by running it on multiple cores with different techniques of search space partitioning. Final comparison is done between different parallel versions and sequential one. Parallel versions are mainly based on DPLL algorithm except the one which uses also CDCL, but locally. All algorithms are unlimited in number of cores they can run on. However, some scale better than the others. 
 
-Experiments were run on cluster where we were allowed to use at most 48 cores. Tests were taken from SATLIB - The Satisfiability Library \cite{cnf_website} and they were also created by our own random generator of formulas. Results show nice speedups in parallel versions against sequential one. However, parallel DPLL algorithm is still not able to outperform sequential CDCL. It shows how good CDCL actually is in comparison with DPLL. 
+Experiments were run on the cluster where we were allowed to use at most 48 cores. Tests were taken from SATLIB - The Satisfiability Library \cite{cnf_website} and some were also created by our own random generator of formulas. Results show nice speedups in parallel versions against sequential one. However, parallel DPLL algorithm is still not able to outperform sequential CDCL. It shows how good CDCL actually is in comparison with DPLL. 
 
 \mypar{Related work} Tomas Balyo et al. in their paper \cite{hordesat} propose HordeSat solver which can run up to 1024 cores and is based on CDCL algorithm. Their parallel approach is different from ours because it is portfolio based but with sign of search space partitioning. Most of the previous SAT solvers designed for computer clusters or grids use explicit search space partitioning. Examples of such solvers are GridSAT \cite{gridsat}, PMSAT \cite{pmsat} and many more. Paper that is probably closest to ours \cite{stealing} firstly introduced work stealing for dynamic load-balancing. 
 
 \section{Background: Whatever the Background is}\label{sec:background}
 
-//Jakubs version
-SAT solver is program that is able to decide whether given formula is satisfiable i.e. there exists assignment of variables that makes whole formula true-satisfiable or not-unsatisfiable.
-First algorithm was develop in 1960 by Martin Davis and Hilary Putnam for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic.
-%[src: https://en.wikipedia.org/wiki/Davis%E2%80%93Putnam_algorithm].
-Since Davis-Putnam algorithm was able to handle just valid formulas, more general procedure for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL after Davis�Putnam�Logemann�Loveland. Its  backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention there were many algorithms proposed, which improve runtime of SAT solving significantly.
+\mypar{CNF} A \textit{boolean variable} is a variable that can be assigned either to \textit{true} or \textit{false}. A \textit{literal} of a boolean variable $x$ is considered to be $x$ or $\overline{x}$ (negation). A \textit{clause} is then disjunction (OR) of literals. A \textit{conjunctive normal form} (CNF) is a conjunction of such a clauses. CNF is usually represented by a number of variables and clauses.  However, measuring difficulty of CNF by these two factors is very inaccurate.  
 
-\mypar{SAT}
-The SAT problem is the following:
-Given a propositional logic formula $F$ we try to find a valid assignment of variables $v_i$ of $F$.
-A valid assignment is one that makes the formula $F$ true.
-More formally: //TODO
+\mypar{SAT} SAT solver is a program that is able to decide whether given formula is satisfiable. More formally, given formula $F$ is satisfiable \textit{iff} there \textit{exists} assignment of literals $\theta$ that makes whole formula (\textit{CNF}) true (\textit{satisfiable}). If there does not exits such an assignment than formula is \textit{unsatisfiable}. Furthermore, every SAT solver should be able in \textit{satisfiable} case provide valid assignments of literals as well. 
 
-The question that a SAT solver needs to answer is the following:
-Given a formula $F$, is it satisfiable?
-And if so what would be a valid variable assignment?
+\mypar{History} First algorithm was develop in 1960 by Martin Davis and Hilary Putnam \cite{dp} for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic. Since Davis-Putnam algorithm was able to handle just valid formulas, more general approach for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL \cite{dpll} after Davis, Putnam, Logemann, and Loveland. It is backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention, there were many algorithms proposed, which improved runtime of SAT solving significantly.
+%//TODO Nice small figure here
 
-//TODO Nice small figure here
-
-\mypar{DPLL}
-The Davis Putnam Logemann Loveland algorithm, or short DPLL, was introduced by M. Davis, G. Logemann and D. Loveland in 1962. \cite{dpll}
-It is an extension of the Davis and Putnam, or short DP, algorithm. \cite{dp}
-DPLL solves a SAT problem by modelling it as a decision tree, variables can either be assigned \texttt{true} or \texttt{false}.
-In every step DPLL tries to find variables that are "automatically" assigned because of a previous decision,
+\mypar{DPLL} DPLL solves a SAT problem by modelling it as a decision tree, variables can either be assigned to \textit{true} or \textit{false}. In every step DPLL tries to find variables that are "automatically" assigned because of a previous decision,
 if there are none it will pick a variable $v_i$ and assume a value for it.
 If it later turns out that this decision was wrong it backtracks to that point and picks the negated assignment for variable $v_i$.
-\mypar{CDCL}
-//TODO \cite{cdcl}
+
+\mypar{CDCL}  \cite{cdcl}
 
 \section{Parallelizing DPLL}\label{sec:parallel_dpll}
 
