@@ -75,22 +75,28 @@ In our approach, we are trying to speed up SAT solving by running it on multiple
 
 Experiments were run on the cluster where we were allowed to use at most 48 cores. Tests were taken from SATLIB - The Satisfiability Library \cite{cnf_website} and some were also created by our own random generator of formulas. Results show nice speedups in parallel versions against sequential one. However, parallel DPLL algorithm is still not able to outperform sequential CDCL. It shows how good CDCL actually is in comparison with DPLL. 
 
-\mypar{Related work} Tomas Balyo et al. in their paper \cite{hordesat} propose HordeSat solver which can run up to 1024 cores and is based on CDCL algorithm. Their parallel approach is different from ours because it is portfolio based but with sign of search space partitioning. Most of the previous SAT solvers designed for computer clusters or grids use explicit search space partitioning. Examples of such solvers are GridSAT \cite{gridsat}, PMSAT \cite{pmsat} and many more. Paper that is probably closest to ours \cite{stealing} firstly introduced work stealing for dynamic load-balancing. 
+\mypar{Related work} Tomas Balyo et al. in their paper \cite{hordesat} propose HordeSat solver which can run up to 1024 cores and is based on CDCL algorithm. Their parallel approach is different from ours because it is portfolio based but with sign of search space partitioning. Most of the previous SAT solvers designed for computer clusters or grids use explicit search space partitioning. Examples of such solvers are GridSAT \cite{gridsat}, PMSAT \cite{pmsat} or ManySat \cite{manysat}. Paper that is probably closest to ours \cite{stealing} firstly introduced work stealing for dynamic load-balancing. 
 
 \section{Background: Whatever the Background is}\label{sec:background}
 
-\mypar{CNF} A \textit{boolean variable} is a variable that can be assigned either to \textit{true} or \textit{false}. A \textit{literal} of a boolean variable $x$ is considered to be $x$ or $\overline{x}$ (negation). A \textit{clause} is then disjunction (OR) of literals. A \textit{conjunctive normal form} (CNF) is a conjunction of such a clauses. CNF is usually represented by a number of variables and clauses.  However, measuring difficulty of CNF by these two factors is very inaccurate.  
+\mypar{CNF} A \textit{boolean variable} is a variable that can be assigned either to \textit{true} or \textit{false}. A \textit{literal} of a boolean variable $x$ is considered to be in positive $x$ or negative  $\overline{x}$ form. A \textit{clause} is then disjunction (OR) of literals. A \textit{conjunctive normal form} (CNF) is a conjunction of such a clauses. CNF is usually represented by a number of variables and clauses.  However, measuring difficulty of CNF by these two factors is very inaccurate.  
 
-\mypar{SAT} SAT solver is a program that is able to decide whether given formula is satisfiable. More formally, given formula $F$ is satisfiable \textit{iff} there \textit{exists} assignment of literals $\theta$ that makes whole formula (\textit{CNF}) true (\textit{satisfiable}). If there does not exits such an assignment than formula is \textit{unsatisfiable}. Furthermore, every SAT solver should be able in \textit{satisfiable} case provide valid assignments of literals as well. 
+\mypar{SAT} SAT solver is a program that is able to decide whether given formula is satisfiable. More formally, given formula $F$ is satisfiable \textit{iff} there \textit{exists} assignment of literals $\theta$ that makes whole formula (\textit{CNF}) true (\textit{satisfiable}). If there does not exits such an assignment then formula is \textit{unsatisfiable}. Furthermore, every SAT solver should be able in \textit{satisfiable} case provide valid assignments of literals as well. 
 
-\mypar{History} First algorithm was develop in 1960 by Martin Davis and Hilary Putnam \cite{dp} for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic. Since Davis-Putnam algorithm was able to handle just valid formulas, more general approach for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called DPLL \cite{dpll} after Davis, Putnam, Logemann, and Loveland. It is backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention, there were many algorithms proposed, which improved runtime of SAT solving significantly.
-%//TODO Nice small figure here
+\mypar{History} First algorithm was develop in 1960 by Martin Davis and Hilary Putnam \cite{dp} for checking the validity of a first-order logic formula using a resolution-based decision procedure for propositional logic. Since Davis-Putnam algorithm was able to handle just valid formulas, more general approach for SAT solving was needed. In 1962 was developed new, complete algorithm that was able to handle all types of formulas. The algorithm is called \textit{DPLL} \cite{dpll} after Davis, Putnam, Logemann, and Loveland. It is backtracking-based search algorithm that still forms the basis for most efficient complete SAT solvers. Since DPLL invention, there were many algorithms proposed, which improved runtime of SAT solving significantly.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{figures/dpll-branching}
+	\caption{The way how DPLL explores search space of CNF with two variables \textit{x} and \textit{y}.
+		\label{fig:dpll-branching}}
+\end{figure}
 
 \mypar{DPLL} DPLL solves a SAT problem by modelling it as a decision tree, variables can either be assigned to \textit{true} or \textit{false}. In every step DPLL tries to find variables that are "automatically" assigned because of a previous decision,
 if there are none it will pick a variable $v_i$ and assume a value for it.
 If it later turns out that this decision was wrong it backtracks to that point and picks the negated assignment for variable $v_i$.
 
-\mypar{CDCL}  \cite{cdcl}
+\mypar{CDCL} The algorithm performs as well as DPLL a depth-first search of the space of partial truth assignments. In addition to DPLL, Conflict-Driven Clause Learning (\textit{CDCL}) adopts a pruning technique called learning. While in DPLL we can solve same clauses multiple times, CDCL remembers them and in the next encounter avoids them. More formally, learning extracts and memorizes information from the previously searched space to prune the search in the future \cite{cdcl}. Learning is done by adding clauses to the existing clause database. Clauses are analyzed and stored whenever search reaches conflict state. If it cannot be resolved by backtracking then the formula is unsatisfiable. If all the variables are assigned and no conflict happened then the formula is satisfiable. \cite{hordesat}
+
 
 \section{Parallelizing DPLL}\label{sec:parallel_dpll}
 
