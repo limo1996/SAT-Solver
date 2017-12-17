@@ -35,8 +35,8 @@ class DpllScaling(AbstractExperiment):
                              timeout, overall_runtime_minutes)
         tester.run_test(basepath='..', script='bsub_script_scaling.sh')
 
-    def process_euler_experiment(self):
-        self.data = parse_into_dict('measurements.tar')
+    def process_euler_experiment(self, tar):
+        self.data = parse_into_dict(tar)
 
     def plot(self):
         for p in ['parallel', 'stealing']:
@@ -201,12 +201,14 @@ class DpllScaling(AbstractExperiment):
               help='Rerun the experiment')
 @click.option('--process/--no-process', default=False,
               help='Process experiment')
-def main(rerun, process):
+@click.option('--tar', default='measurement.tar',
+              help='Tarfile to process (default: measurement.tar')
+def main(rerun, process, tar):
     e = DpllScaling()
     if rerun:
         e.run_experiment()
     elif process:
-        e.process_euler_experiment()
+        e.process_euler_experiment(tar)
         e.results_to_json()
     else:
         e.results_from_json()

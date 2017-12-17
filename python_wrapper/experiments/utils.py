@@ -35,11 +35,12 @@ def get_info(filename):
 def parse_into_dict(tar_name):
     tar = tarfile.open(tar_name)
     folder_name = tar_name.split('.tar')[0]
-    shutil.rmtree(folder_name)
+    if os.path.exists(folder_name):
+        shutil.rmtree(folder_name)
     tar.extractall(path=folder_name)
     tar.close()
-    files = ['measurements/{}'.format(f)
-             for f in os.listdir('measurements')]
+    files = ['{}/{}'.format(folder_name, f)
+             for f in os.listdir(folder_name)]
     ret = {}
     sequentials = []
     parallels = {'stealing': [], 'parallel': []}
