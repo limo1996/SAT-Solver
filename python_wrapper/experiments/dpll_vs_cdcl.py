@@ -46,7 +46,7 @@ class DpllVsCdcl(AbstractExperiment):
 
     def plot(self):
         self._plot_scatter()
-        self._plot_speedup()
+        # self._plot_speedup()
 
     def _plot_speedup(self):
         speedup = []
@@ -71,42 +71,50 @@ class DpllVsCdcl(AbstractExperiment):
         plt.show()
 
     def _plot_scatter(self):
-        markers = ['o', 'D']
-        color = ['firebrick', 'teal']
-        i = 0
-        x_offsets = {}
+        markers ={'DPLL': 'o', 'CDCL': 'D'}
+        color = {'DPLL': 'firebrick', 'CDCL': 'teal'}
+        offsets = {'DPLL': 0.1, 'CDCL': -0.1}
+        x_ticks = []
         plt.figure(figsize=(6, 4))
+        xs = []
         for s in ['DPLL', 'CDCL']:
-            x_offsets = {}
             xs = []
             ys = []
             lower_error = []
             upper_error = []
+            i = 0
             for k, v in self.data[s].iteritems():
+                if 'ais8.cnf' in k:
+                    continue
                 data = []
                 for t in v['time']:
                     data.append(t)
-                xs.append(k)
+                xs.append(i + offsets[s])
                 mean = np.mean(data)
                 ys.append(mean)
                 lower, upper = conf_95_mean(data)
                 lower_error.append(mean-lower)
                 upper_error.append(upper-mean)
+                if s == 'DPLL':
+                    x_ticks.append(k.split('/')[-1].replace('.cnf', ''))
+                i = i+1
             plt.errorbar(xs, ys,
                          yerr=[lower_error, upper_error],
                          label=s,
-                         fmt=markers[i],
-                         color=color[i],
+                         fmt=markers[s],
+                         color=color[s],
                          markerfacecolor='none')
-            i = i + 1
-        plt.xticks(x_offsets.keys()[::2], x_offsets.keys()[::2])
-        plt.title('DPLL vs CDCL, mean runtime with 95% confidence interval')
-        plt.xlabel(
-            'Approximate formula difficulty [formula size: number of variables]')
-        plt.ylabel('Runtime [ms]')
+        plt.xticks(xs, x_ticks, rotation=45, ha='right')
+        plt.title('DPLL vs CDCL')
+        plt.ylabel('avg. runtime [ms]')
         plt.legend(loc=2)
         plt.gcf().savefig('{}/dpll_vs_cdcl_scatter.pdf'.format(self.figures_folder),
                     format='pdf')
+        plt.tight_layout()
+        f = '../../report/figures/dpll_vs_cdcl.pdf'
+        plt.savefig(f, format='pdf')
+        f = '../../report/figures/dpll_vs_cdcl.png'
+        plt.savefig(f, format='png')
         plt.show()
 
 

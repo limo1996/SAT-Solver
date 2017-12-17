@@ -4,7 +4,6 @@ import sys
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import spline
 
 from abstract_experiment import AbstractExperiment
 from utils import get_netz_username, parse_into_dict, conf_95_mean
@@ -13,6 +12,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from euler import EulerTester
 
 NAME_MAP = {'parallel': 'Parallel', 'stealing': 'Work Stealing'}
+COLORS = ['teal', 'firebrick', 'darkorange', 'royalblue',
+          'palevioletred', 'slateblue', 'black', 'grey']
+OFFSETS = [-0.25, 0.25, 0, 0.125, -0.125,
+           -0.25, 0.25, 0, 0.125, -0.125,
+           -0.25, 0.25, 0, 0.125, -0.125]
+MARKERS = ['o', 'd', 's', '^', 'x', 'D', 'v', '.']
 
 
 class DpllScaling(AbstractExperiment):
@@ -37,33 +42,52 @@ class DpllScaling(AbstractExperiment):
 
     def process_euler_experiment(self, tar):
         self.data = parse_into_dict(tar)
+        self.data['tar'] = tar
 
     def plot(self):
+        subset = ['uf50-01', 'par8-1-c', 'ais6', 'flat75-4', 'par8-4-', 'anomaly']
+
+        all_files = self.data.keys()
+        all_files.remove('tar')
+        non_subset = list(set(all_files) - set(subset))
+
+        self.runtime_plots(subset, 'subset')
+        self.runtime_plots(non_subset, 'non_subset')
+        self.speedup_plots(subset, 'subset')
+        self.speedup_plots(non_subset, 'non_subset')
+        self.waiting_plots(subset, 'subset')
+        self.waiting_plots(non_subset, 'non_subset')
+
+    def runtime_plots(self, set, key):
+        tar = self.data['tar'].replace('.', '_')
         for p in ['parallel', 'stealing']:
-            self._runtime_plot(p)
-            self._speedup_plot(p)
-        files = ['uf50-01', 'par8-1-c', 'ais6', 'flat75-4', 'par8-4-', 'anomaly']
-        colors = ['teal', 'firebrick', 'darkorange', 'royalblue',
-                  'palevioletred', 'slateblue']
-        offsets = [-0.25, 0.25, 0, 0.125, -0.125,
-                   -0.25, 0.25, 0, 0.125, -0.125,
-                   -0.25, 0.25, 0, 0.125, -0.125]
-        markers = ['o', 'd', 's', '^', 'x', 'D']
-        figure = plt.figure()
-        ax = figure.add_subplot(1, 1, 1)
-        for f in range(len(files)):
-            self._plot_runtime(self.data[files[f]], 'parallel', ax,
-                               color=colors[f], offset=offsets[f])
-        #plt.show()
-        for p in ['parallel', 'stealing']:
-            figure = plt.figure()
+            figure = plt.figure(figsize=(6, 4))
             ax = figure.add_subplot(1, 1, 1)
-            for f in range(len(files)):
-                self._plot_speedup(self.data[files[f]], p, ax,
-                                   color=colors[f], marker=markers[f],
-                                   offset=offsets[f], plotline=(f == 0),
-                                   legend=files[f])
-            plt.title('Speedup with {} Version'.format(NAME_MAP[p]))
+            for f in range(len(set)):
+                self._plot_runtime(self.data[set[f]], p, ax,
+                                   color=COLORS[f], offset=OFFSETS[f],
+                                   marker=MARKERS[f], legend=set[f])
+            plt.title('Runtime - {} Version'.format(NAME_MAP[p]))
+            plt.xlabel('# cores')
+            plt.ylabel('avg. runtime [ms]')
+            plt.legend()
+            plt.tight_layout(pad=0)
+            f = '../../report/figures/runtime_{}_{}_{}.pdf'.format(p, key, tar)
+            plt.savefig(f, format='pdf')
+            f = '../../report/figures/runtime_{}_{}_{}.png'.format(p, key, tar)
+            plt.savefig(f, format='png')
+
+    def speedup_plots(self, set, key):
+        tar = self.data['tar'].replace('.', '_')
+        for p in ['parallel', 'stealing']:
+            figure = plt.figure(figsize=(6, 4))
+            ax = figure.add_subplot(1, 1, 1)
+            for f in range(len(set)):
+                self._plot_speedup(self.data[set[f]], p, ax,
+                                   color=COLORS[f], marker=MARKERS[f],
+                                   offset=OFFSETS[f], plotline=(f == 0),
+                                   legend=set[f])
+            plt.title('Speedup - {} Version'.format(NAME_MAP[p]))
             plt.xlabel('# cores')
             plt.ylabel('speedup')
             handles, labels = ax.get_legend_handles_labels()
@@ -73,27 +97,35 @@ class DpllScaling(AbstractExperiment):
             labels.append(l)
             plt.legend(handles, labels)
             plt.tight_layout(pad=0)
-            plt.savefig('../../report/figures/dpll_scaling_{}.pdf'.format(p),
-                        format='pdf')
-            #plt.show()
-            figure = plt.figure()
+            f = '../../report/figures/scaling_{}_{}_{}.pdf'.format(p, key, tar)
+            plt.savefig(f, format='pdf')
+            f = '../../report/figures/scaling_{}_{}_{}.png'.format(p, key, tar)
+            plt.savefig(f, format='png')
+
+    def waiting_plots(self, set, key):
+        tar = self.data['tar'].replace('.', '_')
+        for p in ['parallel', 'stealing']:
+            figure = plt.figure(figsize=(6, 4))
             ax = figure.add_subplot(1, 1, 1)
-            for f in range(len(files)):
-                self._plot_waiting(self.data[files[f]], p, ax,
-                                   color=colors[f], marker=markers[f],
-                                   offset=offsets[f], label=files[f])
-            plt.title('Overall waiting time per cnf {} Version'.format(
+            for f in range(len(set)):
+                self._plot_waiting(self.data[set[f]], p, ax,
+                                   color=COLORS[f], marker=MARKERS[f],
+                                   offset=OFFSETS[f], label=set[f])
+            plt.title('Overall Waiting Time per Formula - {} Version'.format(
                 NAME_MAP[p]))
             plt.xlabel('# cores')
-            plt.ylabel('overall waiting time [ms]')
+            plt.ylabel('avg. overall waiting time [ms]')
             plt.legend()
             plt.tight_layout(pad=0)
-            plt.savefig('../../report/figures/dpll_waiting_{}.pdf'.format(p),
-                        format='pdf')
-            #plt.show()
+            f = '../../report/figures/waiting_{}_{}_{}.pdf'.format(p, key, tar)
+            plt.savefig(f, format='pdf')
+            f = '../../report/figures/waiting_{}_{}_{}.png'.format(p, key, tar)
+            plt.savefig(f, format='png')
 
-    def _runtime_plot(self, parallel_key):
+    def _single_formula_runtime_plot(self, parallel_key):
         for f, v in self.data.items():
+            if f == 'tar':
+                continue
             figure = plt.figure().add_subplot(1, 1, 1)
             self._plot_runtime(v, parallel_key, figure)
             plt.title('{}.cnf'.format(f))
@@ -101,7 +133,8 @@ class DpllScaling(AbstractExperiment):
             plt.ylabel('avg total waiting time [ms]')
             plt.savefig('figures/{}_{}.png'.format(f, parallel_key))
 
-    def _plot_runtime(self, data, parallel_key, figure, color='teal', offset=0.0):
+    def _plot_runtime(self, data, parallel_key, figure, color='teal',
+                      offset=0.0, marker='o', legend=''):
         if parallel_key not in data:
             return
         xs, ys, lowers, uppers = [], [], [], []
@@ -112,6 +145,9 @@ class DpllScaling(AbstractExperiment):
             lower, upper = conf_95_mean(np.array(data['seq']['time']).flatten())
             lowers.append(mean - lower)
             uppers.append(upper - mean)
+            print('{} sequential runtime: {} +{} -{}'.format(legend, mean,
+                                                             upper - mean,
+                                                             mean - lower))
         for cores, v_ in data[parallel_key].items():
             xs.append(int(cores))
             mean = np.mean(np.array(v_['time']).flatten())
@@ -121,15 +157,14 @@ class DpllScaling(AbstractExperiment):
             uppers.append(upper - mean)
         ys = [y for _, y in sorted(zip(xs, ys))]
         xs = sorted(xs)
-        figure.errorbar(xs, ys, yerr=[lowers, uppers], fmt='o',
-                        markerfacecolor='none', color=color)
-        xinter = np.linspace(min(xs), max(xs), 300)
-        yinter = spline(xs, ys, xinter)
-        plt.plot(xinter, yinter, '-', alpha=0.5, linewidth=0.5,
-                 color=color)
+        figure.errorbar(xs, ys, yerr=[lowers, uppers], fmt=marker,
+                        markerfacecolor='none', color=color, label=legend)
+        plt.plot(xs, ys, '-', alpha=0.5, linewidth=0.5, color=color)
 
-    def _speedup_plot(self, parallel_key):
+    def _single_formula_speedup_plot(self, parallel_key):
         for f, v in self.data.items():
+            if f == 'tar':
+                continue
             figure = plt.figure().add_subplot(1, 1, 1)
             self._plot_speedup(v, parallel_key, figure)
             plt.title('{}.cnf'.format(f))
@@ -165,14 +200,13 @@ class DpllScaling(AbstractExperiment):
                 figure.errorbar(xs, ys, yerr=[lowers, uppers], fmt=marker,
                                 markerfacecolor='none', color=color,
                                 label=legend)
-            #xinter = np.linspace(min(xs), max(xs), 300)
-            #yinter = spline(xs, ys, xinter)
-            #plt.plot(xinter, yinter, '-', alpha=0.5, linewidth=0.5,
-            #         color=color)
             plt.plot(xs, ys, '-', alpha=0.5, linewidth=0.5, color=color)
             if plotline:
                 plt.plot([0, max(xs)], [0, max(xs)], '-', color='black',
                          label='Linear Speedup')
+        else:
+            print('could not solve {} sequentially within '
+                  'timeout...'.format(legend))
 
     def _plot_waiting(self, data, parallel_key, figure, color='teal',
                       offset=0.0, label='', marker='o'):
@@ -201,8 +235,8 @@ class DpllScaling(AbstractExperiment):
               help='Rerun the experiment')
 @click.option('--process/--no-process', default=False,
               help='Process experiment')
-@click.option('--tar', default='measurement.tar',
-              help='Tarfile to process (default: measurement.tar')
+@click.option('--tar', default='measurements.tar',
+              help='Tarfile to process (default: measurements.tar')
 def main(rerun, process, tar):
     e = DpllScaling()
     if rerun:
