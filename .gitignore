@@ -17,6 +17,7 @@
 *.qm
 .#*
 *.*#
+cnfs/random_benchmark_formulas/
 core
 !core/
 .vscode/

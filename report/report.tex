@@ -100,38 +100,37 @@ If it later turns out that this decision was wrong it backtracks to that point a
 
 \section{Parallelizing DPLL}\label{sec:parallel_dpll}
 
-We decided to parallelize DPLL because it is a relatively simple backtracking algorithm and therefore it does not require any advanced communication.
-Subtasks can be solved individually and therefore also on different nodes.
+DPLL is a simple backtracking algorithm that explores search space without any advanced techniques like learning and pruning. As an result of that, it does not require any transfer of information between stages of solving and therefore it can be nicely parallelized. Parallelization is not trivial but far easier than in case of CDCL where in addition to load balancing we need to deal with learned clause sharing. 
+
+%We decided to parallelize DPLL because it is a relatively simple backtracking algorithm and therefore it does not require any advanced communication. Subtasks can be solved individually and therefore also on different nodes.
 
 \mypar{DPLL Branches}
-As introduced in Section \ref{sec:background} the DPLL algorithm at some point needs to make a decision.
-If there are no more variables that can be assigned trivially, we need to pick one variable and just assume that it is either \texttt{true} or \texttt{false}.
-That is exactly the point where we can let some other node solve the other branch.
-We looked at two different ways on how to split the work between multiple nodes.
-Firstly a master slave communication pattern, where one node is in charge of storing partial models and eventually passing them on to a slave or worker that will solve it.
-And secondly a work stealing scheduling communication model where each node runs on its own and if it runs out of work and the formula is not solved yet,
-it picks a random other node and requests a partial model to work on from that node.
+As show in figure \ref{fig:dpll-branching} the DPLL algorithm explores search space with depth first search. However it needs to make a decision at some point. If there are no more literals that can be assigned trivially, we need to pick the one and assume it to be either \textit{true} or \textit{false}. That is exactly the point where we can do so called DPLL branching, i.e. let some other node solve the other branch. We can call this point branching point and it represents one node in DPLL search space graph. 
+
+In our work we considered two approaches to load balancing. 
+%We looked at two different ways on how to split the work between multiple nodes. 
+First one is a master slave communication pattern, where one node called \textit{master} is in charge of storing partial models and eventually passing them to \textit{slaves} (\textit{workers}) that will solve them.
+Second approach is a work stealing communication model where each node (\textit{worker}) runs on its own and therefore all \textit{workers} are equal. If some \textit{worker} runs out of work and the formula is not solved yet, it picks a random other \textit{worker} and tries to steal partial model from it.
 
 \mypar{Master Slave Model}
-//TODO introduce the model and put a nice and compact figure here.
+%//TODO introduce the model and put a nice and compact figure here.
 
 \mypar{Work Stealing Scheduler}
-//TODO introduce the model and put a nice and compact figure here.
-Our current work stealing implementation can only handle satisfiable cases.
-The stopping criteria in the unsatisfiable case was very trivial in the master slave model, however in the work stealing scheduler it is not trivial:
-How does one detect if all workers are asking other workers for work, but no worker has work left?
-Currently we just ignore this case.
+%//TODO introduce the model and put a nice and compact figure here.
+However, our current work stealing implementation has one drawback. It can only handle satisfiable cases. The stopping criteria in the unsatisfiable case was very trivial in master slave model because it was moment when master's stack was empty and all workers were free. In work stealing no such a moment exits. We do not have central node that controls the others and therefore knows in which stage each slave is. We currently cannot detect if all workers are trying to steal (no worker has work left) and therefore we restrict ourselves just to sat formulas but we plan to solve this issue in our future work. 
 
 \mypar{Implementation}
-We implemented both communication models in C++ with MPI \cite{mpi}.
-Our DPLL solver is also implemented in C++ and therefore we can directly interact with MPI from within the solver.
-Our DPLL implementation is straight forward and simple, we use \texttt{vector}s from the C++ standard library to represent sets of clauses and sets of literals.
-We use \texttt{unsigned int}s as variable names, and boolean values for sign and value of the literal and variable.
-To implement the backtracking algorithm we use recursion, but allocate all necessary data structures on the heap.
+We implemented both communication models in C++ with a help of the MPI \cite{mpi}.
+Our DPLL solver is implemented in C++ as well and therefore we can directly interact with MPI within the solver. We tried to keep implementation of DPLL algorithm and communication within a nodes as separate as possible for better readability.
+The implementation of parallel DPLL is straight forward and tries to follows good object oriented programming principles. We adapted test driven development with python wrapper that tests our program as black box. We split program into classes with well defined interfaces according to their functions and applied proper encapsulation and information hiding. 
+
+We use \texttt{vector}s from the C++ standard library to represent sets of clauses and sets of literals. We use \texttt{unsigned int}s as variable names, and \textit{boolean} types for sign, literal and variable values. 
+%values for sign and value of the literal and variable.
+To implement the backtracking algorithm we used recursion, but we allocate all necessary data structures on the heap.
 We didn't experience any stack overflow issues.
 
 \mypar{Correctness}
-We tested our sequential DPLL solver on hundreds of formulas that we either randomly generated ourselves or took over from a DIMACS formula collection. \cite{cnf_website}
+We tested our sequential DPLL solver on hundreds of formulas that we either randomly generated or took over from a SATLIB formula collection. \cite{cnf_website}
 We ran each formula through z3 \cite{z3} and compared the result of z3 with our result.
 The following cases have to be considered for each test case:
 \begin{itemize}
@@ -141,9 +140,8 @@ The following cases have to be considered for each test case:
         To do that we can conjoin the model to the original formula and again run it through z3.
 \end{itemize}
 
-We ran the both parallel implementations through the same set of formulas and checked also for each of them that they are correctly solved.
-Assuming that our sequential implementation is correct, it is straight forward that our parallel implementation is also correct, since we essentially just solve subproblems with the sequential version.
-All steps of the algorithm stay unchanged, we just store the "other" branch (reformulate this) in a different data structure and resume it potentially at a different point in time.
+We ran the both parallel implementations through the same set of formulas and checked correctness for each of them.
+Assuming that our sequential implementation is correct, it is straight forward that our parallel implementation is correct as well, since we essentially solved the same set of subproblems but on the different nodes and in completely different order. The difference between parallel and stealing version is in load balancing and not in searched space, i.e. both versions solve the same partial models but they are distributed over working nodes in a different way.
 
 
 \section{Experimental Results}\label{sec:exp}
