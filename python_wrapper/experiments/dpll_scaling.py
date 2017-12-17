@@ -15,7 +15,7 @@ NAME_MAP = {'parallel': 'Parallel', 'stealing': 'Work Stealing'}
 COLORS = ['teal', 'firebrick', 'darkorange', 'royalblue',
           'palevioletred', 'slateblue', 'black', 'grey']
 OFFSETS = [-0.25, 0.25, 0, 0.125, -0.125,
-           -0.25, 0.25, 0, 0.125, -0.125,
+           0.25, -0.25, 0, 0.125, -0.125,
            -0.25, 0.25, 0, 0.125, -0.125]
 MARKERS = ['o', 'd', 's', '^', 'x', 'D', 'v', '.']
 
@@ -45,18 +45,20 @@ class DpllScaling(AbstractExperiment):
         self.data['tar'] = tar
 
     def plot(self):
-        subset = ['uf50-01', 'par8-1-c', 'ais6', 'flat75-4', 'par8-4-', 'anomaly']
+        subset = ['uf50-01', 'par8-1-c', 'ais6', 'flat75-4', 'anomaly',
+                  'uuf50-01']
 
         all_files = self.data.keys()
         all_files.remove('tar')
         non_subset = list(set(all_files) - set(subset))
 
-        self.runtime_plots(subset, 'subset')
-        self.runtime_plots(non_subset, 'non_subset')
-        self.speedup_plots(subset, 'subset')
-        self.speedup_plots(non_subset, 'non_subset')
-        self.waiting_plots(subset, 'subset')
-        self.waiting_plots(non_subset, 'non_subset')
+        #self.runtime_plots(subset, 'subset')
+        #self.runtime_plots(non_subset, 'non_subset')
+        #self.speedup_plots(subset, 'subset')
+        #self.speedup_plots(non_subset, 'non_subset')
+        #self.waiting_plots(subset, 'subset')
+        #self.waiting_plots(non_subset, 'non_subset')
+        self.find_best_runtime(all_files)
 
     def runtime_plots(self, set, key):
         tar = self.data['tar'].replace('.', '_')
@@ -77,6 +79,25 @@ class DpllScaling(AbstractExperiment):
             f = '../../report/figures/runtime_{}_{}_{}.png'.format(p, key, tar)
             plt.savefig(f, format='png')
 
+    def find_best_runtime(self, files):
+        for f in range(len(files)):
+            data = self.data[files[f]]
+            best_config = 'none'
+            m = 1000000000
+            for p in ['parallel', 'stealing']:
+                if p in data:
+                    for n, d in data[p].items():
+                        times = d['time']
+                        means = list(map(lambda t: np.mean(t), times))
+                        mean = np.mean(means)
+                        lower, upper = conf_95_mean(means)
+                        lower = mean - lower
+                        upper = upper - mean
+                        if mean < m:
+                            m = mean
+                            best_config = '{} on {} nodes, time: {} -{} +{}'.format(p, n, mean, lower, upper)
+            print('formula {} best: {}'.format(files[f], best_config))
+
     def speedup_plots(self, set, key):
         tar = self.data['tar'].replace('.', '_')
         for p in ['parallel', 'stealing']:
@@ -91,6 +112,10 @@ class DpllScaling(AbstractExperiment):
             plt.xlabel('# cores')
             plt.ylabel('speedup')
             handles, labels = ax.get_legend_handles_labels()
+
+            if p == 'parallel':
+                handles = [handles[0]] + [handles[-1]] + handles[1:-1]
+                labels = [labels[0]] + [labels[-1]] + labels[1:-1]
             h = handles.pop(0)
             handles.append(h)
             l = labels.pop(0)
@@ -115,7 +140,11 @@ class DpllScaling(AbstractExperiment):
                 NAME_MAP[p]))
             plt.xlabel('# cores')
             plt.ylabel('avg. overall waiting time [ms]')
-            plt.legend()
+            handles, labels = ax.get_legend_handles_labels()
+            if p == 'parallel':
+                handles = [handles[0]] + [handles[-1]] + handles[1:-1]
+                labels = [labels[0]] + [labels[-1]] + labels[1:-1]
+            plt.legend(handles, labels)
             plt.tight_layout(pad=0)
             f = '../../report/figures/waiting_{}_{}_{}.pdf'.format(p, key, tar)
             plt.savefig(f, format='pdf')
