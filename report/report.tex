@@ -6,6 +6,7 @@
 \documentclass[letterpaper]{article}
 \usepackage{spconf,amsmath,amssymb,graphicx}
 \usepackage{graphicx}
+\usepackage{tabularx}
 \usepackage[export]{adjustbox}
 
 
@@ -155,68 +156,116 @@ We ran our implementation on up to 48 cores, which was the maximum accessible to
 During our correctness testing and debugging phase of the core algorithm, we realized that random formulas are not a particular good fit to test performance.
 At least not the kind of random formulas that we generated with our own random formula generator.
 Even though they used the same amount of variables, clauses and literals per clause the runtimes varied quite a bit because the problems had a completely randoms structure.
-We used a set of XX formulas in the DIMACS CNF format as a benchmark set.
-The set contains different real world problems from various domains such as //TODO.
+We used a set of 14 formulas in the DIMACS CNF format as a benchmark set.
+The set contains different real world problems from various domains such as planning problems, all-interval series encodings, flat graph coloring, inductive inference, etc.
+We also included a couple of random formulas in our benchmark set.
+Table \ref{tab:benchmark_set} in the Appendix section contains a detailed listing of the used formulas.
+For the coming subsections we reduced the set of formulas to a representable subset of size 6.
+Corresponding figures for the other 8 formulas can be found in the Appendix section.
 
 \mypar{Master Slave}
 We compared the runtimes of the master slave communication pattern with sequential DPLL.
-//Question to answer: How well do we scale?
-The speedup that we achieve is shown in Figure \ref{fig:dpll_parallel_speedup} on a representable subset of the benchmark set.
+The speedup that we achieve is shown in Figure \ref{fig:dpll_parallel_speedup}.
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{figures/dpll_scaling_parallel}
-    \caption{Speedup of master slave parallel DPLL implementation compared to sequential DPLL.
+    \includegraphics[width=\columnwidth]{figures/scaling_parallel_subset_dpll_scaling_tar.pdf}
+    \caption{Average speedup of master slave parallel DPLL implementation compared to sequential DPLL.
+    The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
     \label{fig:dpll_parallel_speedup}}
 \end{figure}
 The speedup factor that we achieved heavily depends on the formula.
-But it is not just the "size" of the problem or time required to solve a formula that influences the speedup factor.
-As shown in Table \ref{tab:cnfs_parallel} the formulas where we reached the highest speedup are not necessarily the ones with the largest number of variables or longest time to solve sequentially.
-Note that the best speedup in this subset is actually achieved for the formula that is randomly generated.
+But it is not just the "size" of the problem or time required to solve a formula with the sequential algorithm that influences the speedup factor.
+As shown in Table \ref{tab:cnfs_parallel} the formulas where we reached the highest speedup are not necessarily the ones with the largest number of variables, and therefore highest upper bound on the depth of the decision tree, or longest time to solve sequentially.
+Note that the best speedup in this subset is actually achieved for the formula that is randomly generated (uf50-01).
+For the random generated formula we can explain why the speedup goes down after about 32 cores:
+After about 32 cores the master in our master-slave communication pattern starts to be a bottleneck and workers have to start waiting for pieces of work.
+The overall average waiting time is shown in Figure \ref{fig:dpll_parallel_waiting}.
+The waiting time is summed up over all the workers per solved formula and then averaged over different runs of the same formula.
+
+The speedup is so small in some other cases because of the way the decision tree is traversed.
+The sequential implementation deterministically does a depth-first search.
+In this parallel version however we do not have any ordering guarantees.
+It might happen that we were "close" to a solution but then solve some other partial models in a completely different part of the decision tree that might be unsatisfiable all together.
+The size of the subtree where we will not find a solution depends on the structure of the formula.
+This is also the explanation why we achieve super linear speedup in some other cases: there we are lucking and because of the traversal order find a solution faster than in the sequential traversal.
 
 \begin{table}
     \centering
-    \begin{tabular}{|l|c|c|c|}
+    \begin{tabular}{|l|c|c|}
         \hline
-        formula & avg. runtime & \# vars/clauses & \# decisions \\
+        formula & avg. runtime seq. DPLL [ms] & \# vars/clauses \\
         \hline
         \hline
-        uf50-01 & todo & 50/218 & 286\\
+        uf50-01 & 7890.9 +/-44.31 & 50/218\\
         \hline
-        par8-1-c & todo & 64/254 & 32 \\
+        par8-1-c & 2185.0 +/- 32.88 & 64/254\\
         \hline
-        ais6 & todo & 61/581 & 30 \\
+        ais6 &  2964.0 +/- 41.54 & 61/581\\
         \hline
-        flat75-4 & todo & 225/840 & 31\\
+        flat75-4 & 26284.6 +/- 172.65 & 225/840\\
         \hline
-        par8-4- & todo & 67/266 & 19 \\
+        par8-4- & 601.5 +/- 23.01 & 67/266\\
         \hline
-        anomaly & todo & 48/261 & 5 \\
+        anomaly & 279.7 +/- 6.74 & 48/261\\
         \hline
     \end{tabular}
     \caption{Overview of benchmark subset formulas.}
     \label{tab:cnfs_parallel}
 \end{table}
 
-//TODO
-
-//Question to answer: when does master become a bottleneck
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{figures/dpll_waiting_parallel}
-    \caption{Overall waiting time of workers per cnf in parallel Version.
+    \includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
+    \caption{Average overall waiting time of workers per cnf in parallel version.
     All waiting times per worker are summed up.
-    \label{fig:dpll_parallel_waiting}}
+    The 95\% confidence interval are shown as error bars.}
+    \label{fig:dpll_parallel_waiting}
 \end{figure}
 
 \mypar{Stealing Scheduling}
 Similar to the previous comparison, we compared the parallel work stealing algorithm to sequential DPLL.
 \begin{figure}
   \centering
-  \includegraphics[width=\columnwidth]{figures/dpll_scaling_stealing}
+  \includegraphics[width=\columnwidth]{figures/scaling_stealing_subset_dpll_scaling_tar.pdf}
   \caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
   \label{fig:dpll_stealing_speedup}}
 \end{figure}
-//Question to answer: How well do we scale?
+
+The speedup that we achieve is shown in Figure \ref{fig:dpll_stealing_speedup}.
+With this work stealing pattern we achieve quite high speedups for small numbers of cores but essentially do not gain from adding more cores after some limit.
+The reason for this speedup is again the way how we traverse the decision tree.
+In this pattern we do something that is similar to a breath first search globally and locally per node, the traversal order of the subtree is the same as in the sequential implementation, so depth first search.
+That means that if the formula is satisfiable, we are guaranteed that some worker is working on the correct subtree already after the first decision and will never solve models of the other, wrong subtree.
+This guarantee we do not have for the master slave pattern and we therefore beat the master slave pattern easily.
+
+\section{Discussion}
+In this section we will mention some of the things that we tried along the way but did not work out or we had to stop looking closer into because of time constraints.
+
+\mypar{CDCL DPLL Hybrid Parallel Solver}
+We have implemented a fully working CDCL solver.
+If run sequentially it outperforms the DPLL solver on all of our 14 benchmark formulas.
+Quite naturally we tried to plug that solver in at the workers.
+The way we did that is the following:
+\begin{itemize}
+    \item First we run DPLL in parallel (it does not matter which of two communication patterns we pick).
+    We only branch a certain number of times per worker.
+    \item After that "branching limit" is reached we switch to CDCL and solve the whole subtree of the original decision tree locally.
+    \item When that is done we either found a solution or again get a new model (either from the master or another worker) and solve it with CDCL.
+\end{itemize}
+With this hybrid approach we achieved really bad performance.
+There are two reasons why.
+Firstly we essentially cripple the CDCL solver by not giving him the full formula but only modified a part of it.
+That means if we already decided something and then pass on that subproblem to the CDCL solver, the subproblem has not really a correlation to the original problem.
+The problem that we solve with CDCL can be a completely different one and therefore a lot more difficult to solve then the original one.
+Secondly, yet again we break something because of the way we split the work:
+It might happen that all workers are busy solving some problem that is a lot more difficult than the actual problem and the subproblem that contains the correct solution is not solved by any worker at that point in time.
+That means in the worst case we solve lots of partial models that are more difficult than the original problem, before we solve the correct problem and find the solution.
+
+We ran everything we discussed in Section \ref{sec:exp} with this hybrid parallel solver for different branching limits.
+We do not include any further information in this report because of space limitations.
+
+\section{Future Work}
+In this section we discuss possible extensions of our work.
 
 \section{Conclusions}
 
@@ -230,62 +279,77 @@ approach to .... Even though we only considered x, the
 .... technique should be applicable ....) You can also formulate next
 steps if you want. Be brief. After the conclusions there are only the references.
 
-\section{Further comments}
-
-Here we provide some further tips.
-
-\mypar{Further general guidelines}
-
-\begin{itemize}
-\item For short papers, to save space, I use paragraph titles instead of
-subsections, as shown in the introduction.
-
-\item It is generally a good idea to break sections into such smaller
-units for readability and since it helps you to (visually) structure the story.
-
-\item The above section titles should be adapted to more precisely
-reflect what you do.
-
-\item Each section should be started with a very
-short summary of what the reader can expect in this section. Nothing
-more awkward as when the story starts and one does not know what the
-direction is or the goal.
-
-\item Make sure you define every acronym you use, no matter how
-convinced you are the reader knows it.
-
-\item Always spell-check before you submit (to us in this case).
-
-\item Be picky. When writing a paper you should always strive for very
-high quality. Many people may read it and the quality makes a big difference.
-In this class, the quality is part of the grade.
-
-\item Books helping you to write better: \cite{Higham:98} and \cite{Strunk:00}.
-
-\item Conversion to pdf (latex users only): 
-
-dvips -o conference.ps -t letter -Ppdf -G0 conference.dvi
-
-and then
-
-ps2pdf conference.ps
-\end{itemize}
-
-\mypar{Graphics} For plots that are not images {\em never} generate the bitmap formats
-jpeg, gif, bmp, tif. Use eps, which means encapsulate postscript. It is
-scalable since it is a vector graphic description of your graph. E.g.,
-from Matlab, you can export to eps.
-
-The format pdf is also fine for plots (you need pdflatex then), but only if the plot was never before in the format 
-jpeg, gif, bmp, tif.
-
-
 % References should be produced using the bibtex program from suitable
 % BiBTeX files (here: bibl_conf). The IEEEbib.bst bibliography
 % style file from IEEE produces unsorted bibliography list.
 % -------------------------------------------------------------------------
 \bibliographystyle{IEEEbib}
 \bibliography{bibl_conf}
+
+\newpage
+\section{Appendix}
+This section contains additional information that is not strictly part of the report.
+
+\begin{table}[h]
+    \centering
+    \begin{tabularx}{\columnwidth}{|l|X|}
+        \hline
+        File names & Description\\
+        \hline
+        \hline
+        anomaly, medium & SAT-encoded blocks world planning problems\\
+        \hline
+        ais6, ais8 & SAT-encoded All-Interval Series problems\\
+        \hline
+        flat50-1, flat75-4 \\ flat 75-8 & SAT-encoded "Flat" Graph coloring problems (J. Coberson's flat graph generator is used\\
+        \hline
+        ii8a1 & Inductive inference, stem from a formulation of boolean function synthesis problems\\
+        \hline
+        par8-1-c, par8-5 & Instances for learning the paritiy function\\
+        \hline
+        uf50-01, uf75-01 & Uniform random 3-sat, satisfiable\\
+        \hline
+        uuf50-01, uf50-02 & Uniform random 3-sat, unsatisfiable\\
+        \hline
+    \end{tabularx}
+    \caption{Description of benchmark problems.}
+    \label{tab:benchmark_set}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/scaling_parallel_non_subset_dpll_scaling_tar.pdf}
+    \caption{Average speedup of master slave parallel DPLL implementation compared to sequential DPLL.
+    The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
+    Other subset.}
+    \label{fig:dpll_parallel_speedup_non}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/waiting_parallel_non_subset_dpll_scaling_tar.pdf}
+    \caption{Average overall waiting time of workers per cnf in parallel version.
+    All waiting times per worker are summed up.
+    The 95\% confidence interval are shown as error bars.
+    Other subset.}
+    \label{fig:dpll_parallel_waiting_non}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/scaling_stealing_non_subset_dpll_scaling_tar.pdf}
+    \caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
+    Other subset.}
+    \label{fig:dpll_stealing_speedup_non}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl.pdf}
+    \caption{DPLL vs CDCL sequential runtime. Average runtime with 95\% confidence intervals.}
+    \label{fig:dpll_stealing_speedup_non}
+\end{figure}
+
 
 \end{document}
 
