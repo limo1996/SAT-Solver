@@ -12,7 +12,7 @@ FOLDER = 'benchmark_formulas'
 parent_parent = os.path.join(os.pardir, os.pardir)
 CNF_FOLDER = os.path.join(parent_parent, os.path.join('cnfs', FOLDER))
 EXECUTABLE = './sequential_main'
-REPETITIONS = 4
+REPETITIONS = 10
 TIMEOUT = 120
 
 HISTO_LOWER = 0
@@ -93,8 +93,15 @@ class DpllVsCdcl(AbstractExperiment):
                 mean = np.mean(data)
                 ys.append(mean)
                 lower, upper = conf_95_mean(data)
-                lower_error.append(mean-lower)
-                upper_error.append(upper-mean)
+                lower = mean - lower
+                upper = upper - mean
+                if s == 'CDCL':
+                    print('formula {} CDCL time: {} - {} + {}'.format(k,
+                                                                      mean,
+                                                                      lower,
+                                                                      upper))
+                lower_error.append(lower)
+                upper_error.append(upper)
                 if s == 'DPLL':
                     x_ticks.append(k.split('/')[-1].replace('.cnf', ''))
                 i = i+1

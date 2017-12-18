@@ -196,20 +196,20 @@ This is also the explanation why we achieve super linear speedup in some other c
     \centering
     \begin{tabular}{|l|c|c|}
         \hline
-        formula & avg. runtime seq. DPLL [ms] & \# vars/clauses \\
+        Formula & runtime seq. DPLL [ms] & \# vars/clauses \\
         \hline
         \hline
-        uf50-01 & 7890.9 +/-44.31 & 50/218\\
+        uf50-01 (sat) & 7890.9 $\pm$ 44.31 & 50/218\\
         \hline
-        par8-1-c & 2185.0 +/- 32.88 & 64/254\\
+        par8-1-c (sat) & 2185.0 $\pm$ 32.88 & 64/254\\
         \hline
-        ais6 &  2964.0 +/- 41.54 & 61/581\\
+        ais6 (sat) &  2964.0 $\pm$ 41.54 & 61/581\\
         \hline
-        flat75-4 & 26284.6 +/- 172.65 & 225/840\\
+        flat75-4 (sat) & 26284.6 $\pm$ 172.65 & 225/840\\
         \hline
-        par8-4- & 601.5 +/- 23.01 & 67/266\\
+        anomaly (sat) & 279.7 $\pm$ 6.74 & 48/261\\
         \hline
-        anomaly & 279.7 +/- 6.74 & 48/261\\
+        uuf50-01 (unsat) & 13404.2 $\pm$ 102.94 & 50/218\\
         \hline
     \end{tabular}
     \caption{Overview of benchmark subset formulas.}
@@ -308,7 +308,7 @@ This section contains additional information that is not strictly part of the re
         \hline
         ii8a1 & Inductive inference, stem from a formulation of boolean function synthesis problems\\
         \hline
-        par8-1-c, par8-5 & Instances for learning the paritiy function\\
+        par8-1-c, par8-4- & Instances for learning the paritiy function\\
         \hline
         uf50-01, uf75-01 & Uniform random 3-sat, satisfiable\\
         \hline
@@ -352,6 +352,46 @@ This section contains additional information that is not strictly part of the re
     \caption{DPLL vs CDCL sequential runtime. Average runtime with 95\% confidence intervals.}
     \label{fig:dpll_stealing_speedup_non}
 \end{figure}
+
+\begin{table}
+    \centering
+    \begin{tabular}{|l|l|c|}
+        \hline
+        Formula & Best Solver Configuration & Runtime [ms]\\
+        \hline
+        \hline
+        anomaly & CDCL sequential & 16.2 $\pm$ 4.18 \\
+        \hline
+        medium & CDCL sequential & 414.8 $\pm$ 32.94 \\
+        \hline
+        ais6 & DPLL master slave, 14 cores & 343.3 $\pm$ 3.58 \\
+        \hline
+        ais8 & DPLL master slave, 48 cores & 3015.3 $\pm$ 58.85 \\
+        \hline
+        flat50-1 & CDCL sequential & 36.4 $\pm$ 9.07 \\
+        \hline
+        flat75-4 & CDCL sequential & 702.8 $\pm$ 38.18 \\
+        \hline
+        flat75-8 & CDCL sequential & 1054.2 $\pm$ 50.72 \\
+        \hline
+        ii8a1 & DPLL master slave, 6 cores & 72.2 $\pm$ 0.79 \\
+        \hline
+        par8-1-c & CDCL sequential & 15.2 $\pm$ 2.28 \\
+        \hline
+        par8-4- & DPLL master salve, 2 cores & 132.2 $\pm$ 2.22 \\
+        \hline
+        uf50-01 & CDCL sequential & 31.5 $\pm$ 9.21 \\
+        \hline
+        uf75-01 & DPLL master slave, 32 nodes & 297.4 $\pm$ 7.99 \\
+        \hline
+        uuf50-01 & DPLL master slave 24 nodes & 187.5 $\pm$ 5.59 \\
+        \hline
+        uuf50-02 & DPLL master slave 24 nodes & 148.9 $\pm$ 2.85 \\
+        \hline
+    \end{tabular}
+    \caption{Benchmark formulas with best performing configuration.}
+    \label{tab:cnfs_parallel}
+\end{table}
 
 
 \end{document}
