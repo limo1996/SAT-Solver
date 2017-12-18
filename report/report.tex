@@ -114,6 +114,9 @@ First one is a master slave communication pattern, where one node called \textit
 Second approach is a work stealing communication model where each node (\textit{worker}) runs on its own and therefore all \textit{workers} are equal. If some \textit{worker} runs out of work and the formula is not solved yet, it picks a random other \textit{worker} and tries to steal partial model from it.
 
 \mypar{Master Slave Model}
+First approach that we have decided to design and implement is master worker model. We considered this model to be easiest to implement and therefore we picked it first. The biggest challenge in parallelizing DPLL is load balancing. Its impossible to split work equally at the beginning because it cannot be inferred from a formula how "deep" each branch actually is. We want to avoid situations where work is not divided equally because we want to fully exploit computing power of all nodes. 
+
+Master is one of the \textit{n} nodes available and other \textit{n-1} nodes become \textit{slaves} (\textit{workers}). At the beginning are all workers marked as free. Master starts solving model by passing empty model to the first free worker. Each worker in every branching point takes one branch and sends the other to the master. When master receives partial model, it checks whether there exists some free worker. If not then it stores the model into its local stack and sends it back in case some worker finished its branch with \textit{unsat} and therefore needs more work. If there is still some free worker then master bypasses the partial model to it. This procedure is repeated until some worker does not find \textit{sat} model and sends it to the master. Master then outputs the model and stops all workers. If no worker found \textit{sat} model, master has empty stack and all workers are free we know that formula is \textit{unsat}.
 %//TODO introduce the model and put a nice and compact figure here.
 
 \mypar{Work Stealing Scheduler}
