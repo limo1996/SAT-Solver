@@ -1,23 +1,54 @@
-# SAT-Solver
-Parallel SAT Solver 
+# Parallel SAT Solver
+Semester project for Design of Parallel and High Performance Computing class at ETHZ. Includes two communication models for DPLL algorithm that could be combined with local CDCL. If you want to find out more about communication models or other techniques that we have used please refer to our final [report](https://github.com/limo1996/SAT-Solver/blob/master/report/report.pdf)
+
+## Build
+Please follow these steps in order to successfully compile source code:
+1. Open terminal and navigate to directory where you want to store the repository
+2. ```git clone https://github.com/limo1996/SAT-Solver.git```
+3. ```cd SAT-Solver```
+4. ```cmake .```
+5. ```make```
+6. Three executables (*./sequential_main*, *./parallel_main*, *./stealing_main*) should be generated
 
 ## Invoking
-Usage:
-```bash
-./SAT-Solver <CNF_input_file> [-o <CNF_output_file>] [-p <format>] [-pa <format>]
+Three executables are available: 
+1. Sequential version of solver is named *./sequential_main*
+2. Parallel version that uses master-worker communication pattern is named *./parallel_main*
+3. Parallel version that uses work stealing communication pattern is named *./stealing_main* and from now we will call it Stealing version
+
+## Usage
+### Usage of sequential version:
+```
+./sequential_main [-s CDCL/DPLL] <CNF_input_file> 
 ```
 
-There are 4 commands that have impact on solver's output:
-- ``<CNF_input_file>`` -> path to the input file that has CNF format
-- ``-o`` -> path to the output file. Output will not be printed into console.
-- ``-p`` -> Basic extended output (includes values of variables). Two possible formats:
-  - ``1`` -> Readable format
-  - ``2`` -> Format for further processing (python script)
-- ``-pa`` -> Extended output (includes values of variables and clauses). Two possible formats:
-  - ``1`` -> Readable format
-  - ``2`` -> Format for further processing (python script)
-
-Example usage:
+Example usage of sequential version:
 ```bash
-./SAT-Solver sat1.in -o sat1.out -pa 2
+./sequential_main -s CDCL cnfs/benchmark_formulas/flat75-4.cnf
 ```
+
+### Usage of parallel version:
+```
+./parallel_main [-local-cdcl branching_factor : int] <CNF_input_file>
+```
+
+Example usage of parallel version:
+```
+./parallel_main -local-cdcl 3 cnfs/benchmark_formulas/ais8.cnf
+```
+### Usage of stealing version:
+```
+./stealing_main [-local-cdcl branching_factor : int] <CNF_input_file>
+```
+
+Example usage of stealing version: 
+```
+./stealing_main -local-cdcl 2 cnfs/benchmark_formulas/anomaly.cnf
+```
+
+## Testing
+We have developed testing python wrapper whose documentation can be found [here](https://github.com/limo1996/SAT-Solver/blob/master/python_wrapper/README.md)
+
+## Results
+  * Final report in pdf format can be found [here](https://github.com/limo1996/SAT-Solver/blob/master/report/report.pdf).
+  * Performance graphs can be found [here](https://github.com/limo1996/SAT-Solver/tree/master/results)
