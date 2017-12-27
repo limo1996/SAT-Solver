@@ -101,44 +101,44 @@ If it later turns out that this decision was wrong it backtracks to that point a
 
 \section{Parallelizing DPLL}\label{sec:parallel_dpll}
 
-DPLL is a simple backtracking algorithm that explores search space without any advanced techniques like learning and pruning. As an result of that, it does not require any transfer of information between stages of solving and therefore it can be nicely parallelized. Parallelization is not trivial but far easier than in case of CDCL where in addition to load balancing we need to deal with learned clause sharing. 
+DPLL is a simple backtracking algorithm that explores search space without any advanced techniques like learning and pruning. As an result of this, it does not require any transfer of information between stages of solving and therefore it can be nicely parallelized. Parallelization is not trivial but far easier than in case of CDCL where in addition to load balancing we need to deal with learned clause sharing. 
 
 %We decided to parallelize DPLL because it is a relatively simple backtracking algorithm and therefore it does not require any advanced communication. Subtasks can be solved individually and therefore also on different nodes.
 
 \mypar{DPLL Branches}
-As show in figure \ref{fig:dpll-branching} the DPLL algorithm explores search space with depth first search. However it needs to make a decision at some point. If there are no more literals that can be assigned trivially, we need to pick the one and assume it to be either \textit{true} or \textit{false}. That is exactly the point where we can do so called DPLL branching, i.e. let some other node solve the other branch. We can call this point branching point and it represents one node in DPLL search space graph. 
+As shown in figure \ref{fig:dpll-branching} the DPLL algorithm explores search space with depth first search. However it needs to make a decision at some point. If there are no more literals that can be assigned trivially, we need to pick the one and assume it to be either \textit{true} or \textit{false}. That is exactly the point where we can do so called DPLL branching, i.e. let some other node solve the other branch. We can call this point branching point and it represents one node in DPLL search space graph. 
 
 In our work we considered two approaches to load balancing. 
 %We looked at two different ways on how to split the work between multiple nodes. 
-First one is a master slave communication pattern, where one node called \textit{master} is in charge of storing partial models and eventually passing them to \textit{slaves} (\textit{workers}) that will solve them.
+First one is a master worker communication pattern, where one node called \textit{master} is in charge of storing partial models and eventually passing them to \textit{workers} that will solve them.
 Second approach is a work stealing communication model where each node (\textit{worker}) runs on its own and therefore all \textit{workers} are equal. If some \textit{worker} runs out of work and the formula is not solved yet, it picks a random other \textit{worker} and tries to steal partial model from it.
 
-\mypar{Master Slave Model}
-First approach that we have decided to design and implement is master worker model. We considered this model to be easiest to implement and therefore we picked it first. The biggest challenge in parallelizing DPLL is load balancing. The work cannot be split equally between slaves at the beginning because it would require knowledge of a depth of each branch that cannot be inferred from a formula at the beginning. We want to avoid situations where work is not divided equally because we want to fully exploit computing power of all nodes. 
+\mypar{Master Worker Model}
+First approach that we have decided to design and implement is master worker model. We considered this model to be easiest to implement and therefore we picked it first. The biggest challenge in parallelizing DPLL is load balancing. The work cannot be split equally between workers at the beginning because it would require knowledge of a depth of each branch that cannot be inferred from a formula at the beginning. We want to avoid situations where work is not divided equally because we want to fully exploit computing power of all nodes. 
 
-Master is one of the \textit{n} nodes available and other \textit{n-1} nodes become \textit{slaves} (\textit{workers}). At the beginning are all workers marked as free. Master starts solving model by passing empty model to the first free worker. Each worker in every branching point takes one branch and sends the other to the master. When master receives partial model, it checks whether there exists some free worker. If not then it stores the model into its local stack and sends it back in case some worker finished its branch with \textit{unsat} and therefore needs more work. If there is still some free worker then master bypasses the partial model to it. This procedure is repeated until some worker does not find \textit{sat} model and sends it to the master. Master then outputs the model and stops all workers. If no worker found \textit{sat} model, master has empty stack and all workers are free we know that formula is \textit{unsat}.
+Master is one of \textit{n} nodes available and other \textit{n-1} nodes become \textit{workers}. At the beginning are all workers marked as free. Master starts solving model by passing empty model to the first free worker. Each worker in every branching point takes one branch and sends the other to the master. When master receives partial model, it checks whether there exists some free worker. If not then it stores the model into its local stack and sends it back in case some worker finished its branch with \textit{unsat} and therefore needs more work. If there is still some free worker then master bypasses the partial model to it. This procedure is repeated until some worker does not find \textit{sat} model and sends it to the master. Master then outputs the model and stops all workers. If no worker found \textit{sat} model, master has empty stack and all workers are free we know that formula is \textit{unsat}.
 
-While master slave model is easy to understand and implement it comes with several drawbacks. First of them is lack of one node. Master worker model has one node used only as an manager and therefore this node is not actually doing any computation. Next issue is related to scaling. Master with certain number of nodes becomes bottleneck because there is too much communication it needs to process and therefore nodes need to wait longer for getting new model. Last problem is related to amount of communication in this model. There is transfer of models and meta data every time worker branches or wants to get a new model. There is also transfer at the beginning and at the end but this communication is necessary while the one mentioned before can be reduced.  
+While master worker model is easy to understand and implement it comes with several drawbacks. First of them is lack of one node. Master worker model has one node used only as an manager and therefore this node is not actually doing any computation. Next issue is related to scaling. Master with certain number of nodes becomes bottleneck because there is too much communication it needs to process and therefore nodes need to wait longer for getting new model. Last problem is related to amount of communication in this model. There is transfer of models and meta data every time worker branches or wants to get a new model. There is also transfer at the beginning and at the end but this communication is necessary while the one mentioned before can be reduced.  
 
-\mypar{Work Stealing Scheduler} Because of the drawbacks mentioned above we have decided to reduce and decentralize communication by implementing work stealing model which provides desired features. The model treats all nodes \textit{equally} and therefore there is \textit{no master} just workers. All workers contain their own stacks with models to process. This reduces communication overhead because all produced models are stored locally instead of their transfer and storage on the master. However, existence of local stack breaks load balancing because some workers can work on bigger subtrees of search space than the others, for instance in case of 2 workers one can solve subtree of size 5 and second one of size 40. 
+\mypar{Work Stealing Model} Because of the drawbacks mentioned above we have decided to reduce and decentralize communication by implementing work stealing model which provides desired features. The model treats all nodes \textit{equally} and therefore there is \textit{no master} just workers. All workers contain their own stacks with models to process. This reduces communication overhead because all produced models are stored locally instead of their transfer and storage on the master. However, existence of local stack breaks load balancing because some workers can work on bigger subtrees of search space than the others.
 
-Inequalities in load balancing are resolved by mechanism called work stealing. In case some worker finished its work and no other worker has solved the formula than it tries to "steal" model from other workers. Process of stealing can be formally defined as follows. Try to steal from random worker until you do not find a model or until someone else has not find it. We need to define two more rules(phases) for algorithm to work. First phase is initial work distribution and second one is ending condition. In initial phase worker 0 will take role of the master and distribute starting models to all workers. Then will all workers try to solve their subtrees and in case of running out of work they will do stealing (phase 2). When some worker will find a \textit{sat} model then it will send it to the worker 0 and it will stop all workers and output final assignment (phase 3). We have to have master node at the end because there can be more workers that find \textit{sat} model at the same time. In our solution, worker 0 prints first obtained sat model and ignores the others.
+Inequalities in load balancing are resolved by mechanism called work stealing. In case some worker finished its work and no other worker has solved the formula than it tries to "steal" model from other workers. Process of stealing can be formally defined as follows: Try to steal from random worker until you do not find a model or until someone else has not find it. We need to define two more rules(phases) for algorithm to work. First phase is initial work distribution and second one is ending condition. In initial phase worker 0 will take role of the master and distribute starting models to all workers. Then will all workers try to solve their subtrees and in case of running out of work they will do stealing (phase 2). When some worker will find a \textit{sat} model then it will send it to the worker 0 and it will stop all workers and output final assignment (phase 3). We have to have master node at the end because there can be more workers that find \textit{sat} model at the same time. In our solution, worker 0 prints first obtained sat model and ignores the others.
 
-However, our current work stealing implementation has one drawback. It can only handle satisfiable cases. The stopping criteria in the unsatisfiable case was very trivial in master slave model because it was moment when master's stack was empty and all workers were free. In work stealing no such a moment exits. We do not have central node that controls the others and therefore knows in which stage each slave is. We currently cannot detect if all workers are trying to steal (no worker has work left) and therefore we restrict ourselves just to sat formulas but we plan to solve this issue in our future work. 
+However, our current work stealing implementation has one drawback. It can only handle satisfiable cases. The stopping criteria in the unsatisfiable case was very trivial in master worker model because it was moment when master's stack was empty and all workers were free. In work stealing no such a moment exits. We do not have central node that controls the others and therefore knows in which stage each worker is. We currently cannot detect if all workers are trying to steal (no worker has work left) and therefore we restrict ourselves just to sat formulas but we plan to solve this issue in our future work. 
 
 \mypar{Implementation}
 We implemented both communication models in C++ with a help of the MPI \cite{mpi}.
-Our DPLL solver is implemented in C++ as well and therefore we can directly interact with MPI within the solver. We tried to keep implementation of DPLL algorithm and communication within a nodes as separate as possible for better readability.
-The implementation of parallel DPLL is straight forward and tries to follows good object oriented programming principles. We adapted test driven development with python wrapper that tests our program as black box. We split program into classes with well defined interfaces according to their functions and applied proper encapsulation and information hiding. 
+Our DPLL solver is implemented in C++ as well and therefore we can directly interact with MPI within the solver. We tried to keep implementation of a DPLL algorithm and communication within a nodes as separate as possible for better readability.
+The implementation of a parallel DPLL is straight forward and tries to follow good object oriented programming principles. We adapted test driven development with python wrapper that tests our program as black box. We split program into classes with well defined interfaces according to their functions and applied proper encapsulation and information hiding. 
 
-We use \texttt{vector}s from the C++ standard library to represent sets of clauses and sets of literals. We use \texttt{unsigned int}s as variable names, and \textit{boolean} types for sign, literal and variable values. 
+We used \textit{vector}s from the C++ standard library to represent sets of clauses and sets of literals. We used \textit{unsigned int}s as variable names, and \textit{boolean} types for sign, literal and variable values. 
 %values for sign and value of the literal and variable.
 To implement the backtracking algorithm we used recursion, but we allocate all necessary data structures on the heap.
 We didn't experience any stack overflow issues.
 
 \mypar{Correctness}
 We tested our sequential DPLL solver on hundreds of formulas that we either randomly generated or took over from a SATLIB formula collection. \cite{cnf_website}
-We ran each formula through z3 \cite{z3} and compared the result of z3 with our result.
+We ran each formula through z3 \cite{z3} and compared the result of the z3 with our result.
 The following cases have to be considered for each test case:
 \begin{itemize}
     \item If both solvers return unsat, we pass the test case.
@@ -152,48 +152,40 @@ Assuming that our sequential implementation is correct, it is straight forward t
 
 
 \section{Experimental Results}\label{sec:exp}
-
-We ran both communication models on the Euler super compute cluster. \cite{euler}.
+In this section we are going to present our experimental results for both versions of our parallel DPLL algorithm as well as their detailed description.
 
 \mypar{Experimental Setup}
-We ran our implementation on up to 48 cores, which was the maximum accessible to us on Euler, and requested 1 Gigabyte of memory per core.
-//TODO talk about processors, clock frequencies, OS etc necessary?
+We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 cores, which was the maximum accessible number of cores to us, and requested 1 Gigabyte of memory per core. Euler contains 5 different types of nodes but each of them contains at least two 12-core Intel Xeon processors (2.5-3.7 GHz) and between 64 and 512 GB of DDR4 memory clocked at 1866, 2133 or 2666 MHz.
 
-During our correctness testing and debugging phase of the core algorithm, we realized that random formulas are not a particular good fit to test performance.
-At least not the kind of random formulas that we generated with our own random formula generator.
-Even though they used the same amount of variables, clauses and literals per clause the runtimes varied quite a bit because the problems had a completely randoms structure.
-We used a set of 14 formulas in the DIMACS CNF format as a benchmark set.
-The set contains different real world problems from various domains such as planning problems, all-interval series encodings, flat graph coloring, inductive inference, etc.
-We also included a couple of random formulas in our benchmark set.
-Table \ref{tab:benchmark_set} in the Appendix section contains a detailed listing of the used formulas.
-For the coming subsections we reduced the set of formulas to a representable subset of size 6.
-Corresponding figures for the other 8 formulas can be found in the Appendix section.
+\mypar{Benchmark Formulas} During our correctness testing and debugging phase of the core algorithm, we realized that random formulas generated by our own random formula generator are not suitable for performance testing. Even if we picked formulas that contained the same amount of variables, clauses and literals per clause, we observed the variation of runtimes between them. It is caused by a completely random structure of a formula generated by our generator. Therefore we used a set of 14 formulas taken from the SATLIB as a benchmark set.
+The set contains different real world problems modeled as a boolean formulas from various domains such as planning problems, all-interval series encodings, flat graph coloring, inductive inference, etc. Our benchmark set also contains few random formulas that were taken from SATLIB as well. 
+Table \ref{tab:benchmark_set} in the Appendix section contains a detailed listing of the used formulas together with their description. For the coming subsections we reduced the set of benchmark formulas to a representable subset of size 6 for readability reasons and included corresponding figures for the other 8 formulas in the Appendix section. Subset of representatives is described in table \ref{tab:cnfs_representatives}.
 
-\mypar{Master Slave}
-We compared the runtimes of the master slave communication pattern with sequential DPLL.
-The speedup that we achieve is shown in Figure \ref{fig:dpll_parallel_speedup}.
+\mypar{Master Worker}
+We compared the runtimes of the master worker communication pattern with the sequential version of the DPLL. The achieved speedup is shown in Figure \ref{fig:dpll_parallel_speedup}.
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_parallel_subset_dpll_scaling_tar.pdf}
-    \caption{Average speedup of master slave parallel DPLL implementation compared to sequential DPLL.
+    \caption{Average speedup of master worker parallel DPLL implementation compared to sequential DPLL.
     The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
     \label{fig:dpll_parallel_speedup}}
 \end{figure}
-The speedup factor that we achieved heavily depends on the formula.
-But it is not just the "size" of the problem or time required to solve a formula with the sequential algorithm that influences the speedup factor.
-As shown in Table \ref{tab:cnfs_parallel} the formulas where we reached the highest speedup are not necessarily the ones with the largest number of variables, and therefore highest upper bound on the depth of the decision tree, or longest time to solve sequentially.
-Note that the best speedup in this subset is actually achieved for the formula that is randomly generated (uf50-01).
-For the random generated formula we can explain why the speedup goes down after about 32 cores:
-After about 32 cores the master in our master-slave communication pattern starts to be a bottleneck and workers have to start waiting for pieces of work.
-The overall average waiting time is shown in Figure \ref{fig:dpll_parallel_waiting}.
-The waiting time is summed up over all the workers per solved formula and then averaged over different runs of the same formula.
+It can be inferred from the figure that achieved speedup factor heavily depends on the formula.
+However size of the problem together with the time required to solve a formula with the sequential algorithm are not the only influential factors. 
+%original: But it is not just the "size" of the problem or time required to solve a formula with the sequential algorithm that influences the speedup factor.
+As shown in Table \ref{tab:cnfs_representatives} the formulas where we reached the highest speedup are not necessarily the ones with the longest time to solve sequentially or the largest number of variables (highest upper bound on the depth of the decision tree).
+Note that the best speedup in this subset is achieved with the randomly generated formula (uf50-01).
+For these types of formulas it is trivial to explain why speedup goes down with more than 32 cores.
+It is caused by moments in solving process when master is no longer able to serve that many workers at the same time and therefore some workers has to wait longer for obtaining next partial model. This problem starts to occur when number of cores overcome 30. 
+Another graph that shows this problem is the overall average waiting time shown in Figure \ref{fig:dpll_parallel_waiting}.
+Waiting time in our paper is considered to be time that some worker spends waiting for new partial model from master.
+The overall waiting time is then sum of all waiting time periods over all workers and then averaged over different runs of the same formula.
 
-The speedup is so small in some other cases because of the way the decision tree is traversed.
-The sequential implementation deterministically does a depth-first search.
-In this parallel version however we do not have any ordering guarantees.
-It might happen that we were "close" to a solution but then solve some other partial models in a completely different part of the decision tree that might be unsatisfiable all together.
+The cases where speedup is not so significant are real world problems and therefore their decision trees have some structures. The small speedup is then caused by the way a decision tree is traversed.
+While the sequential implementation deterministically does a depth-first search and therefore gives us ordering guarantees, parallel version sends all subbranches to a master and gives no guarantees that it will receive them in the next call to a master. 
+It might happen that we are "close" to a solution but then we receive partial model in a completely different part of the decision tree that might be unsatisfiable all together. 
 The size of the subtree where we will not find a solution depends on the structure of the formula.
-This is also the explanation why we achieve super linear speedup in some other cases: there we are lucking and because of the traversal order find a solution faster than in the sequential traversal.
+This is also the explanation why we achieved super linear speedup in some other cases. There we were lucky enough in traversing the decision tree and because of that we found a solution faster than in the sequential traversal.
 
 \begin{table}
     \centering
@@ -216,7 +208,7 @@ This is also the explanation why we achieve super linear speedup in some other c
         \hline
     \end{tabular}
     \caption{Overview of benchmark subset formulas.}
-    \label{tab:cnfs_parallel}
+    \label{tab:cnfs_representatives}
 \end{table}
 
 \begin{figure}
@@ -228,8 +220,8 @@ This is also the explanation why we achieve super linear speedup in some other c
     \label{fig:dpll_parallel_waiting}
 \end{figure}
 
-\mypar{Stealing Scheduling}
-Similar to the previous comparison, we compared the parallel work stealing algorithm to sequential DPLL.
+\mypar{Work Stealing}
+Similar to the previous comparison, we compared the parallel work stealing algorithm to the sequential version of the DPLL.
 \begin{figure}
   \centering
   \includegraphics[width=\columnwidth]{figures/scaling_stealing_subset_dpll_scaling_tar.pdf}
@@ -237,12 +229,12 @@ Similar to the previous comparison, we compared the parallel work stealing algor
   \label{fig:dpll_stealing_speedup}}
 \end{figure}
 
-The speedup that we achieve is shown in Figure \ref{fig:dpll_stealing_speedup}.
-With this work stealing pattern we achieve quite high speedups for small numbers of cores but essentially do not gain from adding more cores after some limit.
+The speedup that we achieved is shown in Figure \ref{fig:dpll_stealing_speedup}.
+With work stealing pattern we achieved super high speedups for small numbers of cores but essentially did not gain from adding more cores after some limit.
 The reason for this speedup is again the way how we traverse the decision tree.
 In this pattern we do something that is similar to a breath first search globally and locally per node, the traversal order of the subtree is the same as in the sequential implementation, so depth first search.
 That means that if the formula is satisfiable, we are guaranteed that some worker is working on the correct subtree already after the first decision and will never solve models of the other, wrong subtree.
-This guarantee we do not have for the master slave pattern and we therefore beat the master slave pattern easily.
+This guarantee we do not have for the master worker pattern and we therefore beat the master worker pattern easily.
 
 \section{Discussion}
 In this section we will mention some of the things that we tried along the way but did not work out or we had to stop looking closer into because of time constraints.
@@ -325,7 +317,7 @@ This section contains additional information that is not strictly part of the re
 \begin{figure}[h]
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_parallel_non_subset_dpll_scaling_tar.pdf}
-    \caption{Average speedup of master slave parallel DPLL implementation compared to sequential DPLL.
+    \caption{Average speedup of master worker parallel DPLL implementation compared to sequential DPLL.
     The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
     Other subset.}
     \label{fig:dpll_parallel_speedup_non}
@@ -367,9 +359,9 @@ This section contains additional information that is not strictly part of the re
         \hline
         medium & CDCL sequential & 414.8 $\pm$ 32.94 \\
         \hline
-        ais6 & DPLL master slave, 14 cores & 343.3 $\pm$ 3.58 \\
+        ais6 & DPLL master worker, 14 cores & 343.3 $\pm$ 3.58 \\
         \hline
-        ais8 & DPLL master slave, 48 cores & 3015.3 $\pm$ 58.85 \\
+        ais8 & DPLL master worker, 48 cores & 3015.3 $\pm$ 58.85 \\
         \hline
         flat50-1 & CDCL sequential & 36.4 $\pm$ 9.07 \\
         \hline
@@ -377,7 +369,7 @@ This section contains additional information that is not strictly part of the re
         \hline
         flat75-8 & CDCL sequential & 1054.2 $\pm$ 50.72 \\
         \hline
-        ii8a1 & DPLL master slave, 6 cores & 72.2 $\pm$ 0.79 \\
+        ii8a1 & DPLL master worker, 6 cores & 72.2 $\pm$ 0.79 \\
         \hline
         par8-1-c & CDCL sequential & 15.2 $\pm$ 2.28 \\
         \hline
@@ -385,11 +377,11 @@ This section contains additional information that is not strictly part of the re
         \hline
         uf50-01 & CDCL sequential & 31.5 $\pm$ 9.21 \\
         \hline
-        uf75-01 & DPLL master slave, 32 nodes & 297.4 $\pm$ 7.99 \\
+        uf75-01 & DPLL master worker, 32 nodes & 297.4 $\pm$ 7.99 \\
         \hline
-        uuf50-01 & DPLL master slave 24 nodes & 187.5 $\pm$ 5.59 \\
+        uuf50-01 & DPLL master worker 24 nodes & 187.5 $\pm$ 5.59 \\
         \hline
-        uuf50-02 & DPLL master slave 24 nodes & 148.9 $\pm$ 2.85 \\
+        uuf50-02 & DPLL master worker 24 nodes & 148.9 $\pm$ 2.85 \\
         \hline
     \end{tabular}
     \caption{Benchmark formulas with best performing configuration.}
