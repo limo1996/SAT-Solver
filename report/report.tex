@@ -180,18 +180,27 @@ It is caused by moments in solving process when master is no longer able to serv
 Another graph that shows this problem is the overall average waiting time shown in Figure \ref{fig:dpll_parallel_waiting}.
 Waiting time in our paper is considered to be time that some worker spends waiting for new partial model from master.
 The overall waiting time is then sum of all waiting time periods over all workers and then averaged over different runs of the same formula.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
+	\caption{Average overall waiting time of workers per cnf in parallel version.
+		All waiting times per worker are summed up.
+		The 95\% confidence interval are shown as error bars.}
+	\label{fig:dpll_parallel_waiting}
+\end{figure}
 
 The cases where speedup is not so significant are real world problems and therefore their decision trees have some structures. The small speedup is then caused by the way a decision tree is traversed.
 While the sequential implementation deterministically does a depth-first search and therefore gives us ordering guarantees, parallel version sends all subbranches to a master and gives no guarantees that it will receive them in the next call to a master. 
 It might happen that we are "close" to a solution but then we receive partial model in a completely different part of the decision tree that might be unsatisfiable all together. 
 The size of the subtree where we will not find a solution depends on the structure of the formula.
-This is also the explanation why we achieved super linear speedup in some other cases. There we were lucky enough in traversing the decision tree and because of that we found a solution faster than in the sequential traversal.
+This is also the explanation why we achieved super linear speedup in some other cases. 
+There we were lucky enough in decision tree traversal and therefore we reached final solution with less iterations than in sequential case.
 
 \begin{table}
     \centering
     \begin{tabular}{|l|c|c|}
         \hline
-        Formula & runtime seq. DPLL [ms] & \# vars/clauses \\
+        Formula & seq. runtime [ms] & \# vars/clauses \\
         \hline
         \hline
         uf50-01 (sat) & 7890.9 $\pm$ 44.31 & 50/218\\
@@ -212,70 +221,65 @@ This is also the explanation why we achieved super linear speedup in some other 
 \end{table}
 
 \begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
-    \caption{Average overall waiting time of workers per cnf in parallel version.
-    All waiting times per worker are summed up.
-    The 95\% confidence interval are shown as error bars.}
-    \label{fig:dpll_parallel_waiting}
+	\centering
+	\includegraphics[width=\columnwidth]{figures/scaling_stealing_subset_dpll_scaling_tar.pdf}
+	\caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
+		\label{fig:dpll_stealing_speedup}}
 \end{figure}
 
 \mypar{Work Stealing}
-Similar to the previous comparison, we compared the parallel work stealing algorithm to the sequential version of the DPLL.
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{figures/scaling_stealing_subset_dpll_scaling_tar.pdf}
-  \caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
-  \label{fig:dpll_stealing_speedup}}
-\end{figure}
-
+Similar to the previous comparison, we compared our parallel work stealing algorithm to the sequential version of the DPLL.
 The speedup that we achieved is shown in Figure \ref{fig:dpll_stealing_speedup}.
-With work stealing pattern we achieved super high speedups for small numbers of cores but essentially did not gain from adding more cores after some limit.
-The reason for this speedup is again the way how we traverse the decision tree.
+With work stealing pattern we achieved super high speedups for small number of cores but essentially did not gain from adding more cores after some limit.
+The reason for it is again the way how we traverse the decision tree.
+% TODO: reformulate and make more clear. I am not capable of that. 
+%----- BEGIN
 In this pattern we do something that is similar to a breath first search globally and locally per node, the traversal order of the subtree is the same as in the sequential implementation, so depth first search.
-That means that if the formula is satisfiable, we are guaranteed that some worker is working on the correct subtree already after the first decision and will never solve models of the other, wrong subtree.
-This guarantee we do not have for the master worker pattern and we therefore beat the master worker pattern easily.
+%----- END
+That means that if the formula is satisfiable, we are guaranteed that at least one worker is working on the correct subtree already after the first decision and will never solve models of the other, wrong subtree.
+We do not have this guarantee for the master worker pattern because here workers jump out of their search space context every time they request new model from master. It does not guarantee that model that worker receives is in the same context (subtree) as previous one. Therefore it can easily happen that all workers are working on wrong subtree and they will move to the correct one just after finishing the wrong one. As an result of this, we outperform master worker with work stealing version easily.
+
+\mypar{Communication Overhead} One of the reasons why we developed work stealing mechanism was that it should drastically reduce communication (bytes transferred) between cores. Our experimental results proved it and they are shown in Figure [xxx]. It can be inferred from the figure that communication overhead rises with number of cores in master worker model but stays more or less the same in stealing one. It is caused by reduced model transfer mentioned in chapter 3. However we observed that amount of communication is definitely not a limiting factor in master worker model. It is master that becomes bottleneck in higher number of cores and communication is in comparison to master serving free.
 
 \section{Discussion}
-In this section we will mention some of the things that we tried along the way but did not work out or we had to stop looking closer into because of time constraints.
+In this section we are going to discuss some approaches that we tried during development but they did not work as expected or we had to stop investigating possible solutions because of time constraints.
 
-\mypar{CDCL DPLL Hybrid Parallel Solver}
-We have implemented a fully working CDCL solver.
-If run sequentially it outperforms the DPLL solver on all of our 14 benchmark formulas.
-Quite naturally we tried to plug that solver in at the workers.
-The way we did that is the following:
+\mypar{DPLL-CDCL Hybrid Parallel Solver}
+We have implemented a fully working CDCL solver. Its correctness was proved the same way as in DPLL ones.
+Even tough CDCL solver is sequential, it was able to outperform both DPLL solvers on all of our 14 benchmark formulas with highest number of cores.
+The reason of that is because CDCL is far better algorithm than DPLL even if DPLL runs on 48 cores.
+Quite naturally we tried to plug that solver in the workers to boost the performance.
+The way we did it is the following:
 \begin{itemize}
-    \item First we run DPLL in parallel (it does not matter which of two communication patterns we pick).
-    We only branch a certain number of times per worker.
-    \item After that "branching limit" is reached we switch to CDCL and solve the whole subtree of the original decision tree locally.
-    \item When that is done we either found a solution or again get a new model (either from the master or another worker) and solve it with CDCL.
+    \item First we run DPLL in parallel (it does not matter which of the two communication patterns we pick) and we only branched a certain number of times per worker.
+    \item After "branching limit" was reached we switched to CDCL and solve the whole subtree of the original decision tree locally.
+    \item When it was done we either found a solution or get a new model (either from the master or another worker) and solved it again with CDCL.
 \end{itemize}
-With this hybrid approach we achieved really bad performance.
+However this hybrid approach showed worse performance than we expected.
 There are two reasons why.
-Firstly we essentially cripple the CDCL solver by not giving him the full formula but only modified a part of it.
-That means if we already decided something and then pass on that subproblem to the CDCL solver, the subproblem has not really a correlation to the original problem.
+%TODO: Not satisfied with it, rework I am not able to do it since I dont understand cdcl that much. Present it as story... 
+%----- BEGIN
+Firstly we essentially crippled the CDCL solver by not giving him the full formula but only a modified part of it.
+That means if we already decided something and then pass that subproblem to the CDCL solver, the subproblem has not really a correlation to the original problem.
 The problem that we solve with CDCL can be a completely different one and therefore a lot more difficult to solve then the original one.
-Secondly, yet again we break something because of the way we split the work:
+Secondly, yet again we break something because of the way we split the work.
 It might happen that all workers are busy solving some problem that is a lot more difficult than the actual problem and the subproblem that contains the correct solution is not solved by any worker at that point in time.
 That means in the worst case we solve lots of partial models that are more difficult than the original problem, before we solve the correct problem and find the solution.
+%---- END
 
-We ran everything we discussed in Section \ref{sec:exp} with this hybrid parallel solver for different branching limits.
+We ran everything we discussed in Section \ref{sec:exp} with the hybrid parallel solver for different branching limits.
 We do not include any further information in this report because of space limitations.
 
 \section{Future Work}
-In this section we discuss possible extensions of our work.
+In this section we are going to discuss possible extensions and improvements of our work.
 
-\section{Conclusions}
+\mypar{Improvements} As presented in chapter 4 during evaluation and measurements phase of our project we detected several drawbacks in our approach that could be improved. First and the most important one is tree traversal. We need to ensure equal distribution of workers over search space. We have to avoid situations where one or no worker is working on the left part and all the other workers on the right part. Next improvement should enhance stealing effectiveness. Stealing should no longer be completely random. We need to somehow remember our stealing attempts and steal from workers that have the most models in their local stacks. 
 
-Here you need to summarize what you did and why this is
-important. {\em Do not take the abstract} and put it in the past
-tense. Remember, now the reader has (hopefully) read the report, so it
-is a very different situation from the abstract. Try to highlight
-important results and say the things you really want to get across
-such as high-level statements (e.g., we believe that .... is the right
-approach to .... Even though we only considered x, the
-.... technique should be applicable ....) You can also formulate next
-steps if you want. Be brief. After the conclusions there are only the references.
+\mypar{Extensions} Work stealing model is able to handle just \textit{sat} cases and we would like to extend it to handle \textit{unsat} cases as well. It would allow us to do better benchmarks because in \textit{unsat} case we need to traverse the whole search tree. Another interesting extension would be to parallelize CDCL algorithm. It would require clause sharing that is hard to implement but it should lead to performance that is at least comparable with state-of-the-art solvers. 
+
+\section{Conclusion}
+
+SAT solving is after six decades of intensive research still hot topic in theoretical computer science. In our approach we tried to expose more processor cores to get more computing power for SAT problem that is NP-complete. We parallelized DPLL algorithm with two different communication strategies. Work stealing strategy outperformed master worker one since it does not contain central node as well as reduces communication overhead to minimum. However newer and much better CDCL algorithm was still able to outperform our both parallel DPLL versions even tough it ran sequentially. We also tried hybrid approach with global DPLL and local CDCL but it did not bring desired performance increase. As our future work we mainly plan to parallelize CDCL since we believe that this approach will bring performance that is comparable with moder state-of-the-art solvers.
 
 % References should be produced using the bibtex program from suitable
 % BiBTeX files (here: bibl_conf). The IEEEbib.bst bibliography
