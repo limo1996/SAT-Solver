@@ -8,6 +8,8 @@
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage[export]{adjustbox}
+\usepackage{float}
+\usepackage{array}
 
 
 % Example definitions.
@@ -297,13 +299,48 @@ We included the corresponding figures for the other 8 formulas in the Appendix s
 \mypar{Master Worker}
 We compared the run times of the master worker communication pattern with the sequential version of DPLL.
 The achieved speedup is shown in Figure \ref{fig:dpll_parallel_speedup}.
-\begin{figure}
+
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_parallel_subset_dpll_scaling_tar.pdf}
     \caption{Average speedup of master worker parallel DPLL implementation compared to sequential DPLL.
     The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
     \label{fig:dpll_parallel_speedup}}
 \end{figure}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
+    \caption{Average overall waiting time of workers per cnf in the parallel version.
+    All waiting times per worker are summed up.
+    The 95\% confidence interval are shown as error bars.}
+    \label{fig:dpll_parallel_waiting}
+\end{figure}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|c|c|}
+        \hline
+        Formula & seq. runtime [ms] & \# vars/clauses \\
+        \hline
+        \hline
+        uf50-01 (sat) & 7'890.9 $\pm$ 44.31 & 50/218\\
+        \hline
+        par8-1-c (sat) & 2'185.0 $\pm$ 32.88 & 64/254\\
+        \hline
+        ais6 (sat) &  2'964.0 $\pm$ 41.54 & 61/581\\
+        \hline
+        flat75-4 (sat) & 26'284.6 $\pm$ 172.65 & 225/840\\
+        \hline
+        anomaly (sat) & 279.7 $\pm$ 6.74 & 48/261\\
+        \hline
+        uuf50-01 (unsat) & 13'404.2 $\pm$ 102.94 & 50/218\\
+        \hline
+    \end{tabular}
+    \caption{Overview of sequential runtime of benchmark subset formulas.
+    The second column shows the average runtime with the 95 percentiles.}
+    \label{tab:cnfs_representatives}
+\end{table}
+
+
 It can be inferred from the figure that the achieved speedup factor heavily depends on the formula.
 But it is not just the "size" of the problem or time required to solve a formula with the sequential algorithm that influences the speedup factor.
 As shown in Table \ref{tab:cnfs_representatives} the formulas where we reached the highest speedup are not necessarily the ones with the longest time to solve sequentially or the largest number of variables (highest upper bound on the depth of the decision tree).
@@ -315,14 +352,6 @@ This problem starts to occur when the number of cores is larger than 30.
 The overall average waiting time of all workers, shown in Figure \ref{fig:dpll_parallel_waiting}, shows this problem.
 The waiting time is considered to be the time that some worker spends waiting for a new partial model from the master.
 The overall waiting time is the sum of all waiting time periods of all workers, averaged over different runs of the same formula.
-\begin{figure}
-	\centering
-	\includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
-	\caption{Average overall waiting time of workers per cnf in the parallel version.
-		All waiting times per worker are summed up.
-		The 95\% confidence interval are shown as error bars.}
-	\label{fig:dpll_parallel_waiting}
-\end{figure}
 
 The cases where the speedup is not so significant are real world problems.
 The structure of their decision trees is less random.
@@ -334,35 +363,18 @@ The size of the subtree where we will not find a solution depends on the structu
 This is also the explanation why we achieved super linear speedup in some other cases:
 There we were lucky enough to reach the final solution with less iterations than in the sequential case.
 
-\begin{table}
-    \centering
-    \begin{tabular}{|l|c|c|}
-        \hline
-        Formula & seq. runtime [ms] & \# vars/clauses \\
-        \hline
-        \hline
-        uf50-01 (sat) & 7890.9 $\pm$ 44.31 & 50/218\\
-        \hline
-        par8-1-c (sat) & 2185.0 $\pm$ 32.88 & 64/254\\
-        \hline
-        ais6 (sat) &  2964.0 $\pm$ 41.54 & 61/581\\
-        \hline
-        flat75-4 (sat) & 26284.6 $\pm$ 172.65 & 225/840\\
-        \hline
-        anomaly (sat) & 279.7 $\pm$ 6.74 & 48/261\\
-        \hline
-        uuf50-01 (unsat) & 13404.2 $\pm$ 102.94 & 50/218\\
-        \hline
-    \end{tabular}
-    \caption{Overview of benchmark subset formulas.}
-    \label{tab:cnfs_representatives}
-\end{table}
-
-\begin{figure}
+\begin{figure}[p]
 	\centering
 	\includegraphics[width=\columnwidth]{figures/scaling_stealing_subset_dpll_scaling_tar.pdf}
 	\caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
 		\label{fig:dpll_stealing_speedup}}
+\end{figure}
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/waiting_stealing_subset_dpll_scaling_tar.pdf}
+    \caption{Average overall waiting time of workers per cnf in the work stealing model.
+    All waiting times per worker are summed up.}
+    \label{fig:dpll_stealing_waiting}
 \end{figure}
 
 \mypar{Work Stealing}
@@ -384,15 +396,26 @@ As an result, we outperform master worker with the work stealing version with on
 But do not gain that much from adding more cores since the search space is split in a non-uniform way.
 
 \mypar{Communication Overhead}
-One of the reasons why we intorduced a work stealing mechanism was that it should drastically reduce the amount communication (bytes transferred) between cores.
-Our experimental results prove that and they are shown in Figures [xxx] and [yyy].
-From Figure [xxx] it can be inferred that the amount of communication rises with the number of cores in the master worker model.
-In Figure [yyy] on the other hand the amount of communication does not increase that much with more cores.
-//TODO: actually create those figures and verify that this is what's happening!
-It is caused by reduced amount of partial model transfers, as mentioned in Section \ref{sec:parallel_dpll}.
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/comm_subset_dpll_scaling_tar.pdf}
+    \caption{Overall amount of transferred bytes for both the master worker model and the stealing model.
+    The 95\% confidence intervalls are shown as error bars but too small to be visible for some data points.}
+    \label{fig:comm_reduce}
+\end{figure}
+One of the reasons why we introduced a work stealing mechanism,
+was that it should drastically reduce the amount of communication (bytes transferred) between cores.
+Our experimental results prove that and they are shown in Figure \ref{fig:comm_reduce}.
+From the upper subplot in Figure \ref{fig:comm_reduce} it can be inferred that the amount of communication is quite high,
+but does not necessarily increase when increasing the number of cores.
+This constant behavior is caused by the fact that every worker sends every partial model it finds and that it does not directly solve back to the master,
+regardless of the number of cores that are used.
+If more cores are used however, it can happen that parts of the decision tree that were not traversed with a smaller number of cores are suddenly traversed.
+In the lower subplot of Figure \ref{fig:comm_reduce} the amount of communication overall is reduced, compared to the master worker model.
+This reduction is caused by the reduced amount of partial model transfers, as mentioned in Section \ref{sec:parallel_dpll}.
 However as we discussed in the previous subsection, the amount of communication is not the only limiting factor.
 Master becoming the bottleneck when adding more cores is the main factor.
-The measured waiting time per worker did not increase for the work stealing version as it did increase for the master worker model, which is shown in Figure \ref{fig:dpll_parallel_waiting}.
+The measured waiting time per worker did also not increase as much for the work stealing version as it did increase for the master worker model when adding more cores.
 
 \section{Discussion}\label{sec:discussion}
 In this section we are going to discuss some approaches that we tried during development but that did not work as expected or we had to stop investigating possible solutions because of time constraints.
@@ -562,6 +585,4 @@ This section contains additional information that is not strictly part of the re
     \label{tab:cnfs_parallel}
 \end{table}
 
-
 \end{document}
-
