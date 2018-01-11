@@ -77,11 +77,10 @@ Since the SAT problem is NP-complete, we consider it a good candidate to be para
 In our approach, we are trying to speed up SAT solving by running it on multiple cores with different techniques of search space partitioning.
 
 The remainder of this report is structured as follows:
-%"In Section" used 5 times in a row!!! definitely not good, use of "some" as well.
-Next subsection provides related work.
+The next subsection provides related work.
 In Section \ref{sec:background} we introduce core SAT concepts.
-Section \ref{sec:parallel_dpll} explains how we parallelized DPLL and section \ref{sec:exp} contains experimental evaluation.
-In Sections \ref{sec:discussion}, \ref{sec:futureWork} and \ref{sec:conclusion} we talk about experiments we tried that did not work out, about possible extensions to our work and finally conclusion.
+Section \ref{sec:parallel_dpll} explains how we parallelized DPLL and Section \ref{sec:exp} contains the experimental evaluation.
+In Sections \ref{sec:discussion}, \ref{sec:futureWork} and \ref{sec:conclusion} we talk about things that we tried that did not work out, about possible extensions to our work and conclude.
 
 \iffalse
 The final comparison is done between different parallel versions and the sequential one.
@@ -238,7 +237,7 @@ Our current work stealing implementation has one drawback:
 It can only handle satisfiable formulas.
 The stopping criteria in the unsatisfiable case was very trivial in the master worker model because there exists a moment when master's stack was empty and all workers were free.
 In the work stealing model, no such a moment exits.
-We do not have central node that controls the others and so knows in which stage each worker is and therefore we restrict ourselves just to satisfiable formulas with this communication model.
+We do not have a central node that controls the others and so knows in which stage each worker is and therefore we restrict ourselves just to satisfiable formulas with this communication model.
 
 \mypar{Implementation}
 We implemented both communication models in C++ with the help of MPI \cite{mpi}.
