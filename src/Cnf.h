@@ -12,9 +12,9 @@
 
 #include <iostream>
 #include <string>
-#include "variable.h"
-#include "clause.h"
-#include "internal_types.h"
+#include "Variable.h"
+#include "Clause.h"
+#include "InternalTypes.h"
 
 /**
  * Represents a CNF formula

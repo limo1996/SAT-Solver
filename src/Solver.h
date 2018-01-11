@@ -5,7 +5,7 @@
 #ifndef SAT_SOLVER_SOLVER_H
 #define SAT_SOLVER_SOLVER_H
 
-#include "CNF.h"
+#include "Cnf.h"
 
 enum SolverType {
     DPLL_, CDCL_

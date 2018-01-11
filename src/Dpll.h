@@ -4,14 +4,14 @@
 #include <unordered_set>
 #include <iostream>
 #include <stdexcept>
-#include "solver.h"
-#include "cdcl.h"
-#include "config.h"
-#include "variable.h"
-#include "clause.h"
-#include "CNF.h"
-#include "worker.h"
-#include "internal_types.h"
+#include "Solver.h"
+#include "Cdcl.h"
+#include "Config.h"
+#include "Variable.h"
+#include "Clause.h"
+#include "Cnf.h"
+#include "Worker.h"
+#include "InternalTypes.h"
 
 class Worker;
 class Solver;

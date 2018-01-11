@@ -12,10 +12,10 @@
 
 #include <unordered_set>
 #include <string>
-#include "variable.h"
-#include "clause.h"
-#include "CNF.h"
-#include "internal_types.h"
+#include "Variable.h"
+#include "Clause.h"
+#include "Cnf.h"
+#include "InternalTypes.h"
 
 /**
  * Used to parse a .cnf file in the dimacs format

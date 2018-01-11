@@ -15,12 +15,12 @@
 #include <fstream>
 #include <cassert>
 
-#include "mpi_types.h"
-#include "CNF.h"
-#include "dpll.h"
+#include "MpiTypes.h"
+#include "Cnf.h"
+#include "Dpll.h"
 #include "Model.h"
 #include "Meter.h"
-#include "measurement.h"
+#include "Measurement.h"
 
 /**
  Master in parallel sat-solver. Responsible for managing worker threads e.g. collecting tasks that needs to be done,

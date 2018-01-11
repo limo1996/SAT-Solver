@@ -7,7 +7,7 @@
 
 #include <unordered_set>
 #include <unordered_map>
-#include "variable.h"
+#include "Variable.h"
 
 /**
  * CDCL dependency graph implementation

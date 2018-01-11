@@ -3,7 +3,7 @@
 //
 
 #include <queue>
-#include "cdcl.h"
+#include "Cdcl.h"
 
 extern int CERR_LEVEL;
 

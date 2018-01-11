@@ -2,7 +2,7 @@
 // Created by jan on 23.11.17.
 //
 
-#include "cdcl_dependency_graph.h"
+#include "CdclDependencyGraph.h"
 
 /*
  * Literal

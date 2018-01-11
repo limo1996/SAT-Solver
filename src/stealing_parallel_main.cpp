@@ -2,10 +2,10 @@
 #include <chrono>
 #include <fstream>
 
-#include "cnfparser.h"
+#include "CnfParser.h"
 #include "StealingWorker.h"
-#include "measurement.h"
-#include "arg_parsing.h"
+#include "Measurement.h"
+#include "ArgParsing.h"
 
 using namespace std;
 using namespace std::chrono;

@@ -2,13 +2,13 @@
 #include <fstream>
 #include <chrono>
 #include <map>
-#include "variable.h"
-#include "clause.h"
-#include "CNF.h"
-#include "cnfparser.h"
-#include "dpll.h"
-#include "arg_parsing.h"
-#include "solver_controller.h"
+#include "Variable.h"
+#include "Clause.h"
+#include "Cnf.h"
+#include "CnfParser.h"
+#include "Dpll.h"
+#include "ArgParsing.h"
+#include "SolverController.h"
 
 using namespace std;
 using namespace std::chrono;

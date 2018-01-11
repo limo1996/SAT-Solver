@@ -2,7 +2,7 @@
 // Created by jan on 23.11.17.
 //
 
-#include "solver_controller.h"
+#include "SolverController.h"
 
 SolverController::SolverController(Config *config, CNF *cnf) {
     if (config->solver_type == DPLL_) {

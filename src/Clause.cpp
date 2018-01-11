@@ -7,7 +7,7 @@
  *  http://www.cs.columbia.edu/~fotis/Artificial_Intelligence/dpll/dpll.cpp *
   **************************************************************************/
 
-#include "clause.h"
+#include "Clause.h"
 
 /**
  * creates a new instance of Clause

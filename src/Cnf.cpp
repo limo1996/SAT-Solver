@@ -7,7 +7,7 @@
  *  http://www.cs.columbia.edu/~fotis/Artificial_Intelligence/dpll/dpll.cpp *
   **************************************************************************/
 
-#include "CNF.h"
+#include "Cnf.h"
 
 CNF::CNF() = default;
 

@@ -9,8 +9,8 @@
 #ifndef CLAUSE_H
 #define CLAUSE_H
 
-#include "variable.h"
-#include "internal_types.h"
+#include "Variable.h"
+#include "InternalTypes.h"
 
 /**
  * Represents a clause in a CNF formula

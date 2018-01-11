@@ -7,8 +7,8 @@
  *  http://www.cs.columbia.edu/~fotis/Artificial_Intelligence/dpll/dpll.cpp *
   **************************************************************************/
 
-#include "cnfparser.h"
-#include "exceptions.cpp"
+#include "CnfParser.h"
+#include "Exceptions.cpp"
 #include <sys/stat.h>
 
 #include <fstream>

@@ -5,7 +5,7 @@
 #ifndef SAT_SOLVER_CONFIG_H
 #define SAT_SOLVER_CONFIG_H
 
-#include "worker.h"
+#include "Worker.h"
 
 class Worker;
 

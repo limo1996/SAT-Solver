@@ -4,10 +4,10 @@
 #include <stdexcept>
 #include <vector>
 #include <climits>
-#include "CNF.h"
-#include "dpll.h"
-#include "mpi_types.h"
-#include "internal_types.h"
+#include "Cnf.h"
+#include "Dpll.h"
+#include "MpiTypes.h"
+#include "InternalTypes.h"
 #include "Meter.h"
 
 /**

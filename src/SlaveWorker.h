@@ -2,13 +2,13 @@
 #define SAT_SLAVE_SOLVER_WORKER_H
 
 
-#include "CNF.h"
-#include "dpll.h"
-#include "mpi_types.h"
-#include "worker.h"
+#include "Cnf.h"
+#include "Dpll.h"
+#include "MpiTypes.h"
+#include "Worker.h"
 #include <stdexcept>
 #include <vector>
-#include "internal_types.h"
+#include "InternalTypes.h"
 
 class SlaveWorker : public Worker {
 private:

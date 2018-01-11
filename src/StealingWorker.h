@@ -4,11 +4,11 @@
 #include <stdexcept>
 #include <vector>
 #include <list>
-#include "CNF.h"
-#include "mpi_types.h"
+#include "Cnf.h"
+#include "MpiTypes.h"
 #include "Model.h"
-#include "worker.h"
-#include "dpll.h"
+#include "Worker.h"
+#include "Dpll.h"
 
 //random
 #include <ctime>

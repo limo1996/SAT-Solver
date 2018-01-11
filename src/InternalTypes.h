@@ -6,8 +6,8 @@
 #define SAT_SOLVER_INTERNAL_TYPES_H
 
 #include <vector>
-#include "clause.h"
-#include "variable.h"
+#include "Clause.h"
+#include "Variable.h"
 
 // forward declarations
 class Clause;

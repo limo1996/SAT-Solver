@@ -6,9 +6,9 @@
 #define SAT_SOLVER_CDCL_H
 
 #include <unordered_map>
-#include "dpll.h"
-#include "cdcl_dependency_graph.h"
-#include "solver.h"
+#include "Dpll.h"
+#include "CdclDependencyGraph.h"
+#include "Solver.h"
 
 class DpllResult;
 
