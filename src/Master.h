@@ -22,9 +22,9 @@
 #include "Meter.h"
 #include "measurement.h"
 
-/*
+/**
  Master in parallel sat-solver. Responsible for managing worker threads e.g. collecting tasks that needs to be done,
- sending tasks to free workers, stoping all workers in case solution was found.
+ sending tasks to free workers, stopping all workers in case solution was found.
  */
 class Master : public Meter{
 private:

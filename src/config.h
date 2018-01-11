@@ -9,6 +9,9 @@
 
 class Worker;
 
+/**
+ * Config object used in both CDCL and DPLL
+ */
 class Config {
 public:
     int branching_limit; // any node only branches this number of times, then it will solve the remaining task locally

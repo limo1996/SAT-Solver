@@ -1,7 +1,6 @@
 #ifndef SAT_SLAVESOLVER_WORKER_H
 #define SAT_SLAVESOLVER_WORKER_H
 
-
 #include <stdexcept>
 #include <vector>
 #include <climits>
@@ -10,7 +9,13 @@
 #include "mpi_types.h"
 #include "internal_types.h"
 #include "Meter.h"
-class Worker : public Meter{
+
+/**
+ * Worker base class
+ *
+ * Inherits from Meter to make the fields of Meter available in the worker.
+ */
+class Worker : public Meter {
 protected:
     CNF *cnf;                                                                               // parsed cnf
     MPI_Datatype meta_data_type;                                                            // MPi datatype used for communication
@@ -18,27 +23,15 @@ protected:
     bool stop;                                                                              // indicates whether worker was stopped
 
 public:
+    Worker();
+    void send_measurements();
+    unsigned count_assigned(VariableSet *variables);
+    std::vector<unsigned> encode_variables(VariableSet *variables);
+    void parse_and_update_variables(unsigned[], int size);
+    bool get_stop();
+
     virtual void dpll_callback(VariableSet *variables) = 0;              // callback that is called when dpll branches
 
-    Worker() {
-        stop = false;
-    }
-
-    void send_measurements() {
-        stop_runtime();
-        unsigned data[4];
-        data[0] = get_runtime();
-        data[1] = get_waiting_time();
-        data[2] = get_send_messages();
-        data[3] = get_send_meta();
-        MPI_Send(data, 4, MPI_UNSIGNED, 0, 2, MPI_COMM_WORLD);
-    }
-
-    bool get_stop() {
-        return stop;
-    }
 };
 
-
 #endif //SAT_SLAVESOLVER_WORKER_H
-

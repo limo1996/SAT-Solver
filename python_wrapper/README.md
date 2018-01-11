@@ -2,16 +2,17 @@
 
 This python scripts will call our c++ solver.
 
-There are 2 arguments:
+Command line arguments:
 - ``mode``: there are 3 possible modes
     - ``integration-test-local`` -> runs the integration tests locally (sequentially)
     - ``parallel-test-local`` -> runs the parallel tests on the local machine with as many cores as available
-    - ``parallel-test-euler`` -> will run the parallel test on euler
+    - ``stealing-test-local`` -> runs the work stealing implementation in parallel on the local machine with as many cores as available
+    - ``parallel-test-euler`` -> sshs to euler and runs what ever is defined in [bsub_script.sh](bsub_script.sh)
 - ``cnf_folder``(optional): folder where the cnf files are located in.
     Note that the path is relative to the project root folder. Defaults are:
     - ``integration_tests`` for mode ``integration-test-local``
     - ``parallel_tests`` for modes ``parallel-test-local`` and ``parallel_test_euler``
-- ``nethz_username``: is only used with ``--mode parallel_test_euler``, if not provided, it will be prompted for
+- ``nethz_username`` (optional): is only used with ``--mode parallel_test_euler``, if not provided, it will be prompted for
 
 Example usage:
 ```bash
@@ -35,6 +36,13 @@ To see if the environment is set up correctly run:
 ```bash
 python z3_smoke_test.py
 ```
+
+## Tests
+To run all tests run:
+```bash
+./run_all_tests.sh
+```
+
 ## Euler Login
 Before your euler account is ready to be used you need to accept some policy, in order to do that login manually via ssh:
 ```bash
@@ -82,3 +90,15 @@ watch -n 5 bbjobs 52097985
 - per test file output will be stored depending on what is done in ``bsub_script.sh``...
 - you can download the tar-ball that contains the measurements with the command that was printed in the last line of the
 output (<there_will_be_a_command_here> from above)
+
+# Experiments
+For our final experiments we created another set of python classes.
+Each experiment is represented by a class in: [experiments/](experiments/).
+
+- **DpllScaling**: strong scaling experiment with different solver configurations on euler.
+    - use ``python dpll_scaling.py --rerun`` to rerun the experiment on euler
+    - once that is done copy the measurements tar into the experiments/ folder
+    - then run ``python dpll_scaling.py --process`` to load unpack the tar file and load the measurements into a json file that is then stored locally.
+    - then run ``python dpll_scaling.py`` to plot the data (plots are in [../report/figures/](../report/figures/))
+    - you can also directly plot the results that we have stored in the repository without rerunning on euler
+- **DPLL vs CDCL** dpll vs. cdcl measurements to be run on a local machine

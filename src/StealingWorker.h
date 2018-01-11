@@ -32,15 +32,12 @@ private:
     void stop_workers();                                                                // sends stop message to all workers
     void output_sat_model(CNF *cnf);                                                    // outputs model passed as parameter
     void print_sat_stop_workers(CNF *cnf);                                              // prints sat, model and stops workers
-    void parse_and_update_variables(unsigned[], int size);                              // updates this->cnf with new values passed as paramters
     void debug_output(std::string line, bool newLine, int level = 1);                   // outputs string according to set debug_level
     void cerr_model(std::string info, VariableSet *variables);       // outputs model according to set debug_level
 
     MPI_Request send_meta(int to_rank, char i, unsigned assigned);                      // sends meta data to given rank with given values
     MPI_Request send_model(int to_rank, std::vector<unsigned int> assigned);            // sends model to given rank
 
-    unsigned count_assigned(VariableSet *variables);                 // returns number of assigned variables
-    std::vector<unsigned> encode_variables(VariableSet *variables);  // encode variables to sendable format
     std::set<int> generate_rand_workers(int max, int n);                                // generates n unique random numbers in range (0, max)
 
     bool respond_to(struct meta meta, MPI_Status status);                               // performs action according to received meta message

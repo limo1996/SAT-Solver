@@ -36,7 +36,7 @@ unsigned Literal::hash(Variable *v) {
     return v->get_sign() ? i : i + 1;
 }
 
-unsigned Literal::negative_hash(Variable *v) {
+unsigned Literal::negation_hash(Variable *v) {
     unsigned i = v->get_name() << 1;
     return v->get_sign() ? i + 1 : i;
 }
@@ -69,6 +69,9 @@ Graph::Graph() {
     conflict = 0;
 }
 
+/**
+ * Searches the dependency graph for an element, if it is not found, nullptr is returned
+ */
 Literal *Graph::find(unsigned key) {
     std::unordered_map<unsigned, Literal *>::const_iterator got = lookup_map.find(key);
     if (got == lookup_map.end()) {
@@ -78,16 +81,25 @@ Literal *Graph::find(unsigned key) {
     }
 }
 
+/**
+ * Searches the dependency graph for a variable, if it is not found, nullptr is returned
+ */
 Literal *Graph::find(Variable *var) {
     unsigned key = Literal::hash(var);
     return find(key);
 }
 
+/**
+ * Searches the dependency graph for the negation of a variable, if it is not found, nullptr is returned
+ */
 Literal *Graph::find_negation(Variable *var) {
-    unsigned key = Literal::negative_hash(var);
+    unsigned key = Literal::negation_hash(var);
     return find(key);
 }
 
+/**
+ * Removes a literal from the dependency graph
+ */
 void Graph::remove_node(Literal *l) {
     if (l->type == STANDARD) {
         throw std::runtime_error("Not implemented, this shouldn't happen!");
@@ -112,6 +124,10 @@ void Graph::free_freeable_nodes() {
     to_free.clear();
 }
 
+/**
+ * Adds a literal to the dependency graph
+ * Setting the parents and children of the element is the responsibility of the caller!
+ */
 void Graph::add_node(Literal *l) {
     Literal *same = find(l->hash());
     Literal *negation = find(l->negative_hash());

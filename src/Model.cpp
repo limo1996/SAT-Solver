@@ -1,5 +1,5 @@
 //
-//  State.cpp
+//  Model.cpp
 //  SAT-Solver
 //
 //  Created by Jakub Lichman on 10/26/17.

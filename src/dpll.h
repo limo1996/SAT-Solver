@@ -17,6 +17,10 @@ class Worker;
 class Solver;
 class CDCL;
 
+/**
+ * Result of the solver, contains a boolean flag sat/unsat and if sat a model CNF object.
+ * From this CNF object, the valid model can then be gathered with model_cnf.get_model()
+ */
 class DpllResult {
 public:
     bool sat;
@@ -27,6 +31,9 @@ public:
     }
 };
 
+/**
+ * DPLL solver implementation
+ */
 class DPLL: public Solver {
 private:
     CNF *cnf;

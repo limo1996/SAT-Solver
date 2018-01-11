@@ -22,6 +22,9 @@ void default_args(map<string, string> *arg_map) {
     arg_map->insert({"-cerr-level", "0"});
 };
 
+/**
+ * Main entry point of sequential version.
+ */
 int main(int argc, char *argv[]) {
     if (argc % 2 != 0 || argc < 2 || (argc == 2 && string(argv[1]) == "--help")) {
         printHelp();

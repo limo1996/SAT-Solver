@@ -16,7 +16,10 @@
 #include "clause.h"
 #include "internal_types.h"
 
-class CNF {                         /* class CNF contains */
+/**
+ * Represents a CNF formula
+ */
+class CNF {
 private:
     ClauseSet clauses;		/* a set of clauses */
 public:

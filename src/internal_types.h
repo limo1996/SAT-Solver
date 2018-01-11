@@ -9,9 +9,13 @@
 #include "clause.h"
 #include "variable.h"
 
+// forward declarations
 class Clause;
 class Variable;
 
+/**
+ * One global place where we define our internally used data structures
+ */
 typedef std::vector<Variable *> VariableSet;
 typedef std::vector<Clause *> ClauseSet;
 

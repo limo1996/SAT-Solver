@@ -11,6 +11,9 @@ enum SolverType {
     DPLL_, CDCL_
 };
 
+/**
+ * Abstract class, defines a uniform interface for different solver implementations
+ */
 class Solver {
 public:
     Solver() = default;

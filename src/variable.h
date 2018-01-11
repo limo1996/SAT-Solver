@@ -13,6 +13,9 @@
 #include <string>
 #include <set>
 
+/**
+ * Represents a literal in a CNF formula
+ */
 class Variable{
 private:
     bool sign;                  /* sign */

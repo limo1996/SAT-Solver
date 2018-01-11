@@ -49,7 +49,7 @@ VariableSet* Clause::get_vars() {
     return &this->var;
 }
 
-//gets clause in string
+//gets clause as string
 std::string Clause::to_string() {
     std::string s;
     VariableSet unassignedVars;

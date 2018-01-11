@@ -22,10 +22,6 @@ private:
     
     void run_dpll();
     
-    void parse_and_update_variables(unsigned[], int size);
-    
-    std::vector<unsigned> encode_variables(VariableSet *variables);
-    
     bool stop_received_before_message_completion(MPI_Request *mpi_requests, int size);
     
     void cerr_model(std::string info, VariableSet *variables);

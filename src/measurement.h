@@ -13,6 +13,9 @@
 
 const int NUM_MEASUREMENTS = 4;
 
+/**
+ * Used to collect measurements and write measurements to files
+ */
 class Measurement {
 private:
     std::vector<std::string> files;

@@ -6,6 +6,9 @@
 
 using namespace std::chrono;
 
+/**
+ * Contains different timers and can be used to count received and sent messages.
+ */
 class Meter {
 private:
     high_resolution_clock::time_point run_time_start;

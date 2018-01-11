@@ -2,8 +2,8 @@
 Semester project for Design of Parallel and High Performance Computing class at ETHZ. Includes two communication models for DPLL algorithm that could be combined with local CDCL. If you want to find out more about communication models or other techniques that we have used please refer to our final [report](https://github.com/limo1996/SAT-Solver/blob/master/report/report.pdf)
 
 ## Build
-Please follow these steps in order to successfully compile source code:
-1. Open terminal and navigate to directory where you want to store the repository
+Please follow these steps in order to successfully compile the source code:
+1. Open a terminal and navigate to the directory where you want to store the repository
 2. ```git clone https://github.com/limo1996/SAT-Solver.git```
 3. ```cd SAT-Solver```
 4. ```cmake .```
@@ -12,9 +12,9 @@ Please follow these steps in order to successfully compile source code:
 
 ## Invoking
 Three executables are available: 
-1. Sequential version of solver is named *./sequential_main*
-2. Parallel version that uses master-worker communication pattern is named *./parallel_main*
-3. Parallel version that uses work stealing communication pattern is named *./stealing_main* and from now we will call it Stealing version
+1. The sequential version of solver is named *./sequential_main*
+2. The parallel version that uses master-worker communication pattern is named *./parallel_main*
+3. The parallel version that uses work stealing communication pattern is named *./stealing_main* and from now we will call it Stealing version
 
 ## Usage
 ### Usage of sequential version:
@@ -47,8 +47,10 @@ Example usage of stealing version:
 ```
 
 ## Testing
-We have developed testing python wrapper whose documentation can be found [here](https://github.com/limo1996/SAT-Solver/blob/master/python_wrapper/README.md)
+We have developed a testing python wrapper whose documentation can be found [here](python_wrapper/README.md)
+The python wrapper can also be used to run the solver on the Euler Supercompute Cluster of ETH.
 
 ## Results
   * Final report in pdf format can be found [here](https://github.com/limo1996/SAT-Solver/blob/master/report/report.pdf).
   * Performance graphs can be found [here](https://github.com/limo1996/SAT-Solver/tree/master/results)
+  and [here](report/figures).

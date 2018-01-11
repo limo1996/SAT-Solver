@@ -12,8 +12,11 @@
 #include "variable.h"
 #include "internal_types.h"
 
+/**
+ * Represents a clause in a CNF formula
+ */
 class Clause {
-private:                            /* class clause contains */
+private:
     VariableSet var;		/* a set of variables */
 public:
     explicit Clause(VariableSet _var);

@@ -1,13 +1,13 @@
 //
-//  State.hpp
+//  Model.h
 //  SAT-Solver
 //
 //  Created by Jakub Lichman on 10/26/17.
 //  Copyright © 2017 Jakub Lichman. All rights reserved.
 //
 
-#ifndef State_hpp
-#define State_hpp
+#ifndef Model_h_
+#define Model_h_
 
 /*
  Data class that stores assignments of variables in formula.
@@ -24,4 +24,4 @@ public:
     void set_variables(unsigned * variables, unsigned size);        // sets variables and its size
 };
 
-#endif /* State_hpp */
+#endif /* Model_h_ */

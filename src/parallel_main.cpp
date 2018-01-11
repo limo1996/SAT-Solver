@@ -17,7 +17,7 @@ void default_args(map<string, string> *arg_map) {
 }
 
 /**
- * Main entry point to parallel version.
+ * Main entry point of parallel version.
  */
 int main(int argc, char *argv[]) {
     char *path = argv[argc - 1];

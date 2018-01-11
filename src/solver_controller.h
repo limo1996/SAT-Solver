@@ -8,7 +8,10 @@
 #include "solver.h"
 #include "cdcl.h"
 
-class SolverController {
+/**
+ * Solver implementation that picks CDCL or DPLL depending on the provided config
+ */
+class SolverController: public Solver {
 private:
     Solver *solver;
 public:

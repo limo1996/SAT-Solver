@@ -17,7 +17,10 @@
 #include "CNF.h"
 #include "internal_types.h"
 
-class CNFParser {                           /* class CNFparse used to parse a .cnf file using dimacs format ,contains*/
+/**
+ * Used to parse a .cnf file in the dimacs format
+ */
+class CNFParser {
 private:
     VariableSet var;				/* a set of variables */
     ClauseSet Clauses;				/* a set of clauses */

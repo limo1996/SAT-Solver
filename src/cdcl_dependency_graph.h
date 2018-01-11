@@ -9,6 +9,10 @@
 #include <unordered_map>
 #include "variable.h"
 
+/**
+ * CDCL dependency graph implementation
+ */
+
 class Literal;
 typedef std::unordered_set<Literal *> LiteralSet;
 
@@ -30,7 +34,7 @@ public:
     unsigned hash();
     unsigned negative_hash();
     static unsigned hash(Variable *v);
-    static unsigned negative_hash(Variable *v);
+    static unsigned negation_hash(Variable *v);
 };
 
 class DecisionLiteral : public Literal {
