@@ -288,16 +288,16 @@ There we were lucky enough to reach the final solution with less iterations than
 \begin{figure}[h!]
     \centering
     \includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
-    \caption{Average overall waiting time of workers per cnf in the parallel version.
+    \caption{Average overall waiting time of workers per cnf in the master worker model.
     All waiting times per worker are summed up.
     The 95\% confidence interval are shown as error bars.}
     \label{fig:dpll_parallel_waiting}
 \end{figure}
 \begin{table}[h!]
     \centering
-    \begin{tabular}{|l|c|c|}
+    \begin{tabularx}{\columnwidth}{|X|c|c|}
         \hline
-        Formula & seq. runtime [ms] & \# vars/clauses \\
+        Formula & seq. runtime [ms] & \# vars/clauses\\
         \hline
         \hline
         uf50-01 (sat) & 7'890.9 $\pm$ 44.31 & 50/218\\
@@ -312,7 +312,7 @@ There we were lucky enough to reach the final solution with less iterations than
         \hline
         uuf50-01 (unsat) & 13'404.2 $\pm$ 102.94 & 50/218\\
         \hline
-    \end{tabular}
+    \end{tabularx}
     \caption{Overview of sequential runtime of benchmark subset formulas.
     The second column shows the average runtime with the 95 percentiles.}
     \label{tab:cnfs_representatives}
@@ -434,9 +434,29 @@ For some formulas we were even able to outperform our sequential CDCL implementa
 \section{Appendix}
 This section contains additional information that is not strictly part of the report.
 
+\mypar{Benchmark Formulas}
+Table \ref{tab:benchmark_set} contains a list and description of the formulas that we used as our benchmark set.
+
+\mypar{Master Worker}
+The analogous plots to Figures \ref{fig:dpll_parallel_speedup} and \ref{fig:dpll_parallel_waiting} for the second subset are shown in Figures \ref{fig:dpll_parallel_speedup_non} and \ref{fig:dpll_parallel_waiting_non}.
+
+\mypar{Work Stealing}
+The analogous plots to Figures \ref{fig:dpll_stealing_speedup} and \ref{fig:dpll_stealing_waiting} for the second subset are shown in Figures \ref{fig:dpll_stealing_speedup_non} and \ref{fig:dpll_stealing_waiting_non}.
+
+\mypar{Communication Overhead}
+The analogous plot to Figure \ref{fig:comm_reduce} for the second subset is shown in Figure \ref{fig:comm_reduce_non}
+
+\mypar{CDCL}
+In Section \ref{sec:discussion} we stated that we implemented the CDCL algorithm and that it is faster than sequential DPLL on all of our benchmark formulas.
+Figure \ref{fig:dpll_vs_cdcl} shows the run times of our CDCL and our DPLL implementation.
+
+\mypar{Overall Fastest Implementation}
+In Table \ref{tab:cnfs_parallel} we list all of the benchmark formulas with the implementation that solves them in the least amount of time.
+For half of the formulas it is sequential CDCL, for the other half the master worker parallel DPLL implementation with varying number of cores.
+
 \begin{table}[h]
     \centering
-    \begin{tabularx}{\columnwidth}{|l|X|}
+    \begin{tabularx}{\columnwidth}{|p{2.6cm}|X|}
         \hline
         File names & Description\\
         \hline
@@ -445,7 +465,7 @@ This section contains additional information that is not strictly part of the re
         \hline
         ais6, ais8 & SAT-encoded All-Interval Series problems\\
         \hline
-        flat50-1, flat75-4 \\ flat 75-8 & SAT-encoded "Flat" Graph coloring problems (J. Coberson's flat graph generator is used\\
+        flat50-1, flat75-4, flat 75-8 & SAT-encoded "Flat" Graph coloring problems (J. Coberson's flat graph generator is used\\
         \hline
         ii8a1 & Inductive inference, stem from a formulation of boolean function synthesis problems\\
         \hline
@@ -460,43 +480,59 @@ This section contains additional information that is not strictly part of the re
     \label{tab:benchmark_set}
 \end{table}
 
-\begin{figure}[h]
+
+\begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_parallel_non_subset_dpll_scaling_tar.pdf}
     \caption{Average speedup of master worker parallel DPLL implementation compared to sequential DPLL.
-    The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
     Second subset.}
     \label{fig:dpll_parallel_speedup_non}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/waiting_parallel_non_subset_dpll_scaling_tar.pdf}
-    \caption{Average overall waiting time of workers per cnf in parallel version.
+    \caption{Average overall waiting time of workers per cnf in the master worker model.
     All waiting times per worker are summed up.
-    The 95\% confidence interval are shown as error bars.
     Second subset.}
     \label{fig:dpll_parallel_waiting_non}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_stealing_non_subset_dpll_scaling_tar.pdf}
-    \caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
+    \caption{Average speedup of working stealing parallel DPLL implementation compared to sequential DPLL.
     Second subset.}
     \label{fig:dpll_stealing_speedup_non}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/waiting_stealing_non_subset_dpll_scaling_tar.pdf}
+    \caption{Average overall waiting time of workers per cnf in the work stealing model.
+    All waiting times per worker are summed up.
+    Second subset.}
+    \label{fig:dpll_stealing_waiting_non}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/comm_non_subset_dpll_scaling_tar.pdf}
+    \caption{Overall amount of transferred bytes for both the master worker model and the stealing model.
+    Second subset.}
+    \label{fig:comm_reduce_non}
 \end{figure}
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl.pdf}
     \caption{DPLL vs CDCL sequential runtime. Average runtime with 95\% confidence intervals.}
-    \label{fig:dpll_stealing_speedup_non}
+    \label{fig:dpll_vs_cdcl}
 \end{figure}
 
-\begin{table}
+\begin{table}[p]
     \centering
-    \begin{tabular}{|l|l|c|}
+    \begin{tabularx}{\columnwidth}{|p{1.3cm}|X|p{2.2cm}|}
         \hline
         Formula & Best Solver Configuration & Runtime [ms]\\
         \hline
@@ -529,7 +565,7 @@ This section contains additional information that is not strictly part of the re
         \hline
         uuf50-02 & DPLL master worker 24 nodes & 148.9 $\pm$ 2.85 \\
         \hline
-    \end{tabular}
+    \end{tabularx}
     \caption{Benchmark formulas with best performing configuration.}
     \label{tab:cnfs_parallel}
 \end{table}
