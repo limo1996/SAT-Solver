@@ -19,6 +19,8 @@ HISTO_LOWER = 0
 HISTO_UPPER = 8000
 HISTO_STEP_SIZE = 500
 
+MEW = 1.75
+MS = 6
 
 class DpllVsCdcl(AbstractExperiment):
     def __init__(self):
@@ -70,12 +72,16 @@ class DpllVsCdcl(AbstractExperiment):
         plt.ylabel('Count')
         plt.show()
 
+    def _default_plt_postprocessing(self):
+        plt.tight_layout(pad=0)
+        plt.grid('grid', color='whitesmoke', linestyle='-')
+
     def _plot_scatter(self):
         markers ={'DPLL': 'o', 'CDCL': 'D'}
         color = {'DPLL': 'firebrick', 'CDCL': 'teal'}
         offsets = {'DPLL': 0.1, 'CDCL': -0.1}
         x_ticks = []
-        plt.figure(figsize=(6, 4))
+        plt.figure(figsize=(6, 3.4))
         xs = []
         for s in ['DPLL', 'CDCL']:
             xs = []
@@ -88,7 +94,7 @@ class DpllVsCdcl(AbstractExperiment):
                     continue
                 data = []
                 for t in v['time']:
-                    data.append(t)
+                    data.append(np.array(t)/1000)
                 xs.append(i + offsets[s])
                 mean = np.mean(data)
                 ys.append(mean)
@@ -110,14 +116,13 @@ class DpllVsCdcl(AbstractExperiment):
                          label=s,
                          fmt=markers[s],
                          color=color[s],
-                         markerfacecolor='none')
+                         markerfacecolor='none',
+                         mew=MEW, ms=MS)
         plt.xticks(xs, x_ticks, rotation=45, ha='right')
         plt.title('DPLL vs CDCL')
-        plt.ylabel('avg. runtime [ms]')
+        plt.ylabel('avg. runtime [s]')
         plt.legend(loc=2)
-        plt.gcf().savefig('{}/dpll_vs_cdcl_scatter.pdf'.format(self.figures_folder),
-                    format='pdf')
-        plt.tight_layout()
+        self._default_plt_postprocessing()
         f = '../../report/figures/dpll_vs_cdcl.pdf'
         plt.savefig(f, format='pdf')
         f = '../../report/figures/dpll_vs_cdcl.png'
