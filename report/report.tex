@@ -57,7 +57,7 @@
 %
 
 \begin{abstract}
-The boolean satisfiability problem (or SAT) is an interesting problem with various applications.
+The boolean satisfiability problem, or SAT for short, is an interesting problem with various applications.
 In this report we describe how we implemented and parallelized a simple SAT solver.
 We compare different parallelization variations and analyze their respective trade offs.
 We achieved linear or even super linear speedups until up to 28 CPU cores compared to our sequential implementation.
@@ -66,7 +66,7 @@ We achieved linear or even super linear speedups until up to 28 CPU cores compar
 \section{Introduction}\label{sec:intro}
 
 \mypar{Motivation}
-The boolean satisfiability problem (SAT) belongs to the most important problems in program analysis, verification and other disciplines of theoretical computer science.
+The boolean satisfiability problem (SAT) belongs to the most important problems in program analysis, verification and other disciplines of computer science.
 It is used in the background of many applications, especially ones in the field of automated planning and scheduling, model checking (formal verification) and theorem proving.
 The last decade brought many improvements to the SAT solving world in the form of advanced heuristics, pre-processing and processing techniques, and data structures that allow efficient implementations of search space pruning.
 The past 10 years were also rich in improvements in parallelism.
@@ -108,10 +108,10 @@ However a transformation would be simple and straight forward based on basic pro
 
 \mypar{SAT Solver}
 A SAT solver is a program that is able to decide whether a given formula is satisfiable.
-More formally, a given formula $F$ is satisfiable \textit{iff} there \textit{exists} an assignment of literals $\theta$ that makes the formula true.
-Such a formula $F$ is then called \textit{satisfiable}.
+More formally, a given formula $F$ is \textit{satisfiable} \textit{iff} there \textit{exists} a variable to value assignment $\theta$ that makes the formula true.
+The assignment $\theta$ is then called a model of the formula $F$.
 If there does not exits such an assignment, the formula is \textit{unsatisfiable}.
-Furthermore, a SAT solver should be able to provide a valid variable assignment in the \textit{satisfiable} case.
+Furthermore, a SAT solver should be able to provide a valid variable assignment $\theta$ in the \textit{satisfiable} case.
 
 \mypar{History}
 The first SAT solving algorithm was develop in 1960 by Martin Davis and Hilary Putnam \cite{dp}.
@@ -134,42 +134,43 @@ The backtracking search continues until a solution is found or the whole decisio
 Figure 1 shows how DPLL's decision tree could look like for a simple formula with 2 variables.
 
 \mypar{CDCL}
-Similar to DPLL the CDCL algorithm performs a depth-first search on the space of partial truth assignments.
-In addition Conflict-Driven Clause Learning (\textit{CDCL}) adopts a pruning technique called learning.
+Similar to DPLL the \textit{Conflict-Driven Clause}\linebreak\textit{Learning} (CDCL) algorithm performs a depth-first search on the space of partial variable assignments.
+In addition to DPLL, CDCL adopts a pruning technique called learning.
 In DPLL it can happen that the same combination of variable assignments results in multiple conflicts and therefore multiple unsatisfiable paths.
 CDCL remembers the variable assignments that cause a conflict and avoids them in future decisions, so to say pruning the search space.
-This learning is done by analyzing the state whenever a conflict is reached and adding clauses based on that state to the existing formula.
+This learning is done by analyzing the state whenever a conflict is reached and adding clauses based on that state to the formula.
 If a conflict cannot be resolved by backtracking, then the formula is unsatisfiable.
 If all variables are assigned and no conflict occurred, then the formula is satisfiable.
 
 \section{Parallelizing DPLL}\label{sec:parallel_dpll}
+In this section we describe how we parallelizled DPLL.
 
-DPLL is a simple backtracking algorithm that explores the search space without any advanced techniques like learning and pruning.
-As a result of this, it does not require any transfer of information between stages of solving and therefore it can be nicely parallelized.
+As a result of the simplicity of DPLL, it can be parallelized relatively easy.
 The parallelization is not trivial, but far easier than in the case of CDCL, where in addition to load balancing one would need to deal with learned clause sharing.
 
 \mypar{DPLL Branches}
 As shown in Figure \ref{fig:dpll-branching} the DPLL algorithm explores the search space with depth first search.
 Whenever there are no more variables that can be assigned trivially, one variable assignment is picked.
-That is exactly the point where we can do so called DPLL branching: one processor continues on one branch and lets some other processor solve the other branch.
+That is exactly the point where we can do so called DPLL branching: one core continues on one branch and lets some other core solve the other branch.
 We can call this point a branching point and it represents one node (or decision) in the DPLL decision tree.
+The decision and the whole subtree starting at that decision can be represented as a partial variable to value assignment, called a \textit{partial model}.
 
 The biggest challenge when using this form of branching is load balancing.
-The work cannot be split equally between workers at the beginning, because it would require knowledge of the depth of each branch.
+The work cannot be split equally between workers at the beginning, because it would require knowledge of the depth of each subtree.
 This information cannot be inferred from a formula without solving it.
 We want to avoid situations where work is not divided equally because we want to fully exploit the computing power of all cores.
 In our work we considered two approaches to load balancing.
-The first one is a master worker communication model, where one node, called \textit{master}, is in charge of storing partial models and passing them to \textit{workers} that will solve them.
-The second approach is a work stealing communication model, where each node (or \textit{worker}) runs on its own and all \textit{workers} are equal.
-If some \textit{worker} runs out of work and the formula is not solved yet, it picks a random other \textit{worker} and tries to steal a partial model from it, such that it can continue doing some work.
+The first one is a master worker communication model, where one actor, called \textit{master}, is in charge of storing partial models and passing them to \textit{workers} that will solve them.
+The second approach is a work stealing communication model, where each actor (or \textit{worker}) runs on its own and all workers are equal.
+If some worker runs out of work and the formula is not solved yet, it picks a random other worker and tries to steal a partial model from it, such that it can continue doing some work.
 
 \mypar{Master Worker Model}
 In the master worker model, the \textit{master} is one of the \textit{n} available cores and the other \textit{n-1} cores are \textit{workers}.
 At the beginning all workers are marked as free.
-The \textit{master} starts solving by passing an empty model to the first free worker.
+The master starts solving by passing an empty partial model to the first free worker.
 When a worker reaches a branching point it takes one branch and sends the other\linebreak branch as a partial model to the master.
 When the master receives a partial model, it checks whether there exists some free worker.
-If not it stores the model into its local stack.
+If not it stores the partial model into its local queue.
 Otherwise it sends it to a worker, which finished solving a branch with \textit{unsat} and therefore is free and needs more work.
 This procedure is repeated until some worker finds a \textit{sat} model and sends it to the master.
 The master then outputs the model and stops all workers.
@@ -186,15 +187,16 @@ Partial models and meta data are transferred every time a worker branches or req
 
 \mypar{Work Stealing Model}
 Because of the drawbacks mentioned above we have decided to reduce and decentralize the communication by implementing a work stealing model.
-The model treats all cores \textit{equally} and therefore there is \textit{no master}, just workers.
+The model treats all cores equally and therefore there is no master, just workers.
 All workers contain their own stacks with partial models to be processed.
 This reduces the communication overhead because all produced models are stored locally instead of sending them to and storing them at the master.
-However, the existence of this local stack breaks load balancing because some workers can work on bigger subtrees of the search space than the others.
+However, the existence of this local stack breaks load balancing because some workers can work on bigger subtrees of the search space than others.
 
-Inequalities in load balancing are resolved by a mechanism called work stealing.
+Inequalities in load balancing are resolved by a mechanism called \textit{work stealing}.
 If some worker finished its work and no other worker has solved the formula yet, than it tries to "steal" a partial model from one of the other workers.
 The process of stealing can be defined as follows:
-A worker tries to steal from a randomly selected other worker until it finds a model or until someone else has found one.
+If a worker has an empty local stack, it tries to steal from a randomly selected other worker until it finds a model or until someone else has found one.
+The stealing is always performed from the bottom of some other worker's stack, while the local solving of partial models is done from the top of the local stack.
 There are two more phases in the communication model.
 The first phase is the initial work distribution and the third one is the stopping criteria.
 In the first phase worker 0 will take the role of the master and distribute starting models to all other workers.
@@ -207,11 +209,11 @@ Our current work stealing implementation has one drawback:
 It can only handle satisfiable formulas.
 The stopping criteria in the unsatisfiable case was very trivial in the master worker model because there exists a moment when the stack at the master was empty and all workers were free.
 In the work stealing model, no such moment exits.
-We do not have a central node that controls the others and so knows in which stage each worker is and therefore we restrict ourselves just to satisfiable formulas with this communication model.
+We do not have a central actor that controls the others and so knows in which stage each worker is and therefore we restrict ourselves just to satisfiable formulas with this communication model.
 
 \mypar{Implementation}
 We implemented both communication models in C++ with the help of MPI \cite{mpi}.
-Our DPLL solver is implemented in C++ as well and therefore we can directly interact with MPI from within the solver.
+Our DPLL solver is implemented in C++ as well.
 We tried to keep the implementation of the DPLL algorithm and communication within nodes as separate as possible for better readability.
 We used \textit{vector}s from the C++ standard library to represent sets of clauses and sets of literals.
 We used \textit{unsigned int}s as variable names, and \textit{boolean} types for sign and value of the literals and variables.
@@ -222,19 +224,19 @@ We did not experience any stack overflow issues.
 We tested our sequential DPLL solver on hundreds of formulas that we either randomly generated or took over from a SATLIB formula collection. \cite{cnf_website}
 We ran each formula through z3 \cite{z3} and compared the result of z3 with our result.
 The following cases have to be considered for each test case:
-If both solvers return unsat, we pass the test case.
-If one solver returns sat and the other one unsat, we fail the test case.
-If both solvers return sat, we still need to check if the model our solver has returned is correct.
+If both solvers return \textit{unsat}, we pass the test case.
+If one solver returns \textit{sat} and the other one \textit{unsat}, we fail the test case.
+If both solvers return \textit{sat}, we still need to check if the model our solver has returned is correct.
 To do that we can conjoin the model to the original formula and again run it through z3.
 
 We ran both parallel implementations through the same set of formulas and checked correctness for each of them.
 Assuming that our sequential implementation is correct, it is straight forward that our parallel implementation is correct as well:
-we essentially solve the same set of sub problems but on different nodes and in a potentially different order.
-The difference between the parallel and stealing version is just the load balancing and not in the searched space.
+we essentially solve the same set of subproblems but on different cores and in a potentially different order.
+The difference between the master worker and work stealing model is just the load balancing and not the search space.
 Both parallel versions solve the same partial models but they are distributed over the working nodes in a different way.
 
 \section{Experimental Results}\label{sec:exp}
-In this section we are going to present our experimental results for both of our parallel DPLL models.
+In this section present our experimental results for both of our parallel DPLL models.
 
 \mypar{Experimental Setup}
 We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 cores and requested 1 Gigabyte of memory per core.
@@ -245,7 +247,7 @@ Euler contains 5 different types of nodes but each of them contains at least two
 During our correctness testing and debugging phase of the core algorithm, we realized that random formulas generated by our own random formula generator are not suitable for performance testing.
 Even if we picked formulas that contained the same amount of variables, clauses and literals per clause, we observed large variations in run time between them.
 This is caused by the completely random structure of formulas generated by our generator.
-Therefore we used a set of 14 formulas taken from a SATLIB formula collection as a benchmark set.
+Therefore we used a set of 14 formulas taken from a SATLIB formula collection as a benchmark set. \cite{cnf_website}
 The set contains different real world problems modeled as boolean formulas from various domains such as planning problems,
 all-interval series encodings, flat graph coloring, inductive inference, etc.
 Our benchmark set also contains a few random formulas that were taken from the SATLIB formula collection as well.
@@ -272,7 +274,7 @@ The overall waiting time is the sum of all waiting time periods of all workers, 
 For some real world problems the speedup is smaller.
 The small speedup is caused by the way the decision tree is traversed.
 While the sequential implementation deterministically does a depth-first search and therefore gives us some ordering guarantees,
-the parallel version sends all subbranches to the master and gives no ordering guarantees.
+the master worker implementation sends all subtrees to the master in the form of partial models and gives no ordering guarantees.
 It might happen that a worker is "close" to a solution but then receives a partial model in a completely different part of the decision tree that might be unsatisfiable all together.
 The size of the subtree where we will not find a solution depends on the structure of the formula.
 This is also the explanation why we achieved super linear speedup in some other cases:
@@ -281,16 +283,14 @@ There we were lucky enough to reach the final solution with less iterations than
 \begin{figure}[h!]
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_parallel_subset_dpll_scaling_tar.pdf}
-    \caption{Average speedup of master worker parallel DPLL implementation compared to sequential DPLL.
-    The 95\% confidence intervalls are shown as error bars but too small to be visible in some cases.
-    \label{fig:dpll_parallel_speedup}}
+    \caption{Per formula average speedup of master worker parallel DPLL implementation compared to sequential DPLL.}
+    \label{fig:dpll_parallel_speedup}
 \end{figure}
 \begin{figure}[h!]
     \centering
     \includegraphics[width=\columnwidth]{figures/waiting_parallel_subset_dpll_scaling_tar.pdf}
-    \caption{Average overall waiting time of workers per cnf in the master worker model.
-    All waiting times per worker are summed up.
-    The 95\% confidence interval are shown as error bars.}
+    \caption{Average overall waiting time of workers per formula in the master worker model.
+    All waiting times per worker are summed up.}
     \label{fig:dpll_parallel_waiting}
 \end{figure}
 \begin{table}[h!]
@@ -299,6 +299,8 @@ There we were lucky enough to reach the final solution with less iterations than
         \hline
         Formula & seq. runtime [ms] & \# vars/clauses\\
         \hline
+        \hline
+        uuf50-01 (unsat) & 13'404.2 $\pm$ 102.94 & 50/218\\
         \hline
         uf50-01 (sat) & 7'890.9 $\pm$ 44.31 & 50/218\\
         \hline
@@ -309,8 +311,6 @@ There we were lucky enough to reach the final solution with less iterations than
         flat75-4 (sat) & 26'284.6 $\pm$ 172.65 & 225/840\\
         \hline
         anomaly (sat) & 279.7 $\pm$ 6.74 & 48/261\\
-        \hline
-        uuf50-01 (unsat) & 13'404.2 $\pm$ 102.94 & 50/218\\
         \hline
     \end{tabularx}
     \caption{Overview of sequential runtime of benchmark subset formulas.
@@ -323,8 +323,8 @@ Similar to the previous comparison, we compared our parallel work stealing model
 The speedup that we achieved is shown in Figure \ref{fig:dpll_stealing_speedup}.
 With the work stealing model we achieved large speedups for a small number of cores but essentially did not gain from adding more cores after some limit.
 The reason for this is again the way how we traverse the decision tree.
-In theory we should do something that is similar to a global breath first search and local (per node) depth first search in this model.
-However because of phase 0 mentioned in Section \ref{sec:parallel_dpll}, the "global breath first" search part is not really a breath first search.
+In theory we should do something that is similar to a global breath-first search and local (per node) depth first search in this model.
+However because of phase 0 mentioned in Section \ref{sec:parallel_dpll}, the "global breath-first search" part is not really a breath-first search.
 Each worker starts in a node in the decision tree that is one level shifted inwards from the right-most subbranch of the tree.
 That means that if the formula is satisfiable, we are guaranteed that at least one worker is working on the correct subtree already after the first decision and will never solve models of the other subtree.
 
@@ -344,8 +344,7 @@ That means that if the formula is satisfiable, we are guaranteed that at least o
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/comm_subset_dpll_scaling_tar.pdf}
-    \caption{Overall amount of transferred bytes for both the master worker model and the stealing model.
-    The 95\% confidence intervalls are shown as error bars but too small to be visible for some data points.}
+    \caption{Overall amount of transferred bytes per formula for both the master worker model and the stealing model.}
     \label{fig:comm_reduce}
 \end{figure}
 
@@ -370,31 +369,31 @@ However as we discussed in the previous subsection, the amount of communication 
 Master becoming the bottleneck when adding more cores is the main factor.
 
 \section{Discussion}\label{sec:discussion}
-In this section we are going to discuss some approaches that we tried during our project but that did not work as expected or we had to stop investigating possible solutions because of time constraints.
+In this section we discuss some approaches that we tried during our project but that did not work as expected or we had to stop investigating in because of time constraints.
 
 \mypar{DPLL-CDCL Hybrid Parallel Solver}
 We have implemented a fully working CDCL solver.
-Its correctness was proven with the same testing infrastructure that we use to test our DPLL implementation.
+Its correctness was proven with the same testing infrastructure that we used to test our DPLL implementation.
 The sequential version of the CDCL solver was faster than the sequential DPLL implementation for all of our benchmark formulas.
 Quite naturally we tried to plug that solver in locally at the workers to boost the performance.
 The way we did it is the following:
-First we run DPLL in parallel (it does not matter which of the two communication patterns we pick) and we only branch a certain number of times per worker.
+First we run DPLL in parallel (it does not matter which of the two communication models we pick) and we only branch a certain number of times per worker.
 After that "branching limit" is reached we switch to CDCL and solve the whole subtree of the original decision tree locally.
 When CDCL terminates, we either found a solution or get a new model (either from the master or another worker) and solve it again with CDCL.
-This hybrid approach showed worse performance than we expected.
+This hybrid approach resulted in worse performance than we expected.
 The reason for this is the following:
 When running DPLL globally, we essentially create multiple smaller problems.
 Smaller problems for the DPLL algorithm, which means they are easier and faster to solve than the original problem for a DPLL solver.
-For the CDCL algorithm on the other hand those sub-problems are not necessary easier.
-Some of those sub problems might actually be a lot harder than the original problem,
+For the CDCL algorithm on the other hand those subproblems are not necessary easier.
+Some of those subproblems might actually be a lot harder than the original problem,
 because with the made assumption by a DPLL decision step we could add a new conflict that was not there in the original problem.
 
 We ran everything we discussed in Section \ref{sec:exp} with the hybrid parallel solver.
 We do not include any further information in this report because of space limitations.
-Overall the performance of the DPLL-CDCL hybrid solver was worse than both sequential CDCL and parallel DPLL with both of the two parallelization models.
+Overall the performance of the DPLL-CDCL hybrid parallel solver was worse than both sequential CDCL and parallel DPLL with both of the two parallelization models.
 
 \section{Future Work}\label{sec:futureWork}
-In this section we are going to discuss possible extensions and improvements of our work.
+In this section we discuss possible extensions and improvements of our work.
 
 \mypar{Improvements}
 As presented in Section \ref{sec:exp} we detected several drawback in our approach during the evaluation and measurements phase of our project.
@@ -418,9 +417,9 @@ It would require sharing of learned clauses, which could be implemented by exten
 SAT solving is after six decades of intensive research still a hot topic in computer science.
 In our approach we tried to leverage more processor cores to get more computing power for solving SAT problems.
 We parallelized the DPLL algorithm with two different communication models.
-A master worker model with a central management node (the master) and a work stealing model where we try to reduce the communication overhead to a minimum.
+A master worker model with a central management actor (the master) and a work stealing model where we try to reduce the communication overhead to a minimum.
 Even though we identified deficiencies in both of our models we were still able to outperform our sequential DPLL implementation with both models.
-For some formulas we were even able to outperform our sequential CDCL implementation.
+For some input formulas we were even able to outperform our sequential CDCL implementation.
 %We also investigated in a hybrid approach with global DPLL and local CDCL, which unfortunately did not bring the desired performance increase.
 
 % References should be produced using the bibtex program from suitable
@@ -433,6 +432,10 @@ For some formulas we were even able to outperform our sequential CDCL implementa
 \newpage
 \section{Appendix}
 This section contains additional information that is not strictly part of the report.
+
+\mypar{Source Code Repository}
+All of our solver, benchmarking and plotting source code can be found in he following github repository:
+\textit{https://github.com/limo1996/}\newline\textit{SAT-Solver/releases/tag/project-submission}
 
 \mypar{Benchmark Formulas}
 Table \ref{tab:benchmark_set} contains a list and description of the formulas that we used as our benchmark set.
@@ -448,7 +451,7 @@ The analogous plot to Figure \ref{fig:comm_reduce} for the second subset is show
 
 \mypar{CDCL}
 In Section \ref{sec:discussion} we stated that we implemented the CDCL algorithm and that it is faster than sequential DPLL on all of our benchmark formulas.
-Figure \ref{fig:dpll_vs_cdcl} shows the run times of our CDCL and our DPLL implementation.
+Figure \ref{fig:dpll_vs_cdcl} shows the run times of our CDCL and our DPLL implementation for all formulas in of our benchmark set.
 
 \mypar{Overall Fastest Implementation}
 In Table \ref{tab:cnfs_parallel} we list all of the benchmark formulas with the implementation that solves them in the least amount of time.
@@ -492,7 +495,7 @@ For half of the formulas it is sequential CDCL, for the other half the master wo
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/waiting_parallel_non_subset_dpll_scaling_tar.pdf}
-    \caption{Average overall waiting time of workers per cnf in the master worker model.
+    \caption{Average overall waiting time of workers per formula in the master worker model.
     All waiting times per worker are summed up.
     Second subset.}
     \label{fig:dpll_parallel_waiting_non}
@@ -509,7 +512,7 @@ For half of the formulas it is sequential CDCL, for the other half the master wo
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/waiting_stealing_non_subset_dpll_scaling_tar.pdf}
-    \caption{Average overall waiting time of workers per cnf in the work stealing model.
+    \caption{Average overall waiting time of workers per formula in the work stealing model.
     All waiting times per worker are summed up.
     Second subset.}
     \label{fig:dpll_stealing_waiting_non}
@@ -518,15 +521,15 @@ For half of the formulas it is sequential CDCL, for the other half the master wo
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/comm_non_subset_dpll_scaling_tar.pdf}
-    \caption{Overall amount of transferred bytes for both the master worker model and the stealing model.
+    \caption{Overall amount of transferred bytes per formula for both the master worker model and the stealing model.
     Second subset.}
     \label{fig:comm_reduce_non}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/dpll_vs_cdcl.pdf}
-    \caption{DPLL vs CDCL sequential runtime. Average runtime with 95\% confidence intervals.}
+    \caption{Average runtimes of DPLL and CDCL.}
     \label{fig:dpll_vs_cdcl}
 \end{figure}
 
@@ -566,7 +569,8 @@ For half of the formulas it is sequential CDCL, for the other half the master wo
         uuf50-02 & DPLL master worker 24 nodes & 148.9 $\pm$ 2.85 \\
         \hline
     \end{tabularx}
-    \caption{Benchmark formulas with best performing configuration.}
+    \caption{Benchmark formulas with best performing configuration.
+    The third column shows the average runtime with the 95 percentiles.}
     \label{tab:cnfs_parallel}
 \end{table}
 

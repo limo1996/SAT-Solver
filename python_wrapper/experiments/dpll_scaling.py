@@ -124,12 +124,13 @@ class DpllScaling(AbstractExperiment):
                                    legend=set[f])
             plt.title('Speedup - {} {}'.format(NAME_MAP[p], NAME_POST_FIX))
             plt.xlabel('# cores')
-            plt.ylabel('Speedup')
+            plt.ylabel('Avg. speedup\nwith 95 % conf. intervals')
             handles, labels = ax.get_legend_handles_labels()
 
             if p == 'parallel':
-                handles = [handles[0]] + [handles[-1]] + handles[1:-1]
-                labels = [labels[0]] + [labels[-1]] + labels[1:-1]
+                handles = [handles[0], handles[-1]] + [handles[1]] + \
+                    handles[2:-1]
+                labels = [labels[0], labels[-1]] + [labels[1]] + labels[2:-1]
             h = handles.pop(0)
             handles.append(h)
             l = labels.pop(0)
@@ -143,8 +144,11 @@ class DpllScaling(AbstractExperiment):
 
     def waiting_plots(self, set, key):
         tar = self.data['tar'].replace('.', '_')
+        fig_height = FIG_HEIGHT_SMALL
+        if key == 'non_subset':
+            fig_height = FIG_HEIGHT
         for p in ['parallel', 'stealing']:
-            figure = plt.figure(figsize=(FIG_WIDTH, FIG_HEIGHT_SMALL))
+            figure = plt.figure(figsize=(FIG_WIDTH, fig_height))
             ax = figure.add_subplot(1, 1, 1)
             for f in range(len(set)):
                 self._plot_waiting(self.data[set[f]], p, ax,
@@ -153,11 +157,12 @@ class DpllScaling(AbstractExperiment):
             plt.title('Overall Waiting Time per Formula - {} {}'.format(
                 NAME_MAP[p], NAME_POST_FIX))
             plt.xlabel('# cores')
-            plt.ylabel('Avg. overall waiting time [s]')
+            plt.ylabel('Avg. overall waiting time [s]\nwith 95 conf. '
+                       'intervals')
             handles, labels = ax.get_legend_handles_labels()
             if p == 'parallel':
-                handles = [handles[0]] + [handles[-1]] + handles[1:-1]
-                labels = [labels[0]] + [labels[-1]] + labels[1:-1]
+                handles = [handles[-1]] + [handles[0]] + handles[1:-1]
+                labels = [labels[-1]] + [labels[0]] + labels[1:-1]
             plt.legend(handles, labels)
             self._default_plt_postprocessing()
             f = '../../report/figures/waiting_{}_{}_{}.pdf'.format(p, key, tar)
@@ -179,11 +184,12 @@ class DpllScaling(AbstractExperiment):
             ax.set_title('Communication - {} {}'.format(
                 NAME_MAP[p], NAME_POST_FIX))
             ax.set_xlabel('# cores')
-            ax.set_ylabel('Avg. communication [bytes]')
+            ax.set_ylabel('Avg. communication [bytes]\nwith 95% conf. '
+                          'intervals')
             handles, labels = ax.get_legend_handles_labels()
             if p == 'parallel':
-                handles = [handles[0]] + [handles[-1]] + handles[1:-1]
-                labels = [labels[0]] + [labels[-1]] + labels[1:-1]
+                handles = [handles[-1]] + [handles[0]] + handles[1:-1]
+                labels = [labels[-1]] + [labels[0]] + labels[1:-1]
             if p == 'parallel':
                 ax.set_ylim(-2500, 100000)
             else:
