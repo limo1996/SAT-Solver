@@ -68,19 +68,19 @@ We achieved linear or even super linear speedups until up to 28 CPU cores compar
 \mypar{Motivation}
 The boolean satisfiability problem (SAT) belongs to the most important problems in program analysis, verification and other disciplines of computer science.
 It is used in the background of many applications, especially ones in the field of automated planning and scheduling, model checking (formal verification) and theorem proving.
-The last decade brought many improvements to the SAT solving world in the form of advanced heuristics, pre-processing and processing techniques, and data structures that allow efficient implementations of search space pruning.
+The last decade brought many improvements to the SAT solving world in the form of advanced heuristics, pre-processing and processing techniques as well as data structures that allow efficient implementations of search space pruning.
 The past 10 years were also rich in improvements in parallelism.
-Current trends in computer hardware design decreased performance per processing unit and pack more units on a single processor.
+Current trends in computer hardware design decreased performance per processing unit and packed more units on a single processor.
 However, algorithms such as DPLL and CDCL were invented before the wide use of parallelism and therefore designed for sequential execution.
-Since the SAT problem is NP-complete, we consider it a good candidate to be parallelized.
+Since the SAT problem is NP-complete, we consider it as a good candidate to be parallelized.
 
 In our approach, we are trying to speed up SAT solving by running it on multiple cores with different techniques of search space partitioning.
 
 The remainder of this report is structured as follows:
 The next subsection provides related work.
 In Section \ref{sec:background} we introduce core SAT concepts.
-Section \ref{sec:parallel_dpll} explains how we parallelized DPLL and Section \ref{sec:exp} contains the experimental evaluation.
-In Sections \ref{sec:discussion}, \ref{sec:futureWork} and \ref{sec:conclusion} we talk about things that we tried that did not work out, about possible extensions to our work and conclude.
+Section \ref{sec:parallel_dpll} explains how we parallelized DPLL and Section \ref{sec:exp} contains experimental evaluation.
+In Sections \ref{sec:discussion}, \ref{sec:futureWork} and \ref{sec:conclusion} we talk about things that we tried but did not work out, about possible extensions to our work and the last section is conclusion.
 
 \mypar{Related work}
 Tomas Balyo et al. proposed the "HordeSat" solver, which can run on up to 1024 cores and is based on the CDCL algorithm.
@@ -108,13 +108,13 @@ However a transformation would be simple and straight forward based on basic pro
 
 \mypar{SAT Solver}
 A SAT solver is a program that is able to decide whether a given formula is satisfiable.
-More formally, a given formula $F$ is \textit{satisfiable} \textit{iff} there \textit{exists} a variable to value assignment $\theta$ that makes the formula true.
+More formally, a given formula $F$ is \textit{satisfiable} \textit{iff} there \textit{exists} a valid variable to value assignment $\theta$ that makes the formula true.
 The assignment $\theta$ is then called a model of the formula $F$.
 If there does not exits such an assignment, the formula is \textit{unsatisfiable}.
 Furthermore, a SAT solver should be able to provide a valid variable assignment $\theta$ in the \textit{satisfiable} case.
 
 \mypar{History}
-The first SAT solving algorithm was develop in 1960 by Martin Davis and Hilary Putnam \cite{dp}.
+The first SAT solving algorithm was developed in 1960 by Martin Davis and Hilary Putnam \cite{dp}.
 They used a resolution-based decision procedure.
 In 1962 Davis, Putnam, Logemann and Loveland developed an extension of the DP algorithm, the DPLL algorithm.
 DPLL is a back-tracking-based search algorithm that still forms the basis for many extensions and implementations of SAT solvers.
@@ -161,7 +161,7 @@ This information cannot be inferred from a formula without solving it.
 We want to avoid situations where work is not divided equally because we want to fully exploit the computing power of all cores.
 In our work we considered two approaches to load balancing.
 The first one is a master worker communication model, where one actor, called \textit{master}, is in charge of storing partial models and passing them to \textit{workers} that will solve them.
-The second approach is a work stealing communication model, where each actor (or \textit{worker}) runs on its own and all workers are equal.
+The second approach is a work stealing communication model, where each actor called \textit{worker} runs on its own and all workers are equal.
 If some worker runs out of work and the formula is not solved yet, it picks a random other worker and tries to steal a partial model from it, such that it can continue doing some work.
 
 \mypar{Master Worker Model}
@@ -181,7 +181,7 @@ The first of them is the lack of one core.
 In the master worker model, one core (the master) is only used as a manager and therefore this core is not actually doing any computation.
 The next issue is related to scaling.
 The master can become a bottleneck with a certain number of cores, because there is too much communication it needs to process.
-As a result workers need to wait longer for getting new partial models.
+As a result, workers need to wait longer for getting new partial models.
 The last problem is also related to the amount of communication in this model.
 Partial models and meta data are transferred every time a worker branches or requests a new partial model.
 
@@ -190,7 +190,7 @@ Because of the drawbacks mentioned above we have decided to reduce and decentral
 The model treats all cores equally and therefore there is no master, just workers.
 All workers contain their own stacks with partial models to be processed.
 This reduces the communication overhead because all produced models are stored locally instead of sending them to and storing them at the master.
-However, the existence of this local stack breaks load balancing because some workers can work on bigger subtrees of the search space than others.
+However, the existence of this local stack breaks load balancing because some workers can work on bigger subtrees of the search space than the others.
 
 Inequalities in load balancing are resolved by a mechanism called \textit{work stealing}.
 If some worker finished its work and no other worker has solved the formula yet, than it tries to "steal" a partial model from one of the other workers.
@@ -236,7 +236,7 @@ The difference between the master worker and work stealing model is just the loa
 Both parallel versions solve the same partial models but they are distributed over the working nodes in a different way.
 
 \section{Experimental Results}\label{sec:exp}
-In this section present our experimental results for both of our parallel DPLL models.
+In this section we present our experimental results for both of our parallel DPLL models.
 
 \mypar{Experimental Setup}
 We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 cores and requested 1 Gigabyte of memory per core.
@@ -390,7 +390,7 @@ because with the made assumption by a DPLL decision step we could add a new conf
 
 We ran everything we discussed in Section \ref{sec:exp} with the hybrid parallel solver.
 We do not include any further information in this report because of space limitations.
-Overall the performance of the DPLL-CDCL hybrid parallel solver was worse than both sequential CDCL and parallel DPLL with both of the two parallelization models.
+Overall, the performance of the DPLL-CDCL hybrid parallel solver was worse than both sequential CDCL and parallel DPLL with both of the two parallelization models.
 
 \section{Future Work}\label{sec:futureWork}
 In this section we discuss possible extensions and improvements of our work.
@@ -417,7 +417,7 @@ It would require sharing of learned clauses, which could be implemented by exten
 SAT solving is after six decades of intensive research still a hot topic in computer science.
 In our approach we tried to leverage more processor cores to get more computing power for solving SAT problems.
 We parallelized the DPLL algorithm with two different communication models.
-A master worker model with a central management actor (the master) and a work stealing model where we try to reduce the communication overhead to a minimum.
+A master worker model with a central managing actor (the master) and a work stealing model where we tried to reduce the communication overhead to a minimum.
 Even though we identified deficiencies in both of our models we were still able to outperform our sequential DPLL implementation with both models.
 For some input formulas we were even able to outperform our sequential CDCL implementation.
 %We also investigated in a hybrid approach with global DPLL and local CDCL, which unfortunately did not bring the desired performance increase.
