@@ -60,7 +60,7 @@
 The boolean satisfiability problem, or SAT for short, is an interesting problem with various applications.
 In this report we describe how we implemented and parallelized a simple SAT solver.
 We compare different parallelization variations and analyze their respective trade offs.
-We achieved linear or even super linear speedups until up to 28 CPU cores compared to our sequential implementation.
+We achieved linear or even super linear speedups until up to 32 CPU cores compared to our sequential implementation.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
@@ -70,7 +70,7 @@ The boolean satisfiability problem (SAT) belongs to the most important problems 
 It is used in the background of many applications, especially ones in the field of automated planning and scheduling, model checking (formal verification) and theorem proving.
 The last decade brought many improvements to the SAT solving world in the form of advanced heuristics, pre-processing and processing techniques as well as data structures that allow efficient implementations of search space pruning.
 The past 10 years were also rich in improvements in parallelism.
-Current trends in computer hardware design decreased performance per processing unit and packed more units on a single processor.
+Current trends in computer hardware design decrease performance per processing unit and pack more units on a single processor.
 However, algorithms such as DPLL and CDCL were invented before the wide use of parallelism and therefore designed for sequential execution.
 Since the SAT problem is NP-complete, we consider it as a good candidate to be parallelized.
 
@@ -79,8 +79,8 @@ In our approach, we are trying to speed up SAT solving by running it on multiple
 The remainder of this report is structured as follows:
 The next subsection provides related work.
 In Section \ref{sec:background} we introduce core SAT concepts.
-Section \ref{sec:parallel_dpll} explains how we parallelized DPLL and Section \ref{sec:exp} contains experimental evaluation.
-In Sections \ref{sec:discussion}, \ref{sec:futureWork} and \ref{sec:conclusion} we talk about things that we tried but did not work out, about possible extensions to our work and the last section is conclusion.
+Section \ref{sec:parallel_dpll} explains how we parallelized DPLL and Section \ref{sec:exp} contains the experimental evaluation.
+In Sections \ref{sec:discussion}, \ref{sec:futureWork} and \ref{sec:conclusion} we talk about things that we tried but that did not work out, about possible extensions to our work and the last section is the conclusion.
 
 \mypar{Related work}
 Tomas Balyo et al. proposed the "HordeSat" solver, which can run on up to 1024 cores and is based on the CDCL algorithm.
@@ -100,8 +100,8 @@ Our DPLL search space partitioning is similar to what they proposed, but our sol
 \mypar{CNF}
 A \textit{boolean variable} is a variable that can hold either \textit{true} or \textit{false} as a value.
 A \textit{literal} of a boolean variable $x$ is either the positive variable $x$ or its negation $\overline{x}$.
-A \textit{clause} is a disjunction (OR) of literals.
-A formula in \textit{conjunctive normal form} (CNF) is a conjunction of such clauses.
+A \textit{clause} is a disjunction ($\lor$) of literals.
+A formula in \textit{conjunctive normal form} (CNF) is a conjunction ($\land$) of such clauses.
 Every propositional logic formula can be transformed into an equivalent formula in conjunctive normal form.
 For the sake of this report we assume that the formula is already in the CNF format.
 However a transformation would be simple and straight forward based on basic propositional logic equivalence rules.
@@ -143,9 +143,9 @@ If a conflict cannot be resolved by backtracking, then the formula is unsatisfia
 If all variables are assigned and no conflict occurred, then the formula is satisfiable.
 
 \section{Parallelizing DPLL}\label{sec:parallel_dpll}
-In this section we describe how we parallelizled DPLL.
+In this section we describe how we parallelized DPLL.
 
-As a result of the simplicity of DPLL, it can be parallelized relatively easy.
+As a result of the simplicity of DPLL, it can be parallelized relatively easily.
 The parallelization is not trivial, but far easier than in the case of CDCL, where in addition to load balancing one would need to deal with learned clause sharing.
 
 \mypar{DPLL Branches}
@@ -214,7 +214,7 @@ We do not have a central actor that controls the others and so knows in which st
 \mypar{Implementation}
 We implemented both communication models in C++ with the help of MPI \cite{mpi}.
 Our DPLL solver is implemented in C++ as well.
-We tried to keep the implementation of the DPLL algorithm and communication within nodes as separate as possible for better readability.
+We tried to keep the implementation of the DPLL algorithm and the communication as separate as possible for better readability.
 We used \textit{vector}s from the C++ standard library to represent sets of clauses and sets of literals.
 We used \textit{unsigned int}s as variable names, and \textit{boolean} types for sign and value of the literals and variables.
 To implement the backtracking algorithm we used recursion, but we allocate all necessary data structures on the heap.
@@ -233,7 +233,7 @@ We ran both parallel implementations through the same set of formulas and checke
 Assuming that our sequential implementation is correct, it is straight forward that our parallel implementation is correct as well:
 we essentially solve the same set of subproblems but on different cores and in a potentially different order.
 The difference between the master worker and work stealing model is just the load balancing and not the search space.
-Both parallel versions solve the same partial models but they are distributed over the working nodes in a different way.
+Both parallel versions solve the same partial models but they are distributed over the workers in a different way.
 
 \section{Experimental Results}\label{sec:exp}
 In this section we present our experimental results for both of our parallel DPLL models.
@@ -266,7 +266,7 @@ Note that the best speedup in this subset is achieved for the randomly generated
 For the random formulas it is easy to explain why the speedup goes down with more than 32 cores.
 The decrease is caused by moments in the solving process where the master is no longer able to serve all the workers at the same time.
 Therefore some workers have to wait longer to obtain the next partial model.
-This problem starts to occur when the number of cores is larger than 30.
+This problem starts to occur when the number of cores is larger than 28.
 The overall average waiting time of all workers, shown in Figure \ref{fig:dpll_parallel_waiting}, shows this problem.
 The waiting time is considered to be the time that some worker spends waiting for a new partial model from the master.
 The overall waiting time is the sum of all waiting time periods of all workers, averaged over different runs of the same formula.
@@ -323,9 +323,9 @@ Similar to the previous comparison, we compared our parallel work stealing model
 The speedup that we achieved is shown in Figure \ref{fig:dpll_stealing_speedup}.
 With the work stealing model we achieved large speedups for a small number of cores but essentially did not gain from adding more cores after some limit.
 The reason for this is again the way how we traverse the decision tree.
-In theory we should do something that is similar to a global breath-first search and local (per node) depth first search in this model.
+In theory we should do something that is similar to a global breath-first search and local (per worker) depth-first search in this model.
 However because of phase 0 mentioned in Section \ref{sec:parallel_dpll}, the "global breath-first search" part is not really a breath-first search.
-Each worker starts in a node in the decision tree that is one level shifted inwards from the right-most subbranch of the tree.
+Each worker starts in a node in the decision tree that is one level shifted inwards from the right-most branch of the tree.
 That means that if the formula is satisfiable, we are guaranteed that at least one worker is working on the correct subtree already after the first decision and will never solve models of the other subtree.
 
 \begin{figure}[p]
@@ -337,14 +337,14 @@ That means that if the formula is satisfiable, we are guaranteed that at least o
 \begin{figure}[p]
 	\centering
 	\includegraphics[width=\columnwidth]{figures/waiting_stealing_subset_dpll_scaling_tar.pdf}
-	\caption{Average overall waiting time of workers per cnf in the work stealing model.
+	\caption{Average overall waiting time of workers per formula in the work stealing model.
 		All waiting times per worker are summed up.}
 	\label{fig:dpll_stealing_waiting}
 \end{figure}
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/comm_subset_dpll_scaling_tar.pdf}
-    \caption{Overall amount of transferred bytes per formula for both the master worker model and the stealing model.}
+    \caption{Overall amount of transferred bytes per formula for both the master worker model and the work stealing model.}
     \label{fig:comm_reduce}
 \end{figure}
 
@@ -441,17 +441,17 @@ All of our solver, benchmarking and plotting source code can be found in he foll
 Table \ref{tab:benchmark_set} contains a list and description of the formulas that we used as our benchmark set.
 
 \mypar{Master Worker}
-The analogous plots to Figures \ref{fig:dpll_parallel_speedup} and \ref{fig:dpll_parallel_waiting} for the second subset are shown in Figures \ref{fig:dpll_parallel_speedup_non} and \ref{fig:dpll_parallel_waiting_non}.
+The analogous plots to Figures \ref{fig:dpll_parallel_speedup} and \ref{fig:dpll_parallel_waiting} for the second benchmark subset are shown in Figures \ref{fig:dpll_parallel_speedup_non} and \ref{fig:dpll_parallel_waiting_non}.
 
 \mypar{Work Stealing}
-The analogous plots to Figures \ref{fig:dpll_stealing_speedup} and \ref{fig:dpll_stealing_waiting} for the second subset are shown in Figures \ref{fig:dpll_stealing_speedup_non} and \ref{fig:dpll_stealing_waiting_non}.
+The analogous plots to Figures \ref{fig:dpll_stealing_speedup} and \ref{fig:dpll_stealing_waiting} for the second benchmark subset are shown in Figures \ref{fig:dpll_stealing_speedup_non} and \ref{fig:dpll_stealing_waiting_non}.
 
 \mypar{Communication Overhead}
-The analogous plot to Figure \ref{fig:comm_reduce} for the second subset is shown in Figure \ref{fig:comm_reduce_non}
+The analogous plot to Figure \ref{fig:comm_reduce} for the second benchmark subset is shown in Figure \ref{fig:comm_reduce_non}
 
 \mypar{CDCL}
 In Section \ref{sec:discussion} we stated that we implemented the CDCL algorithm and that it is faster than sequential DPLL on all of our benchmark formulas.
-Figure \ref{fig:dpll_vs_cdcl} shows the run times of our CDCL and our DPLL implementation for all formulas in of our benchmark set.
+Figure \ref{fig:dpll_vs_cdcl} shows the run times of our CDCL and our DPLL implementation for all formulas of our benchmark set.
 
 \mypar{Overall Fastest Implementation}
 In Table \ref{tab:cnfs_parallel} we list all of the benchmark formulas with the implementation that solves them in the least amount of time.
@@ -464,15 +464,15 @@ For half of the formulas it is sequential CDCL, for the other half the master wo
         File names & Description\\
         \hline
         \hline
-        anomaly, medium & SAT-encoded blocks world planning problems\\
+        anomaly, medium & SAT-encoded blocks world planning problems, satisfiable\\
         \hline
-        ais6, ais8 & SAT-encoded All-Interval Series problems\\
+        ais6, ais8 & SAT-encoded All-Interval Series problems, satisfiable\\
         \hline
-        flat50-1, flat75-4, flat 75-8 & SAT-encoded "Flat" Graph coloring problems (J. Coberson's flat graph generator is used\\
+        flat50-1, flat75-4, flat 75-8 & SAT-encoded "Flat" Graph coloring problems (J. Coberson's flat graph generator is used), satisfiable\\
         \hline
-        ii8a1 & Inductive inference, stem from a formulation of boolean function synthesis problems\\
+        ii8a1 & Inductive inference, stem from a formulation of boolean function synthesis problems, satisfiable\\
         \hline
-        par8-1-c, par8-4- & Instances for learning the paritiy function\\
+        par8-1-c, par8-4- & Instances for learning the parity function, satisfiable\\
         \hline
         uf50-01, uf75-01 & Uniform random 3-sat, satisfiable\\
         \hline
@@ -521,7 +521,7 @@ For half of the formulas it is sequential CDCL, for the other half the master wo
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/comm_non_subset_dpll_scaling_tar.pdf}
-    \caption{Overall amount of transferred bytes per formula for both the master worker model and the stealing model.
+    \caption{Overall amount of transferred bytes per formula for both the master worker model and the work stealing model.
     Second subset.}
     \label{fig:comm_reduce_non}
 \end{figure}
