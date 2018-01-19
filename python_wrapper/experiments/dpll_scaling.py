@@ -124,7 +124,7 @@ class DpllScaling(AbstractExperiment):
                                    legend=set[f])
             plt.title('Speedup - {} {}'.format(NAME_MAP[p], NAME_POST_FIX))
             plt.xlabel('# cores')
-            plt.ylabel('Avg. speedup\nwith 95 % conf. intervals')
+            plt.ylabel('Avg. speedup\nwith 95% conf. intervals')
             handles, labels = ax.get_legend_handles_labels()
 
             if p == 'parallel':
@@ -157,7 +157,7 @@ class DpllScaling(AbstractExperiment):
             plt.title('Overall Waiting Time per Formula - {} {}'.format(
                 NAME_MAP[p], NAME_POST_FIX))
             plt.xlabel('# cores')
-            plt.ylabel('Avg. overall waiting time [s]\nwith 95 conf. '
+            plt.ylabel('Avg. overall waiting time [s]\nwith 95% conf. '
                        'intervals')
             handles, labels = ax.get_legend_handles_labels()
             if p == 'parallel':

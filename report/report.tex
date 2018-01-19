@@ -134,7 +134,7 @@ The backtracking search continues until a solution is found or the whole decisio
 Figure 1 shows how DPLL's decision tree could look like for a simple formula with 2 variables.
 
 \mypar{CDCL}
-Similar to DPLL the \textit{Conflict-Driven Clause}\linebreak\textit{Learning} (CDCL) algorithm performs a depth-first search on the space of partial variable assignments.
+Similar to DPLL, the \textit{Conflict-Driven Clause}\linebreak\textit{Learning} (CDCL) algorithm performs a depth-first search on the space of partial variable assignments.
 In addition to DPLL, CDCL adopts a pruning technique called learning.
 In DPLL it can happen that the same combination of variable assignments results in multiple conflicts and therefore multiple unsatisfiable paths.
 CDCL remembers the variable assignments that cause a conflict and avoids them in future decisions, so to say pruning the search space.
@@ -149,14 +149,14 @@ As a result of the simplicity of DPLL, it can be parallelized relatively easily.
 The parallelization is not trivial, but far easier than in the case of CDCL, where in addition to load balancing one would need to deal with learned clause sharing.
 
 \mypar{DPLL Branches}
-As shown in Figure \ref{fig:dpll-branching} the DPLL algorithm explores the search space with depth first search.
+As shown in Figure \ref{fig:dpll-branching} the DPLL algorithm explores the search space with depth-first search.
 Whenever there are no more variables that can be assigned trivially, one variable assignment is picked.
 That is exactly the point where we can do so called DPLL branching: one core continues on one branch and lets some other core solve the other branch.
 We can call this point a branching point and it represents one node (or decision) in the DPLL decision tree.
 The decision and the whole subtree starting at that decision can be represented as a partial variable to value assignment, called a \textit{partial model}.
 
 The biggest challenge when using this form of branching is load balancing.
-The work cannot be split equally between workers at the beginning, because it would require knowledge of the depth of each subtree.
+The work cannot be split equally between CPU cores at the beginning, because it would require knowledge of the depth of each subtree.
 This information cannot be inferred from a formula without solving it.
 We want to avoid situations where work is not divided equally because we want to fully exploit the computing power of all cores.
 In our work we considered two approaches to load balancing.
@@ -207,7 +207,7 @@ In our implementation, worker 0 prints the first obtained \textit{sat} model and
 
 Our current work stealing implementation has one drawback:
 It can only handle satisfiable formulas.
-The stopping criteria in the unsatisfiable case was very trivial in the master worker model because there exists a moment when the stack at the master was empty and all workers were free.
+The stopping criteria in the unsatisfiable case was very trivial in the master worker model because there exists a moment when the queue at the master was empty and all workers were free.
 In the work stealing model, no such moment exits.
 We do not have a central actor that controls the others and so knows in which stage each worker is and therefore we restrict ourselves just to satisfiable formulas with this communication model.
 
@@ -239,7 +239,7 @@ Both parallel versions solve the same partial models but they are distributed ov
 In this section we present our experimental results for both of our parallel DPLL models.
 
 \mypar{Experimental Setup}
-We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 cores and requested 1 Gigabyte of memory per core.
+We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 CPU cores and requested 1 Gigabyte of memory per core.
 48 cores was the maximum number of cores accessible to us.
 Euler contains 5 different types of nodes but each of them contains at least two 12-core Intel Xeon processors (2.5-3.7 GHz) and between 64 and 512 GB of DDR4 memory clocked at 1866, 2133 or 2666 MHz.
 
@@ -359,7 +359,7 @@ was that it should drastically reduce the amount of communication (bytes transfe
 Our experimental results prove that and they are shown in Figure \ref{fig:comm_reduce}.
 From the upper subplot in Figure \ref{fig:comm_reduce} it can be inferred that the amount of communication is quite high in the master worker model,
 but does not necessarily increase when increasing the number of cores.
-This constant behavior is caused by the fact that every worker sends every partial model it finds and that it does not directly solve, back to the master,
+This constant behavior is caused by the fact that every wor-ker sends every partial model it finds and that it does not directly solve, back to the master,
 regardless of the number of cores that are used.
 If more cores are used however, it can happen that parts of the decision tree that were not traversed with a smaller number of cores are suddenly traversed.
 In the lower subplot of Figure \ref{fig:comm_reduce} the amount of overall communication for the work stealing model is shown.
@@ -447,7 +447,7 @@ The analogous plots to Figures \ref{fig:dpll_parallel_speedup} and \ref{fig:dpll
 The analogous plots to Figures \ref{fig:dpll_stealing_speedup} and \ref{fig:dpll_stealing_waiting} for the second benchmark subset are shown in Figures \ref{fig:dpll_stealing_speedup_non} and \ref{fig:dpll_stealing_waiting_non}.
 
 \mypar{Communication Overhead}
-The analogous plot to Figure \ref{fig:comm_reduce} for the second benchmark subset is shown in Figure \ref{fig:comm_reduce_non}
+The analogous plot to Figure \ref{fig:comm_reduce} for the second benchmark subset is shown in Figure \ref{fig:comm_reduce_non}.
 
 \mypar{CDCL}
 In Section \ref{sec:discussion} we stated that we implemented the CDCL algorithm and that it is faster than sequential DPLL on all of our benchmark formulas.

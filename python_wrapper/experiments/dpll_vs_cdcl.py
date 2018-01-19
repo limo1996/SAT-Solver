@@ -120,7 +120,7 @@ class DpllVsCdcl(AbstractExperiment):
                          mew=MEW, ms=MS)
         plt.xticks(xs, x_ticks, rotation=45, ha='right')
         plt.title('DPLL vs CDCL')
-        plt.ylabel('Avg. runtime [s]\nwith 95 % conf. intervals')
+        plt.ylabel('Avg. runtime [s]\nwith 95% conf. intervals')
         plt.legend(loc=2)
         self._default_plt_postprocessing()
         f = '../../report/figures/dpll_vs_cdcl.pdf'
