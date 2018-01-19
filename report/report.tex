@@ -174,7 +174,7 @@ If not it stores the partial model into its local queue.
 Otherwise it sends it to a worker, which finished solving a branch with \textit{unsat} and therefore is free and needs more work.
 This procedure is repeated until some worker finds a \textit{sat} model and sends it to the master.
 The master then outputs the model and stops all workers.
-If no worker found a \textit{sat} model, the master has an empty stack and all workers are free, then we know that the formula is \textit{unsat}.
+If no worker found a \textit{sat} model, the master has an empty queue and all workers are free, then we know that the formula is \textit{unsat}.
 
 While the master worker model is easy to understand and implement, it comes with several drawbacks.
 The first of them is the lack of one core.
@@ -239,7 +239,7 @@ Both parallel versions solve the same partial models but they are distributed ov
 In this section we present our experimental results for both of our parallel DPLL models.
 
 \mypar{Experimental Setup}
-We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 CPU cores and requested 1 Gigabyte of memory per core.
+We ran both communication models on the Euler super compute cluster \cite{euler} on up to 48 CPU cores and requested 1 gigabyte of memory per core.
 48 cores was the maximum number of cores accessible to us.
 Euler contains 5 different types of nodes but each of them contains at least two 12-core Intel Xeon processors (2.5-3.7 GHz) and between 64 and 512 GB of DDR4 memory clocked at 1866, 2133 or 2666 MHz.
 
@@ -331,7 +331,7 @@ That means that if the formula is satisfiable, we are guaranteed that at least o
 \begin{figure}[p]
     \centering
     \includegraphics[width=\columnwidth]{figures/scaling_stealing_subset_dpll_scaling_tar.pdf}
-    \caption{Speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
+    \caption{Per formula average speedup of work stealing parallel DPLL implementation compared to sequential DPLL.
     \label{fig:dpll_stealing_speedup}}
 \end{figure}
 \begin{figure}[p]
@@ -386,7 +386,7 @@ When running DPLL globally, we essentially create multiple smaller problems.
 Smaller problems for the DPLL algorithm, which means they are easier and faster to solve than the original problem for a DPLL solver.
 For the CDCL algorithm on the other hand those subproblems are not necessary easier.
 Some of those subproblems might actually be a lot harder than the original problem,
-because with the made assumption by a DPLL decision step we could add a new conflict that was not there in the original problem.
+because with the made assumption by a DPLL decision step we could add new conflicts that were not there in the original problem.
 
 We ran everything we discussed in Section \ref{sec:exp} with the hybrid parallel solver.
 We do not include any further information in this report because of space limitations.

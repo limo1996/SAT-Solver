@@ -1,5 +1,5 @@
 # Parallel SAT Solver
-Semester project for Design of Parallel and High Performance Computing class at ETHZ. Includes two communication models for DPLL algorithm that could be combined with local CDCL. If you want to find out more about communication models or other techniques that we have used please refer to our final [report](https://github.com/limo1996/SAT-Solver/blob/master/report/report.pdf)
+Semester project for Design of Parallel and High Performance Computing class at ETHZ. Includes two communication models for DPLL algorithm that could be combined with local CDCL. If you want to find out more about communication models or other techniques that we have used please refer to our final [report](https://github.com/limo1996/SAT-Solver/blob/master/report/report.pdf).
 
 ## Build
 Please follow these steps in order to successfully compile the source code:
